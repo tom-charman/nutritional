@@ -1,10 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
 import seaborn as sns
-import sys
-import argparse
-from pathlib import Path
 from .settings import (
     RDI_GUIDELINES,
     COLOR_PALETTE,
@@ -13,118 +11,155 @@ from .settings import (
     CAL_FAT,
     ROLLING_WINDOW_DAYS,
 )
-from .data_handling import load_and_prepare_data, check_columns
+from .data_handling import check_columns
+import matplotlib.ticker as mticker
+
 
 def plot_calories_and_weight(df, plots_dir, full_date_range):
     """
-    Plots the interpolated rolling average of calories, morning weight, and
-    evening weight on a single, dual-axis chart to show correlation.
+    Plots interpolated rolling averages of calories, morning weight, and
+    evening weight on a dual-axis chart, ensuring:
+    - Only left-axis gridlines
+    - Perfectly aligned major ticks between axes
+    - Calories ticks rounded to nearest 100
+    - Weight ticks rounded to whole kg
     """
     cols = ["Energy kcal", "Weight Kg (Morning)", "Weight Kg (Evening)"]
     if not check_columns(df, cols):
         return
 
-    # 1. Resample, Interpolate, and calculate Rolling Averages
-    # dropna() is appropriate here to ensure both calories and weights have
-    # corresponding rolling values for the dual-axis plot synchronization.
-    calories_interp = df[cols[0]].resample("D").asfreq().interpolate(method="linear")
-    calories_avg = calories_interp.rolling(window=ROLLING_WINDOW_DAYS).mean().dropna()
+    # --- 1. Interpolation + Rolling Averages ---
+    calories_avg = (
+        df[cols[0]]
+        .resample("D")
+        .asfreq()
+        .interpolate("linear")
+        .rolling(window=ROLLING_WINDOW_DAYS)
+        .mean()
+        .dropna()
+    )
+    weight_m_avg = (
+        df[cols[1]]
+        .resample("D")
+        .asfreq()
+        .interpolate("linear")
+        .rolling(window=ROLLING_WINDOW_DAYS)
+        .mean()
+        .dropna()
+    )
+    weight_e_avg = (
+        df[cols[2]]
+        .resample("D")
+        .asfreq()
+        .interpolate("linear")
+        .rolling(window=ROLLING_WINDOW_DAYS)
+        .mean()
+        .dropna()
+    )
 
-    weight_m_interp = df[cols[1]].resample("D").asfreq().interpolate(method="linear")
-    weight_m_avg = weight_m_interp.rolling(window=ROLLING_WINDOW_DAYS).mean().dropna()
+    # Common index for the fill_between region
+    common_index = weight_m_avg.index.intersection(weight_e_avg.index)
+    wm = weight_m_avg.loc[common_index]
+    we = weight_e_avg.loc[common_index]
 
-    weight_e_interp = df[cols[2]].resample("D").asfreq().interpolate(method="linear")
-    weight_e_avg = weight_e_interp.rolling(window=ROLLING_WINDOW_DAYS).mean().dropna()
-
-    # 2. Set up the figure and the first axis
+    # --- 2. Figure / Axis Setup ---
     fig, ax1 = plt.subplots(figsize=(14, 7))
 
+    color_cal = COLOR_PALETTE["deep_blue"]
+    color_wt = COLOR_PALETTE["vibrant_pink"]
+
     # --- AXIS 1: CALORIES ---
-    color1 = COLOR_PALETTE["deep_blue"]
     ax1.set_xlabel("Date", fontsize=14)
     ax1.set_ylabel(
-        f"Calories ({ROLLING_WINDOW_DAYS}-day avg)",
-        color="black",
-        fontsize=14,
-        labelpad=10,
+        f"Calories ({ROLLING_WINDOW_DAYS}-day avg)", fontsize=14, color="black"
     )
-    line1 = ax1.plot(
+
+    ax1.plot(
         calories_avg.index,
         calories_avg,
-        color=color1,
+        color=color_cal,
         linewidth=3.0,
         label=f"Calories ({ROLLING_WINDOW_DAYS}-day avg)",
     )
-    ax1.tick_params(axis="y", labelcolor="black", labelsize=12)
 
-    # Set left Y-axis to be "zoomed in"
-    min_cal = calories_avg.min()
-    max_cal = calories_avg.max()
-    padding_cal = (max_cal - min_cal) * 0.1
-    if padding_cal < 50:
-        padding_cal = 50
-    ax1.set_ylim(min_cal - padding_cal, max_cal + padding_cal)
+    # --- CALORIES Y-AXIS LIMITS snapped to multiples of 100 ---
+    cal_min = calories_avg.min()
+    cal_max = calories_avg.max()
+    pad = (cal_max - cal_min) * 0.1
+    if pad < 50:
+        pad = 50
 
-    # 4. Create the second axis (ax2) sharing the x-axis
-    ax2 = ax1.twinx()
+    y1_min = (cal_min - pad) // 100 * 100
+    y1_max = ((cal_max + pad + 99) // 100) * 100
+    ax1.set_ylim(y1_min, y1_max)
+
+    # Major ticks every 100 calories
+    ax1.yaxis.set_major_locator(mticker.MultipleLocator(100))
+    ax1.tick_params(labelsize=12)
+
+    # Horizontal gridlines ONCE, from left axis only
+    ax1.grid(True, axis="y", linestyle="--", alpha=0.35)
 
     # --- AXIS 2: WEIGHT ---
-    color2 = COLOR_PALETTE["vibrant_pink"]
-    color3 = COLOR_PALETTE["rich_purple"]
-
+    ax2 = ax1.twinx()
     ax2.set_ylabel(
-        f"Weight (Kg) ({ROLLING_WINDOW_DAYS}-day avg)",
-        color="black",
-        fontsize=14,
-        labelpad=10,
+        f"Weight (Kg) ({ROLLING_WINDOW_DAYS}-day avg)", fontsize=14, color="black"
     )
 
-    line2 = ax2.plot(
+    ax2.plot(
         weight_m_avg.index,
         weight_m_avg,
-        color=color2,
-        linewidth=3.0,
+        color=color_wt,
+        linewidth=2.0,
+        linestyle="-.",
         label=f"Morning Weight ({ROLLING_WINDOW_DAYS}-day avg)",
     )
-    line3 = ax2.plot(
+
+    ax2.plot(
         weight_e_avg.index,
         weight_e_avg,
-        color=color3,
+        color=color_wt,
         linewidth=2.0,
         linestyle="--",
         label=f"Evening Weight ({ROLLING_WINDOW_DAYS}-day avg)",
     )
 
-    ax2.tick_params(axis="y", labelcolor="black", labelsize=12)
+    # Weight range snapped to whole kg
+    w_min = min(weight_m_avg.min(), weight_e_avg.min())
+    w_max = max(weight_m_avg.max(), weight_e_avg.max())
+    w_pad = max((w_max - w_min) * 0.1, 0.5)
 
-    # Set right Y-axis to be "zoomed in" to encompass both
-    min_w_m = weight_m_avg.min() if not weight_m_avg.empty else float("inf")
-    min_w_e = weight_e_avg.min() if not weight_e_avg.empty else float("inf")
-    min_w_avg = min(min_w_m, min_w_e)
+    y2_min = int(np.floor(w_min - w_pad))
+    y2_max = int(np.ceil(w_max + w_pad))
 
-    max_w_m = weight_m_avg.max() if not weight_m_avg.empty else float("-inf")
-    max_w_e = weight_e_avg.max() if not weight_e_avg.empty else float("-inf")
-    max_w_avg = max(max_w_m, max_w_e)
+    ax2.set_ylim(y2_min, y2_max)
 
-    # Only set limits if we have valid data
-    if min_w_avg != float("inf") and max_w_avg != float("-inf"):
-        padding_w = (max_w_avg - min_w_avg) * 0.1
-        if padding_w < 0.5:
-            padding_w = 0.5
-        ax2.set_ylim(min_w_avg - padding_w, max_w_avg + padding_w)
+    # Major ticks every 1 kg
+    ax2.yaxis.set_major_locator(mticker.MultipleLocator(1))
+    ax2.tick_params(labelsize=12)
 
-    # 6. Combine the legends from all axes
-    lines = line1 + line2 + line3
+    # Match RIGHT axis tick positions to LEFT via the underlying grid
+    ax2.yaxis.grid(False)  # no double gridlines
+    ax2.set_yticks(ax2.get_yticks())  # forces alignment with ax1 gridlines
+
+    # --- Fill between the two weight curves ---
+    ax2.fill_between(
+        common_index,
+        wm,
+        we,
+        color=color_wt,
+        alpha=0.1,
+        label="Weight Range",
+    )
+
+    # --- LEGEND ---
+    lines = ax1.get_lines() + ax2.get_lines()
     labels = [l.get_label() for l in lines]
     ax1.legend(lines, labels, loc="upper left", fontsize=12, frameon=False)
 
-    # 7. Format x-axis
-    # Ensure all plots use the full date range
+    # --- X AXIS formatting ---
     ax1.set_xlim(full_date_range[0], full_date_range[1])
-
-    # Use Month Name and Year format
-    date_formatter = mdates.DateFormatter("%B %Y")
-    ax1.xaxis.set_major_formatter(date_formatter)
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%B %Y"))
     ax1.xaxis.set_major_locator(mdates.AutoDateLocator())
     plt.xticks(rotation=45, ha="right")
 
