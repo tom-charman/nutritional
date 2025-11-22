@@ -27,9 +27,14 @@ jobs:
     - name: Run tests with coverage
       run: uv run pytest tests/ --cov=nutritional --cov-report=xml --cov-report=term --cov-config=.coveragerc
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+    - name: Generate coverage badge
+      uses: tj-actions/coverage-badge-py@v2
       with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
-        token: ${{ secrets.CODECOV_TOKEN }}
+        output: coverage.svg
+    
+    - name: Upload coverage badge
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-badge
+        path: coverage.svg

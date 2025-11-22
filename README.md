@@ -1,7 +1,8 @@
 # nutritional
 
 [![Tests](https://github.com/tom-charman/nutritional/actions/workflows/tests.yml/badge.svg)](https://github.com/tom-charman/nutritional/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/tom-charman/nutritional/branch/main/graph/badge.svg)](https://codecov.io/gh/tom-charman/nutritional)
+![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)
+![Python](https://img.shields.io/badge/python-3.13-blue)
 
 Interactive Plotly Dash application for visualizing nutritional data from CSV files or Google Sheets.
 
