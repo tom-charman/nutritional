@@ -2,6 +2,19 @@ local_data
 plots
 plots_interactive
 
+# Google Sheets Credentials & Secrets
+credentials/
+*.json
+!.gitkeep
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dash cache
+.dash_cache/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -4,7 +4,18 @@ Entry point for the nutritional dashboard application.
 Runs the Plotly Dash web server.
 """
 
-from nutritional.app import app
+import os  # pragma: no cover
+from pathlib import Path  # pragma: no cover
+from dotenv import load_dotenv  # pragma: no cover
+
+# Load .env file before importing app
+env_path = Path(__file__).parent.parent / '.env'  # pragma: no cover
+if env_path.exists():  # pragma: no cover
+    load_dotenv(env_path)  # pragma: no cover
+elif Path('.env').exists():  # pragma: no cover
+    load_dotenv()  # pragma: no cover
+
+from nutritional.app import app  # pragma: no cover
 
 
 def main():  # pragma: no cover

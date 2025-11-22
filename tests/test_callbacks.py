@@ -318,3 +318,57 @@ def test_update_dashboard_includes_source_info(data_dict_with_nutrients):
     assert "Data source:" in source_info
     assert "Date range:" in source_info
     assert "Records:" in source_info
+
+
+# Test load_data callback
+
+
+def test_load_data_returns_serialized_data(monkeypatch, minimal_data_dict):
+    """load_data callback should return serialized data from data source."""
+    from nutritional import callbacks
+    
+    # Mock get_data_source at the point it's used in callbacks
+    def mock_get_data_source():
+        return minimal_data_dict
+    
+    monkeypatch.setattr('nutritional.callbacks.get_data_source', mock_get_data_source)
+    
+    result = callbacks.load_data(0)
+    
+    # Should return a dict with serialized data
+    assert isinstance(result, dict)
+    assert 'dates' in result
+    assert 'data' in result
+    assert 'columns' in result
+    assert isinstance(result['dates'], list)
+
+
+def test_load_data_with_multiple_clicks(monkeypatch, minimal_data_dict):
+    """load_data should work regardless of click count."""
+    from nutritional import callbacks
+    
+    # Mock get_data_source at the point it's used in callbacks
+    def mock_get_data_source():
+        return minimal_data_dict
+    
+    monkeypatch.setattr('nutritional.callbacks.get_data_source', mock_get_data_source)
+    
+    # Test with different click counts
+    for n_clicks in [0, 1, 5, None]:
+        result = callbacks.load_data(n_clicks)
+        assert isinstance(result, dict)
+        assert 'dates' in result
+
+
+# Test set_initial_date_range callback
+
+
+def test_set_initial_date_range_with_valid_data(minimal_data_dict):
+    """set_initial_date_range should return first and last dates."""
+    from nutritional.callbacks import set_initial_date_range, serialize_data
+    
+    stored_data = serialize_data(minimal_data_dict)
+    start, end = set_initial_date_range(stored_data)
+    
+    assert start == stored_data['dates'][0]
+    assert end == stored_data['dates'][-1]

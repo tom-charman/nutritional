@@ -1,12 +1,11 @@
 [run]
 omit =
     */tests/*
-    */old_tests/*
     */__pycache__/*
-    */data_handling.py
-    */plotting.py
-    */layout.py
     .venv/*
+    demo_*.py
+source =
+    nutritional
 
 [report]
 exclude_lines =

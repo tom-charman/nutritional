@@ -177,22 +177,29 @@ def test_filter_by_date_range_with_no_matching_data(minimal_data_dict, start_dat
 # Test get_data_source
 
 
-def test_get_data_source_with_explicit_path(temp_csv_file):
+def test_get_data_source_with_explicit_path(temp_csv_file, monkeypatch):
     """get_data_source should load from explicitly provided CSV path."""
+    from nutritional import settings
+    
+    # Mock settings to disable Google Sheets priority
+    monkeypatch.setattr(settings, 'LOCAL_CSV_PATH', str(temp_csv_file))
+    monkeypatch.setattr(settings, 'GOOGLE_SHEETS_ID', None)
+    
     result = get_data_source(csv_path=str(temp_csv_file))
     
     assert result['source'] == 'CSV'
     assert len(result['dates']) > 0
 
 
-def test_get_data_source_with_nonexistent_explicit_path():
+def test_get_data_source_with_nonexistent_explicit_path(monkeypatch):
     """get_data_source with nonexistent explicit path should fall back or raise error."""
-    # If an explicit path doesn't exist and no fallback is available, it should raise
-    # However, implementation may fall back to default paths
-    try:
-        result = get_data_source(csv_path='definitely_nonexistent_file_12345.csv')
-        # If it succeeds, it found a fallback
-        assert 'dates' in result
-    except FileNotFoundError:
-        # Expected behavior if no fallback exists
-        pass
+    from nutritional import settings
+    
+    # Mock settings to ensure no fallback paths exist
+    monkeypatch.setattr(settings, 'LOCAL_CSV_PATH', None)
+    monkeypatch.setattr(settings, 'GOOGLE_SHEETS_ID', None)
+    monkeypatch.setattr(settings, 'GOOGLE_CREDENTIALS_PATH', None)
+    
+    # With no fallback, should raise FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        get_data_source(csv_path='definitely_nonexistent_file_12345.csv')

@@ -9,11 +9,13 @@ Interactive Plotly Dash application for visualizing nutritional data from CSV fi
 ## Features
 
 - 📊 **Interactive Plotly Charts**: Calories vs weight, macro breakdown, and RDI-normalized nutrients
+- ☁️ **Google Sheets Integration**: Load data directly from Google Sheets with automatic updates
 - 🔄 **Rolling Averages**: Smooth out daily fluctuations with configurable rolling windows (1, 3, 7, 14, 30 days)
 - 📅 **Date Range Filtering**: Focus on specific time periods
 - 🎨 **Responsive UI**: Bootstrap-based layout that works on desktop and mobile
 - 📈 **Summary Statistics**: At-a-glance metrics for calories, weight, and protein
 - 🔢 **NumPy-First**: Fast data processing using NumPy instead of Pandas
+- 💾 **Flexible Data Sources**: Google Sheets (primary) with CSV fallback
 
 ## Installation
 
@@ -33,7 +35,9 @@ uv sync
 
 ## Quick Start
 
-Place your CSV file in `local_data/Food - Daily.csv` or set the `LOCAL_CSV_PATH` environment variable:
+### Option 1: Using Local CSV (Quickest)
+
+Place your CSV file in `local_data/Food - Daily.csv`:
 
 ```bash
 # Run the app
@@ -41,6 +45,33 @@ uv run python -m nutritional
 
 # Open browser to http://localhost:8050
 ```
+
+### Option 2: Using Google Sheets (Recommended for Regular Use)
+
+See [Google Sheets Setup Guide](docs/google-sheets-setup.md) for detailed instructions.
+
+Quick setup:
+1. Create a Google Cloud project and enable Sheets/Drive APIs
+2. Create a service account and download credentials JSON
+3. Share your Google Sheet with the service account email
+4. Configure environment variables:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and set:
+# - GOOGLE_SHEETS_ID (from your sheet URL)
+# - GOOGLE_SHEETS_RANGE (e.g., 'Sheet1!A:Z' - which sheet and columns to read)
+# - GOOGLE_CREDENTIALS_PATH (path to your JSON file)
+```
+
+The `.env` file is automatically loaded when the app starts.
+
+**Data Source Priority:**
+- If `LOCAL_CSV_PATH` is NOT set: Google Sheets is tried first, then default CSV paths
+- If `LOCAL_CSV_PATH` IS set: CSV sources are tried first, Google Sheets as fallback
+- This allows flexibility in development (CSV) vs production (Google Sheets)
 
 ## CSV Format
 
@@ -67,7 +98,7 @@ uv run pytest tests/test_transforms.py -v
 
 ### Test Coverage
 
-The project maintains 93%+ test coverage with 156+ tests following pytest best practices:
+The project maintains 96%+ test coverage with 164+ tests following pytest best practices:
 - ✅ All tests are bare functions (no test classes)
 - ✅ Extensive use of `pytest.mark.parametrize` for comprehensive test cases
 - ✅ Shared fixtures in `conftest.py` for reusable test data
@@ -117,8 +148,8 @@ This separation ensures:
 - [x] Phase 1: NumPy data layer
 - [x] Phase 2: Plotly plotting layer
 - [x] Phase 3: Dash application
-- [ ] Phase 4: Google Sheets integration
-- [ ] Phase 5: Deployment
+- [x] Phase 4: Google Sheets integration
+- [ ] Phase 5: Deployment & Polish
 
 ## License
 

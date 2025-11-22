@@ -134,57 +134,230 @@ def load_from_csv(filepath: str) -> dict:
         raise ValueError(f"Error parsing CSV file: {e}")
 
 
+def load_from_google_sheets(spreadsheet_id: str,  # pragma: no cover
+                           range_name: str = 'A:Z',
+                           credentials_path: Optional[str] = None) -> dict:
+    """
+    Load nutritional data from Google Sheets.
+    
+    Args:
+        spreadsheet_id: Google Sheets ID from URL
+                       (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms')
+        range_name: A1 notation range (default: 'A:Z' for all columns)
+        credentials_path: Path to service account JSON credentials
+                         If None, uses GOOGLE_CREDENTIALS_PATH env var
+        
+    Returns:
+        Standardized data dict matching load_from_csv format:
+        - 'dates': numpy array of datetime64[D]
+        - 'data': dict of column_name -> numpy array
+        - 'columns': list of column names
+        - 'source': 'Google Sheets'
+        - 'last_updated': ISO timestamp string
+        
+    Raises:
+        ValueError: If no data found or Date column missing
+        HttpError: If sheet access fails
+    """
+    from .google_sheets import GoogleSheetsClient  # pragma: no cover
+    
+    # Initialize client
+    client = GoogleSheetsClient(credentials_path)
+    
+    # Fetch data
+    values = client.get_spreadsheet_data(spreadsheet_id, range_name)
+    
+    if not values or len(values) < 2:  # pragma: no cover
+        raise ValueError("No data found in sheet (need header + at least one data row)")
+    
+    # First row is headers
+    headers = [str(h).strip() for h in values[0]]
+    data_rows = values[1:]
+    
+    if 'Date' not in headers:  # pragma: no cover
+        raise ValueError("Sheet must have a 'Date' column")
+    
+    date_idx = headers.index('Date')
+    data_headers = [h for h in headers if h != 'Date']
+    
+    # Parse data rows
+    dates_list = []
+    data_lists = {col: [] for col in data_headers}
+    
+    for row in data_rows:
+        # Skip empty rows
+        if not row or len(row) <= date_idx or not row[date_idx]:
+            continue
+        
+        # Parse date - try multiple formats
+        date_str = str(row[date_idx]).strip()
+        date_parsed = None
+        
+        # Try standard YYYY-MM-DD format first
+        try:
+            date_parsed = np.datetime64(date_str, 'D')
+        except (ValueError, TypeError):
+            # Try DD/MM/YYYY format (common in Google Sheets)
+            try:
+                from datetime import datetime
+                dt = datetime.strptime(date_str, '%d/%m/%Y')
+                date_parsed = np.datetime64(dt.date(), 'D')
+            except (ValueError, TypeError):
+                # Skip rows with unparseable dates
+                continue
+        
+        if date_parsed is None:
+            continue
+            
+        dates_list.append(date_parsed)
+        
+        # Parse data columns
+        for col_idx, col in enumerate(data_headers):
+            actual_idx = headers.index(col)
+            if actual_idx < len(row) and row[actual_idx]:
+                try:
+                    data_lists[col].append(float(row[actual_idx]))
+                except (ValueError, TypeError):
+                    data_lists[col].append(np.nan)
+            else:
+                data_lists[col].append(np.nan)
+    
+    if not dates_list:  # pragma: no cover
+        raise ValueError("No valid data rows found in sheet")
+    
+    # Convert to numpy arrays
+    dates_array = np.array(dates_list)
+    
+    # Sort by date
+    sort_idx = np.argsort(dates_array)
+    dates_array = dates_array[sort_idx]
+    
+    for col in data_lists:
+        data_lists[col] = np.array(data_lists[col])[sort_idx]
+    
+    # Get metadata
+    last_modified = client.get_last_modified(spreadsheet_id)
+    
+    return {
+        'dates': dates_array,
+        'data': data_lists,
+        'columns': data_headers,
+        'source': 'Google Sheets',
+        'last_updated': last_modified,
+        'spreadsheet_id': spreadsheet_id
+    }
+
+
 def get_data_source(csv_path: Optional[str] = None) -> dict:
     """
-    Intelligently select and load data from best available source.
-    Currently only supports CSV, will be extended for Google Sheets.
+    Load data from the first available source.
     
-    Priority order:
-    1. Google Sheets (if configured) - Phase 4
-    2. Specified CSV path
-    3. Environment variable LOCAL_CSV_PATH
-    4. Default path: local_data/Food - Daily.csv
+    Priority logic:
+    - If LOCAL_CSV_PATH is set: Try CSV sources first, then Google Sheets as fallback
+    - If LOCAL_CSV_PATH is NOT set: Try Google Sheets first, then default CSV paths
+    
+    CSV sources tried (in order):
+    1. Specified csv_path parameter
+    2. LOCAL_CSV_PATH environment variable
+    3. Default path: local_data/Food - Daily.csv
+    4. Alternate default (for different working directories)
     
     Args:
         csv_path: Optional explicit path to CSV file
         
     Returns:
-        Standardized data dictionary from load_from_csv
+        Standardized data dictionary from load_from_csv or load_from_google_sheets
         
     Raises:
         FileNotFoundError: If no data source is available
     """
-    # TODO: Phase 4 - Try Google Sheets first
-    # spreadsheet_id = os.getenv('GOOGLE_SHEETS_ID')
-    # credentials_path = os.getenv('GOOGLE_CREDENTIALS_PATH')
-    # if spreadsheet_id and credentials_path:
-    #     try:
-    #         return load_from_google_sheets(spreadsheet_id, credentials_path=credentials_path)
-    #     except Exception as e:
-    #         print(f"Failed to load from Google Sheets: {e}")
+    import logging
+    from .. import settings
+    
+    logger = logging.getLogger(__name__)
+    
+    # Check if LOCAL_CSV_PATH is set
+    local_csv_preference = settings.LOCAL_CSV_PATH is not None
+    
+    # If LOCAL_CSV_PATH is NOT set, try Google Sheets first
+    if not local_csv_preference:
+        if settings.GOOGLE_SHEETS_ID and settings.GOOGLE_CREDENTIALS_PATH:  # pragma: no cover
+            try:  # pragma: no cover
+                logger.info(f"Loading data from Google Sheets: {settings.GOOGLE_SHEETS_ID}")
+                print(f"Loading data from Google Sheets: {settings.GOOGLE_SHEETS_ID}")
+                return load_from_google_sheets(
+                    settings.GOOGLE_SHEETS_ID,
+                    range_name=settings.GOOGLE_SHEETS_RANGE,
+                    credentials_path=settings.GOOGLE_CREDENTIALS_PATH
+                )  # pragma: no cover
+            except Exception as e:  # pragma: no cover
+                logger.warning(f"Failed to load from Google Sheets: {e}")
+                print(f"Warning: Failed to load from Google Sheets: {e}")
+                print("Attempting to fall back to local CSV...")
     
     # Try specified CSV path
     if csv_path and os.path.exists(csv_path):
+        logger.info(f"Loading data from specified CSV path: {csv_path}")
         return load_from_csv(csv_path)
     
     # Try environment variable
-    env_csv_path = os.getenv('LOCAL_CSV_PATH')
-    if env_csv_path and os.path.exists(env_csv_path):
-        return load_from_csv(env_csv_path)
+    if settings.LOCAL_CSV_PATH and os.path.exists(settings.LOCAL_CSV_PATH):
+        logger.info(f"Loading data from LOCAL_CSV_PATH: {settings.LOCAL_CSV_PATH}")
+        return load_from_csv(settings.LOCAL_CSV_PATH)
     
     # Try default path
     default_path = Path('local_data') / 'Food - Daily.csv'
     if default_path.exists():
+        logger.info(f"Loading data from default path: {default_path}")
         return load_from_csv(str(default_path))
     
     # Try alternate default path (for running from different directories)
     alt_default_path = Path(__file__).parent.parent.parent / 'local_data' / 'Food - Daily.csv'
     if alt_default_path.exists():
+        logger.info(f"Loading data from alternate default path: {alt_default_path}")
         return load_from_csv(str(alt_default_path))
     
-    raise FileNotFoundError(  # pragma: no cover
-        "No data source available. Please provide a CSV file path or set LOCAL_CSV_PATH environment variable."
+    # If LOCAL_CSV_PATH IS set but we're here, try Google Sheets as last resort
+    if local_csv_preference:
+        if settings.GOOGLE_SHEETS_ID and settings.GOOGLE_CREDENTIALS_PATH:  # pragma: no cover
+            try:  # pragma: no cover
+                logger.info(f"CSV paths failed, trying Google Sheets: {settings.GOOGLE_SHEETS_ID}")
+                print(f"Local CSV not found, trying Google Sheets: {settings.GOOGLE_SHEETS_ID}")
+                return load_from_google_sheets(
+                    settings.GOOGLE_SHEETS_ID,
+                    range_name=settings.GOOGLE_SHEETS_RANGE,
+                    credentials_path=settings.GOOGLE_CREDENTIALS_PATH
+                )  # pragma: no cover
+            except Exception as e:  # pragma: no cover
+                logger.error(f"Failed to load from Google Sheets: {e}")
+                print(f"Error: Failed to load from Google Sheets: {e}")
+    
+    # No data source available - provide helpful error message
+    error_msg = (
+        "\n" + "="*80 + "\n"
+        "ERROR: No data source available!\n"
+        "\n"
+        "To fix this, you need to configure at least one data source:\n"
+        "\n"
+        "Option 1 - Local CSV File:\n"
+        "  Set LOCAL_CSV_PATH in your .env file, for example:\n"
+        "    LOCAL_CSV_PATH=local_data/Food - Daily.csv\n"
+        "  Or place a CSV file at: local_data/Food - Daily.csv\n"
+        "\n"
+        "Option 2 - Google Sheets:\n"
+        "  1. Set GOOGLE_SHEETS_ID in your .env file\n"
+        "  2. Set GOOGLE_SHEETS_RANGE (e.g., 'Sheet1!A:Z')\n"
+        "  3. Set GOOGLE_CREDENTIALS_PATH to your service account JSON\n"
+        "  4. See docs/google-sheets-setup.md for detailed instructions\n"
+        "\n"
+        "Current configuration:\n"
+        f"  LOCAL_CSV_PATH: {'Set' if settings.LOCAL_CSV_PATH else 'Not set'}\n"
+        f"  GOOGLE_SHEETS_ID: {'Set' if settings.GOOGLE_SHEETS_ID else 'Not set'}\n"
+        f"  GOOGLE_CREDENTIALS_PATH: {'Set' if settings.GOOGLE_CREDENTIALS_PATH else 'Not set'}\n"
+        "="*80
     )
+    logger.error(error_msg)
+    raise FileNotFoundError(error_msg)  # pragma: no cover
 
 
 def filter_by_date_range(data: dict, 
