@@ -2,28 +2,30 @@
 
 Loads environment variables and exposes configuration constants.
 """
+
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-env_path = Path(__file__).parent.parent / '.env'
+env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 
 # --- ENVIRONMENT VARIABLES ---
 # Google Sheets Configuration
-GOOGLE_SHEETS_ID = os.getenv('GOOGLE_SHEETS_ID')
-GOOGLE_SHEETS_RANGE = os.getenv('GOOGLE_SHEETS_RANGE', 'A:Z')  # Default to all columns
-GOOGLE_CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH')
+GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID")
+GOOGLE_SHEETS_RANGE = os.getenv("GOOGLE_SHEETS_RANGE", "A:Z")  # Default to all columns
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH")
 
 # Local CSV Configuration
-LOCAL_CSV_PATH = os.getenv('LOCAL_CSV_PATH')
+LOCAL_CSV_PATH = os.getenv("LOCAL_CSV_PATH")
 
 # App Configuration
-DASH_DEBUG = os.getenv('DASH_DEBUG', 'True').lower() == 'true'
-DASH_HOST = os.getenv('DASH_HOST', '0.0.0.0')
-DASH_PORT = int(os.getenv('DASH_PORT', '8050'))
+DASH_DEBUG = os.getenv("DASH_DEBUG", "True").lower() == "true"
+DASH_HOST = os.getenv("DASH_HOST", "0.0.0.0")
+DASH_PORT = int(os.getenv("DASH_PORT", "8050"))
 
 # --- CONFIGURATION ---
 ROLLING_WINDOW_DAYS = 7  # We'll use a 7-day rolling average to see trends

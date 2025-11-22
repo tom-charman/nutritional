@@ -1,20 +1,20 @@
 """Data handling submodule for nutritional data processing."""
 
-from .loaders import load_from_csv, get_data_source, filter_by_date_range
+from .loaders import filter_by_date_range, get_data_source, load_from_csv
 from .preprocessing import (
-    interpolate_daily,
-    rolling_average,
-    normalize_to_rdi,
     calculate_macro_calories,
     create_date_range,
     fill_missing_values,
+    interpolate_daily,
+    normalize_to_rdi,
+    rolling_average,
 )
 from .validators import (
-    validate_columns,
-    validate_date_range,
     check_data_quality,
     check_required_columns_for_plot,
     suggest_data_fixes,
+    validate_columns,
+    validate_date_range,
 )
 
 __all__ = [

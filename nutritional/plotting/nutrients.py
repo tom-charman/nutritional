@@ -3,54 +3,59 @@
 import plotly.graph_objects as go
 
 
-def create_normalized_nutrients_figure(plot_data: dict,
-                                       color_palette: dict,
-                                       rolling_window: int = 7) -> go.Figure:
+def create_normalized_nutrients_figure(
+    plot_data: dict, color_palette: dict, rolling_window: int = 7
+) -> go.Figure:
     """
     Create Plotly multi-line chart for nutrients normalized to RDI percentages.
-    
+
     Features:
     - Multiple lines, one per nutrient
     - Horizontal line at 100% (RDI target)
     - Interactive tooltips
     - Color-coded by nutrient type
-    
+
     Args:
         plot_data: Output from prepare_normalized_nutrients_data()
         color_palette: Color scheme dict
         rolling_window: Window size for display purposes
-        
+
     Returns:
         plotly.graph_objects.Figure
     """
-    dates = plot_data['dates']
-    
+    dates = plot_data["dates"]
+
     # Create figure
     fig = go.Figure()
-    
+
     # Define nutrient mapping (key in plot_data -> display name, color)
     nutrient_config = {
-        'saturated_fat_pct': ('Saturated Fat', color_palette.get('vibrant_pink', '#ef476f')),
-        'sugar_pct': ('Sugar', color_palette.get('warm_yellow', '#ffd166')),
-        'fibre_pct': ('Fibre', color_palette.get('mint_green', '#06d6a0')),
-        'salt_pct': ('Salt', color_palette.get('deep_blue', '#0077b6')),
-        'calcium_pct': ('Calcium', color_palette.get('rich_purple', '#6a4c93')),
+        "saturated_fat_pct": (
+            "Saturated Fat",
+            color_palette.get("vibrant_pink", "#ef476f"),
+        ),
+        "sugar_pct": ("Sugar", color_palette.get("warm_yellow", "#ffd166")),
+        "fibre_pct": ("Fibre", color_palette.get("mint_green", "#06d6a0")),
+        "salt_pct": ("Salt", color_palette.get("deep_blue", "#0077b6")),
+        "calcium_pct": ("Calcium", color_palette.get("rich_purple", "#6a4c93")),
     }
-    
+
     # Add a trace for each nutrient
     for key, (display_name, color) in nutrient_config.items():
         if key in plot_data:
-            fig.add_trace(go.Scatter(
-                x=dates,
-                y=plot_data[key],
-                name=display_name,
-                mode='lines',
-                line=dict(color=color, width=3),
-                hovertemplate='<b>Date:</b> %{x|%Y-%m-%d}<br>' +
-                             f'<b>{display_name}:</b> %{{y:.1f}}% of RDI<br>' +
-                             '<extra></extra>',
-            ))
-    
+            fig.add_trace(
+                go.Scatter(
+                    x=dates,
+                    y=plot_data[key],
+                    name=display_name,
+                    mode="lines",
+                    line=dict(color=color, width=3),
+                    hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
+                    + f"<b>{display_name}:</b> %{{y:.1f}}% of RDI<br>"
+                    + "<extra></extra>",
+                )
+            )
+
     # Add horizontal line at 100% RDI
     fig.add_hline(
         y=100,
@@ -61,26 +66,26 @@ def create_normalized_nutrients_figure(plot_data: dict,
         line_width=1.5,
         opacity=0.7,
     )
-    
+
     # Update layout
     fig.update_layout(
         title=f"Nutrient Intake vs RDI ({rolling_window}-day avg)",
         xaxis_title="Date",
         yaxis_title="Intake (% of RDI)",
-        hovermode='x unified',
+        hovermode="x unified",
         legend=dict(
             title="Nutrient",
             orientation="v",
             yanchor="top",
             y=1,
             xanchor="left",
-            x=1.02
+            x=1.02,
         ),
         height=600,
-        template='plotly_white',
+        template="plotly_white",
     )
-    
+
     # Set y-axis range to show from 0 to a reasonable max
-    fig.update_yaxes(rangemode='tozero')
-    
+    fig.update_yaxes(rangemode="tozero")
+
     return fig

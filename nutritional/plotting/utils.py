@@ -3,54 +3,53 @@
 import plotly.graph_objects as go
 
 
-def apply_common_layout(fig: go.Figure,
-                       title: str = None,
-                       date_range: tuple = None,
-                       height: int = 600) -> go.Figure:
+def apply_common_layout(
+    fig: go.Figure, title: str | None = None, date_range: tuple | None = None, height: int = 600
+) -> go.Figure:
     """
     Apply consistent styling to all figures.
-    
+
     Args:
         fig: Plotly figure to style
         title: Optional title override
         date_range: Optional (start_date, end_date) tuple
         height: Figure height in pixels
-        
+
     Returns:
         Modified figure with consistent styling
     """
     if title:
         fig.update_layout(title=title)
-    
+
     if date_range:
         fig.update_xaxes(range=date_range)
-    
+
     fig.update_layout(
         height=height,
-        template='plotly_white',
+        template="plotly_white",
         font=dict(family="sans-serif", size=12),
-        hovermode='x unified',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
+        hovermode="x unified",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
     )
-    
+
     fig.update_xaxes(
-        gridcolor='lightgray',
+        gridcolor="lightgray",
         showgrid=True,
     )
-    
+
     fig.update_yaxes(
-        gridcolor='lightgray',
+        gridcolor="lightgray",
         showgrid=True,
     )
-    
+
     return fig
 
 
 def create_date_selector_buttons() -> list:
     """
     Create Plotly range selector buttons for date filtering.
-    
+
     Returns:
         List of button configurations for rangeselector
     """
@@ -66,10 +65,10 @@ def create_date_selector_buttons() -> list:
 def add_date_range_selector(fig: go.Figure) -> go.Figure:
     """
     Add interactive date range selector to figure.
-    
+
     Args:
         fig: Plotly figure
-        
+
     Returns:
         Modified figure with range selector
     """
@@ -81,49 +80,48 @@ def add_date_range_selector(fig: go.Figure) -> go.Figure:
         ),
         rangeslider=dict(visible=False),
     )
-    
+
     return fig
 
 
-def format_hover_template(metric_name: str,
-                         unit: str,
-                         include_date: bool = True,
-                         precision: int = 1) -> str:
+def format_hover_template(
+    metric_name: str, unit: str, include_date: bool = True, precision: int = 1
+) -> str:
     """
     Create standardized hover template formatting.
-    
+
     Args:
         metric_name: Name of the metric to display
         unit: Unit of measurement
         include_date: Whether to include date in hover
         precision: Number of decimal places
-        
+
     Returns:
         Formatted hover template string
     """
     template = ""
-    
+
     if include_date:
         template += "<b>Date:</b> %{x|%Y-%m-%d}<br>"
-    
+
     template += f"<b>{metric_name}:</b> %{{y:.{precision}f}} {unit}<br>"
     template += "<extra></extra>"
-    
+
     return template
 
 
 def create_empty_figure(message: str = "No data available") -> go.Figure:
     """
     Create an empty figure with a message.
-    
+
     Args:
         message: Message to display
-        
+
     Returns:
         Empty Plotly figure with annotation
     """
     fig = go.Figure()
-    
+
     fig.add_annotation(
         text=message,
         xref="paper",
@@ -133,27 +131,29 @@ def create_empty_figure(message: str = "No data available") -> go.Figure:
         showarrow=False,
         font=dict(size=20, color="gray"),
     )
-    
+
     fig.update_layout(
         height=600,
-        template='plotly_white',
+        template="plotly_white",
         xaxis=dict(showgrid=False, showticklabels=False),
         yaxis=dict(showgrid=False, showticklabels=False),
     )
-    
+
     return fig
 
 
-def add_annotation(fig: go.Figure,
-                  text: str,
-                  x: float,
-                  y: float,
-                  xref: str = "x",
-                  yref: str = "y",
-                  showarrow: bool = True) -> go.Figure:
+def add_annotation(
+    fig: go.Figure,
+    text: str,
+    x: float,
+    y: float,
+    xref: str = "x",
+    yref: str = "y",
+    showarrow: bool = True,
+) -> go.Figure:
     """
     Add text annotation to figure.
-    
+
     Args:
         fig: Plotly figure
         text: Annotation text
@@ -162,7 +162,7 @@ def add_annotation(fig: go.Figure,
         xref: X reference ('x', 'paper', etc.)
         yref: Y reference ('y', 'paper', etc.)
         showarrow: Whether to show arrow pointing to location
-        
+
     Returns:
         Modified figure with annotation
     """
@@ -181,5 +181,5 @@ def add_annotation(fig: go.Figure,
         bgcolor="white",
         opacity=0.8,
     )
-    
+
     return fig

@@ -1,6 +1,6 @@
 # Nutritional App - Plotly Dash Refactor Plan
 
-**Created:** November 22, 2025  
+**Created:** November 22, 2025
 **Purpose:** Transform the current static PDF plotting tool into an interactive Plotly Dash web application with Google Sheets integration
 
 ---
@@ -124,20 +124,20 @@ Create a robust data layer that supports both CSV and Google Sheets, with NumPy-
 def load_from_csv(filepath: str) -> dict:
     """
     Load nutritional data from CSV file.
-    
+
     Returns:
         dict with keys:
             - 'dates': np.array of datetime64 objects
             - 'data': dict of {column_name: np.array}
             - 'columns': list of column names
     """
-    
+
 def load_from_google_sheets(spreadsheet_id: str, range_name: str) -> dict:
     """
     Load nutritional data from Google Sheets.
     Uses same return format as load_from_csv.
     """
-    
+
 def get_data_source() -> dict:
     """
     Intelligently select data source (Sheets -> CSV fallback).
@@ -159,24 +159,24 @@ def get_data_source() -> dict:
 def interpolate_daily(dates: np.ndarray, values: np.ndarray) -> tuple:
     """
     Resample to daily frequency and linearly interpolate missing values.
-    
+
     Returns:
         (new_dates, interpolated_values)
     """
-    
+
 def rolling_average(values: np.ndarray, window: int) -> np.ndarray:
     """
     Calculate rolling average using np.convolve or sliding window.
     Handles edge cases (start of series).
     """
-    
+
 def normalize_to_rdi(values: np.ndarray, rdi_value: float) -> np.ndarray:
     """
     Normalize values to percentage of RDI.
     Returns (values / rdi_value) * 100
     """
-    
-def calculate_macro_calories(protein_g: np.ndarray, 
+
+def calculate_macro_calories(protein_g: np.ndarray,
                              carbs_g: np.ndarray,
                              fat_g: np.ndarray,
                              saturated_fat_g: np.ndarray,
@@ -184,13 +184,13 @@ def calculate_macro_calories(protein_g: np.ndarray,
     """
     Calculate calorie contribution from each macro.
     Apply adjustment factor to match actual total calories.
-    
+
     Returns:
-        dict with keys: 'protein_cal', 'carbs_cal', 
+        dict with keys: 'protein_cal', 'carbs_cal',
                        'saturated_fat_cal', 'other_fat_cal'
     """
-    
-def create_date_range(start_date: np.datetime64, 
+
+def create_date_range(start_date: np.datetime64,
                      end_date: np.datetime64) -> np.ndarray:
     """
     Create continuous daily date range.
@@ -214,12 +214,12 @@ def validate_columns(data: dict, required_cols: list) -> tuple[bool, list]:
     Check if all required columns exist.
     Returns (is_valid, missing_columns)
     """
-    
+
 def validate_date_range(dates: np.ndarray) -> bool:
     """
     Ensure dates are sorted and within reasonable range.
     """
-    
+
 def check_data_quality(data: dict) -> dict:
     """
     Generate data quality report:
@@ -239,14 +239,14 @@ from googleapiclient.discovery import build
 
 class GoogleSheetsClient:
     """Wrapper for Google Sheets API operations."""
-    
+
     def __init__(self, credentials_path: str):
         """Initialize with service account credentials."""
-        
-    def get_spreadsheet_data(self, spreadsheet_id: str, 
+
+    def get_spreadsheet_data(self, spreadsheet_id: str,
                             range_name: str) -> list:
         """Fetch data from specified sheet range."""
-        
+
     def get_sheet_metadata(self, spreadsheet_id: str) -> dict:
         """Get spreadsheet metadata (last modified, etc.)."""
 ```
@@ -265,11 +265,11 @@ Create Plotly-based plotting functions with data transforms separated from visua
 
 **Functions:**
 ```python
-def prepare_calories_weight_data(raw_data: dict, 
+def prepare_calories_weight_data(raw_data: dict,
                                 rolling_window: int) -> dict:
     """
     Transform raw data for calories vs weight plot.
-    
+
     Returns:
         dict with keys:
             - 'dates': np.array (common date range)
@@ -279,12 +279,12 @@ def prepare_calories_weight_data(raw_data: dict,
             - 'y1_limits': (min, max) for calories axis
             - 'y2_limits': (min, max) for weight axis
     """
-    
-def prepare_macro_breakdown_data(raw_data: dict, 
+
+def prepare_macro_breakdown_data(raw_data: dict,
                                  rolling_window: int) -> dict:
     """
     Transform raw data for macro stacked area chart.
-    
+
     Returns:
         dict with keys:
             - 'dates': np.array
@@ -293,13 +293,13 @@ def prepare_macro_breakdown_data(raw_data: dict,
             - 'other_fat_cal': np.array
             - 'saturated_fat_cal': np.array
     """
-    
+
 def prepare_normalized_nutrients_data(raw_data: dict,
                                       rdi_guidelines: dict,
                                       rolling_window: int) -> dict:
     """
     Transform raw data for normalized nutrients plot.
-    
+
     Returns:
         dict with keys for each nutrient:
             - 'dates': np.array (common)
@@ -322,15 +322,15 @@ def prepare_normalized_nutrients_data(raw_data: dict,
 
 **Function:**
 ```python
-def create_calories_weight_figure(plot_data: dict, 
+def create_calories_weight_figure(plot_data: dict,
                                  color_palette: dict) -> go.Figure:
     """
     Create Plotly figure with dual y-axes.
-    
+
     Args:
         plot_data: Output from prepare_calories_weight_data()
         color_palette: Color scheme from settings
-        
+
     Returns:
         plotly.graph_objects.Figure
     """
@@ -353,11 +353,11 @@ def create_macro_breakdown_figure(plot_data: dict,
                                  color_palette: dict) -> go.Figure:
     """
     Create Plotly stacked area chart for macronutrient calories.
-    
+
     Args:
         plot_data: Output from prepare_macro_breakdown_data()
         color_palette: Color scheme from settings
-        
+
     Returns:
         plotly.graph_objects.Figure
     """
@@ -379,11 +379,11 @@ def create_normalized_nutrients_figure(plot_data: dict,
                                        color_palette: dict) -> go.Figure:
     """
     Create Plotly multi-line chart for nutrients vs RDI.
-    
+
     Args:
         plot_data: Output from prepare_normalized_nutrients_data()
         color_palette: Color scheme from settings
-        
+
     Returns:
         plotly.graph_objects.Figure
     """
@@ -400,7 +400,7 @@ def create_normalized_nutrients_figure(plot_data: dict,
 
 **Functions:**
 ```python
-def apply_common_layout(fig: go.Figure, title: str, 
+def apply_common_layout(fig: go.Figure, title: str,
                        date_range: tuple) -> go.Figure:
     """
     Apply consistent styling to all figures.
@@ -409,13 +409,13 @@ def apply_common_layout(fig: go.Figure, title: str,
     - Margin adjustments
     - X-axis date formatting
     """
-    
+
 def create_date_selector_buttons() -> list:
     """
     Create Plotly range selector buttons (1M, 3M, 6M, 1Y, ALL).
     """
-    
-def format_hover_template(metric_name: str, 
+
+def format_hover_template(metric_name: str,
                          unit: str,
                          include_date: bool = True) -> str:
     """
@@ -471,7 +471,7 @@ if __name__ == '__main__':
 def get_layout():
     """
     Create the main dashboard layout.
-    
+
     Components:
     1. Header with title and refresh button
     2. Date range picker
@@ -483,11 +483,11 @@ def get_layout():
         # Header
         dbc.Row([
             dbc.Col([
-                html.H1("Nutritional Dashboard", 
+                html.H1("Nutritional Dashboard",
                        className="text-center mb-4"),
             ])
         ]),
-        
+
         # Controls
         dbc.Row([
             dbc.Col([
@@ -499,12 +499,12 @@ def get_layout():
                 ),
             ], width=6),
             dbc.Col([
-                html.Button('Refresh Data', 
+                html.Button('Refresh Data',
                           id='refresh-button',
                           className='btn btn-primary'),
             ], width=3),
         ], className="mb-4"),
-        
+
         # Summary Cards
         dbc.Row([
             dbc.Col([
@@ -517,36 +517,36 @@ def get_layout():
             ], width=3),
             # ... more summary cards
         ], className="mb-4"),
-        
+
         # Plots
         dbc.Tabs([
             dbc.Tab([
                 dcc.Graph(id='calories-weight-plot')
             ], label="Calories & Weight"),
-            
+
             dbc.Tab([
                 dcc.Graph(id='macro-breakdown-plot')
             ], label="Macronutrient Breakdown"),
-            
+
             dbc.Tab([
                 dcc.Graph(id='nutrients-rdi-plot')
             ], label="Nutrients vs RDI"),
         ]),
-        
+
         # Loading indicator
         dcc.Loading(
             id="loading",
             type="default",
             children=[html.Div(id="loading-output")]
         ),
-        
+
         # Store for data (client-side caching)
         dcc.Store(id='data-store'),
-        
+
         # Footer
         dbc.Row([
             dbc.Col([
-                html.P(id="data-source-info", 
+                html.P(id="data-source-info",
                       className="text-muted text-center mt-4")
             ])
         ])
@@ -611,13 +611,13 @@ def update_dashboard(stored_data, start_date, end_date):
     if not stored_data:
         # Return empty figures
         return empty_figure(), empty_figure(), empty_figure(), "N/A", "No data"
-    
+
     # Deserialize data
     raw_data = deserialize_data(stored_data)
-    
+
     # Filter by date range
     filtered_data = filter_by_date_range(raw_data, start_date, end_date)
-    
+
     # Prepare data for each plot
     cal_weight_data = prepare_calories_weight_data(
         filtered_data, ROLLING_WINDOW_DAYS
@@ -628,18 +628,18 @@ def update_dashboard(stored_data, start_date, end_date):
     nutrients_data = prepare_normalized_nutrients_data(
         filtered_data, RDI_GUIDELINES, ROLLING_WINDOW_DAYS
     )
-    
+
     # Create figures
     fig1 = create_calories_weight_figure(cal_weight_data, COLOR_PALETTE)
     fig2 = create_macro_breakdown_figure(macro_data, COLOR_PALETTE)
     fig3 = create_normalized_nutrients_figure(nutrients_data, COLOR_PALETTE)
-    
+
     # Calculate summary stat
     avg_cals = f"{np.mean(filtered_data['data']['Energy kcal']):.0f}"
-    
+
     # Data source info
     source_info = f"Data from: {filtered_data['source']} | Last updated: {filtered_data['last_updated']}"
-    
+
     return fig1, fig2, fig3, avg_cals, source_info
 
 @callback(
@@ -653,7 +653,7 @@ def set_initial_date_range(stored_data):
     """
     if not stored_data:
         return None, None
-    
+
     raw_data = deserialize_data(stored_data)
     dates = raw_data['dates']
     return dates[0], dates[-1]
@@ -727,7 +727,7 @@ body {
     .container-fluid {
         padding: 10px;
     }
-    
+
     .card {
         margin-bottom: 15px;
     }
@@ -768,48 +768,48 @@ from googleapiclient.errors import HttpError
 
 class GoogleSheetsClient:
     """Client for Google Sheets API operations."""
-    
+
     SCOPES = [
         'https://www.googleapis.com/auth/spreadsheets.readonly',
         'https://www.googleapis.com/auth/drive.readonly'
     ]
-    
+
     def __init__(self, credentials_path: Optional[str] = None):
         """
         Initialize Google Sheets client.
-        
+
         Args:
             credentials_path: Path to service account JSON.
                             If None, uses GOOGLE_CREDENTIALS_PATH env var.
         """
         if credentials_path is None:
             credentials_path = os.getenv('GOOGLE_CREDENTIALS_PATH')
-        
+
         if not credentials_path or not os.path.exists(credentials_path):
             raise FileNotFoundError(
                 f"Credentials file not found: {credentials_path}"
             )
-        
+
         self.credentials = service_account.Credentials.from_service_account_file(
             credentials_path, scopes=self.SCOPES
         )
-        
+
         self.sheets_service = build('sheets', 'v4', credentials=self.credentials)
         self.drive_service = build('drive', 'v3', credentials=self.credentials)
-    
-    def get_spreadsheet_data(self, 
+
+    def get_spreadsheet_data(self,
                             spreadsheet_id: str,
                             range_name: str = 'A:Z') -> List[List]:
         """
         Fetch data from Google Sheet.
-        
+
         Args:
             spreadsheet_id: The ID from the sheet URL
             range_name: A1 notation range (default: all columns)
-            
+
         Returns:
             List of rows, each row is a list of cell values
-            
+
         Raises:
             HttpError: If API request fails
         """
@@ -818,21 +818,21 @@ class GoogleSheetsClient:
                 spreadsheetId=spreadsheet_id,
                 range=range_name
             ).execute()
-            
+
             values = result.get('values', [])
             return values
-            
+
         except HttpError as error:
             print(f"An error occurred: {error}")
             raise
-    
+
     def get_last_modified(self, spreadsheet_id: str) -> str:
         """
         Get the last modified timestamp of the spreadsheet.
-        
+
         Args:
             spreadsheet_id: The ID from the sheet URL
-            
+
         Returns:
             ISO format timestamp string
         """
@@ -841,20 +841,20 @@ class GoogleSheetsClient:
                 fileId=spreadsheet_id,
                 fields='modifiedTime'
             ).execute()
-            
+
             return file_metadata.get('modifiedTime', 'Unknown')
-            
+
         except HttpError as error:
             print(f"An error occurred: {error}")
             return 'Unknown'
-    
+
     def validate_sheet_access(self, spreadsheet_id: str) -> bool:
         """
         Check if the service account has access to the sheet.
-        
+
         Args:
             spreadsheet_id: The ID from the sheet URL
-            
+
         Returns:
             True if accessible, False otherwise
         """
@@ -871,43 +871,43 @@ class GoogleSheetsClient:
 **Add Google Sheets support:**
 
 ```python
-def load_from_google_sheets(spreadsheet_id: str, 
+def load_from_google_sheets(spreadsheet_id: str,
                            range_name: str = 'A:Z',
                            credentials_path: Optional[str] = None) -> dict:
     """
     Load nutritional data from Google Sheets.
-    
+
     Args:
         spreadsheet_id: Google Sheets ID from URL
         range_name: A1 notation range
         credentials_path: Path to service account JSON
-        
+
     Returns:
         Standardized data dict matching load_from_csv format
     """
     from .google_sheets import GoogleSheetsClient
-    
+
     client = GoogleSheetsClient(credentials_path)
-    
+
     # Fetch data
     values = client.get_spreadsheet_data(spreadsheet_id, range_name)
-    
+
     if not values:
         raise ValueError("No data found in sheet")
-    
+
     # First row is headers
     headers = values[0]
     data_rows = values[1:]
-    
+
     # Convert to numpy arrays
     dates = []
     data_dict = {col: [] for col in headers if col != 'Date'}
-    
+
     for row in data_rows:
         if len(row) > 0 and row[0]:  # Has date value
             # Parse date (assuming YYYY-MM-DD format)
             dates.append(np.datetime64(row[0]))
-            
+
             # Parse data columns
             for i, col in enumerate(headers[1:], start=1):
                 if i < len(row) and row[i]:
@@ -917,15 +917,15 @@ def load_from_google_sheets(spreadsheet_id: str,
                         data_dict[col].append(np.nan)
                 else:
                     data_dict[col].append(np.nan)
-    
+
     # Convert to numpy arrays
     dates_array = np.array(dates)
     for col in data_dict:
         data_dict[col] = np.array(data_dict[col])
-    
+
     # Get metadata
     last_modified = client.get_last_modified(spreadsheet_id)
-    
+
     return {
         'dates': dates_array,
         'data': data_dict,
@@ -938,29 +938,29 @@ def get_data_source() -> dict:
     """
     Intelligently select and load data from best available source.
     Priority: Google Sheets > Local CSV
-    
+
     Returns:
         Standardized data dictionary
     """
     # Try Google Sheets first
     spreadsheet_id = os.getenv('GOOGLE_SHEETS_ID')
     credentials_path = os.getenv('GOOGLE_CREDENTIALS_PATH')
-    
+
     if spreadsheet_id and credentials_path:
         try:
             print("Attempting to load from Google Sheets...")
-            return load_from_google_sheets(spreadsheet_id, 
+            return load_from_google_sheets(spreadsheet_id,
                                           credentials_path=credentials_path)
         except Exception as e:
             print(f"Failed to load from Google Sheets: {e}")
             print("Falling back to local CSV...")
-    
+
     # Fallback to local CSV
     csv_path = os.getenv('LOCAL_CSV_PATH', 'local_data/Food - Daily.csv')
     if os.path.exists(csv_path):
         print(f"Loading from local CSV: {csv_path}")
         return load_from_csv(csv_path)
-    
+
     raise FileNotFoundError("No data source available (Sheets or CSV)")
 ```
 
@@ -1026,9 +1026,9 @@ def test_load_from_csv(tmp_path):
         "2024-01-01,2000,80\n"
         "2024-01-02,2100,85\n"
     )
-    
+
     data = load_from_csv(str(csv_path))
-    
+
     assert 'dates' in data
     assert 'data' in data
     assert len(data['dates']) == 2
@@ -1047,7 +1047,7 @@ from nutritional.plotting.transforms import (
 def test_prepare_calories_weight_data():
     """Test data transformation for calories/weight plot."""
     # Create mock data
-    dates = np.array([np.datetime64('2024-01-01') + np.timedelta64(i, 'D') 
+    dates = np.array([np.datetime64('2024-01-01') + np.timedelta64(i, 'D')
                      for i in range(10)])
     raw_data = {
         'dates': dates,
@@ -1057,9 +1057,9 @@ def test_prepare_calories_weight_data():
             'Weight Kg (Evening)': np.random.uniform(70.5, 72.5, 10)
         }
     }
-    
+
     result = prepare_calories_weight_data(raw_data, rolling_window=3)
-    
+
     assert 'dates' in result
     assert 'calories_avg' in result
     assert len(result['dates']) > 0
@@ -1271,21 +1271,21 @@ requires-python = ">=3.13"
 dependencies = [
     # Core data processing
     "numpy>=2.3.4",
-    
+
     # Dash framework
     "dash>=2.14.0",
     "dash-bootstrap-components>=1.5.0",
     "plotly>=5.18.0",
-    
+
     # Google Sheets integration
     "google-auth>=2.25.0",
     "google-auth-oauthlib>=1.2.0",
     "google-auth-httplib2>=0.2.0",
     "google-api-python-client>=2.110.0",
-    
+
     # Utilities
     "python-dotenv>=1.0.0",
-    
+
     # Legacy support (optional, for migration)
     "pandas>=2.3.3",
     "matplotlib>=3.10.7",
@@ -1511,7 +1511,7 @@ The phased approach allows for incremental development and testing, ensuring eac
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 22, 2025  
-**Author:** GitHub Copilot  
+**Document Version:** 1.0
+**Last Updated:** November 22, 2025
+**Author:** GitHub Copilot
 **Status:** Ready for Implementation

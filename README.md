@@ -143,6 +143,38 @@ This separation ensures:
 - Data manipulation is centralized and testable
 - Easy to swap data sources (CSV → Google Sheets)
 
+## Development
+
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to maintain code quality:
+
+```bash
+# Install pre-commit hooks (done automatically after uv sync)
+uv run pre-commit install
+
+# Run manually on all files
+uv run pre-commit run --all-files
+```
+
+Configured hooks:
+- **ruff**: Fast Python linter and formatter (replaces flake8, isort, black)
+- **Standard hooks**: trailing whitespace, end-of-file fixer, YAML/TOML/JSON checks, large files detection
+- **ty**: Astral's new type checker (coming soon - currently commented out)
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=nutritional --cov-report=term-missing
+
+# Run specific test file
+uv run pytest tests/test_callbacks.py -v
+```
+
 ## Roadmap
 
 - [x] Phase 1: NumPy data layer
