@@ -1,5 +1,6 @@
 local_data
 plots
+plots_interactive
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

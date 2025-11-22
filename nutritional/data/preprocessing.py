@@ -42,8 +42,7 @@ def interpolate_daily(dates: np.ndarray, values: np.ndarray) -> Tuple[np.ndarray
         if len(idx) > 0:
             new_values[idx[0]] = values[i]
     
-    # Interpolate missing values
-    # Find indices of non-NaN values
+    # Find indices of non-NaN values (actual data points)
     valid_mask = ~np.isnan(new_values)
     valid_indices = np.where(valid_mask)[0]
     
@@ -52,13 +51,28 @@ def interpolate_daily(dates: np.ndarray, values: np.ndarray) -> Tuple[np.ndarray
         return new_dates, new_values
     
     if len(valid_indices) == 1:
-        # Only one valid value, fill all with it
-        new_values[:] = new_values[valid_indices[0]]
+        # Only one valid value, don't interpolate
         return new_dates, new_values
     
-    # Perform linear interpolation
-    all_indices = np.arange(len(new_values))
-    new_values = np.interp(all_indices, valid_indices, new_values[valid_indices])
+    # Perform linear interpolation ONLY between first and last valid data points
+    # This prevents interpolation before the first data point or after the last
+    first_valid = valid_indices[0]
+    last_valid = valid_indices[-1]
+    
+    # Only interpolate within the range of actual data
+    for i in range(first_valid, last_valid + 1):
+        if np.isnan(new_values[i]):
+            # Find nearest valid values before and after
+            prev_idx = valid_indices[valid_indices < i]
+            next_idx = valid_indices[valid_indices > i]
+            
+            if len(prev_idx) > 0 and len(next_idx) > 0:
+                # Linear interpolation between prev and next
+                prev_idx = prev_idx[-1]
+                next_idx = next_idx[0]
+                
+                weight = (i - prev_idx) / (next_idx - prev_idx)
+                new_values[i] = new_values[prev_idx] + weight * (new_values[next_idx] - new_values[prev_idx])
     
     return new_dates, new_values
 
