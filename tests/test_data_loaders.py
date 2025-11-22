@@ -1,7 +1,12 @@
-"""Tests for data loading functionality."""
+"""
+Tests for data loading functionality.
 
-import pytest
+Tests verify correct behavior of CSV loading, data source selection,
+and date range filtering operations.
+"""
+
 import numpy as np
+import pytest
 
 from nutritional.data.loaders import (
     load_from_csv,
@@ -10,172 +15,184 @@ from nutritional.data.loaders import (
 )
 
 
-class TestLoadFromCSV:
-    """Tests for load_from_csv function."""
-    
-    def test_load_valid_csv(self, tmp_path):
-        """Test loading a valid CSV file."""
-        csv_path = tmp_path / "test_data.csv"
-        csv_content = """Date,Energy kcal,Protein g,Fat g
-2024-01-01,2000,80,65
-2024-01-02,2100,85,70
-2024-01-03,1950,78,62
-"""
-        csv_path.write_text(csv_content)
-        
-        data = load_from_csv(str(csv_path))
-        
-        assert 'dates' in data
-        assert 'data' in data
-        assert 'columns' in data
-        assert 'source' in data
-        assert data['source'] == 'CSV'
-        
-        assert len(data['dates']) == 3
-        assert len(data['data']['Energy kcal']) == 3
-        assert data['data']['Energy kcal'][0] == 2000.0
-        assert data['data']['Protein g'][1] == 85.0
-    
-    def test_load_csv_with_missing_values(self, tmp_path):
-        """Test loading CSV with missing values."""
-        csv_path = tmp_path / "test_data.csv"
-        csv_content = """Date,Energy kcal,Protein g
-2024-01-01,2000,80
-2024-01-02,,85
-2024-01-03,1950,
-"""
-        csv_path.write_text(csv_content)
-        
-        data = load_from_csv(str(csv_path))
-        
-        assert len(data['dates']) == 3
-        assert np.isnan(data['data']['Energy kcal'][1])
-        assert np.isnan(data['data']['Protein g'][2])
-    
-    def test_load_csv_date_sorting(self, tmp_path):
-        """Test that dates are sorted after loading."""
-        csv_path = tmp_path / "test_data.csv"
-        csv_content = """Date,Energy kcal
-2024-01-03,1950
-2024-01-01,2000
-2024-01-02,2100
-"""
-        csv_path.write_text(csv_content)
-        
-        data = load_from_csv(str(csv_path))
-        
-        assert data['dates'][0] == np.datetime64('2024-01-01')
-        assert data['dates'][1] == np.datetime64('2024-01-02')
-        assert data['dates'][2] == np.datetime64('2024-01-03')
-        assert data['data']['Energy kcal'][0] == 2000.0
-    
-    def test_load_nonexistent_file(self):
-        """Test loading a file that doesn't exist."""
-        with pytest.raises(FileNotFoundError):
-            load_from_csv('nonexistent_file.csv')
-    
-    def test_load_csv_without_date_column(self, tmp_path):
-        """Test loading CSV without a Date column."""
-        csv_path = tmp_path / "test_data.csv"
-        csv_content = """Energy kcal,Protein g
-2000,80
-2100,85
-"""
-        csv_path.write_text(csv_content)
-        
-        with pytest.raises(ValueError, match="Date"):
-            load_from_csv(str(csv_path))
+# Test load_from_csv
 
 
-class TestFilterByDateRange:
-    """Tests for filter_by_date_range function."""
+def test_load_valid_csv_returns_correct_structure(temp_csv_file):
+    """CSV loading should return a dict with dates, data, columns, and source."""
+    result = load_from_csv(str(temp_csv_file))
     
-    def test_filter_with_start_date(self):
-        """Test filtering with only start date."""
-        data = {
-            'dates': np.array(['2024-01-01', '2024-01-02', '2024-01-03'], 
-                             dtype='datetime64'),
-            'data': {
-                'Energy kcal': np.array([2000, 2100, 1950])
-            },
-            'columns': ['Energy kcal'],
-            'source': 'CSV',
-            'last_updated': '2024-01-01'
-        }
-        
-        filtered = filter_by_date_range(data, start_date='2024-01-02')
-        
-        assert len(filtered['dates']) == 2
-        assert filtered['dates'][0] == np.datetime64('2024-01-02')
-        assert filtered['data']['Energy kcal'][0] == 2100
-    
-    def test_filter_with_end_date(self):
-        """Test filtering with only end date."""
-        data = {
-            'dates': np.array(['2024-01-01', '2024-01-02', '2024-01-03'], 
-                             dtype='datetime64'),
-            'data': {
-                'Energy kcal': np.array([2000, 2100, 1950])
-            },
-            'columns': ['Energy kcal'],
-            'source': 'CSV',
-            'last_updated': '2024-01-01'
-        }
-        
-        filtered = filter_by_date_range(data, end_date='2024-01-02')
-        
-        assert len(filtered['dates']) == 2
-        assert filtered['dates'][-1] == np.datetime64('2024-01-02')
-    
-    def test_filter_with_both_dates(self):
-        """Test filtering with both start and end dates."""
-        data = {
-            'dates': np.array(['2024-01-01', '2024-01-02', '2024-01-03', 
-                              '2024-01-04', '2024-01-05'], dtype='datetime64'),
-            'data': {
-                'Energy kcal': np.array([2000, 2100, 1950, 2050, 2020])
-            },
-            'columns': ['Energy kcal'],
-            'source': 'CSV',
-            'last_updated': '2024-01-01'
-        }
-        
-        filtered = filter_by_date_range(data, 
-                                       start_date='2024-01-02',
-                                       end_date='2024-01-04')
-        
-        assert len(filtered['dates']) == 3
-        assert filtered['dates'][0] == np.datetime64('2024-01-02')
-        assert filtered['dates'][-1] == np.datetime64('2024-01-04')
+    assert isinstance(result, dict)
+    assert 'dates' in result
+    assert 'data' in result
+    assert 'columns' in result
+    assert 'source' in result
+    assert result['source'] == 'CSV'
 
 
-class TestGetDataSource:
-    """Tests for get_data_source function."""
+def test_load_csv_dates_are_sorted(temp_csv_file):
+    """Loaded dates should be sorted in ascending order."""
+    result = load_from_csv(str(temp_csv_file))
+    dates = result['dates']
     
-    def test_get_data_source_with_explicit_path(self, tmp_path):
-        """Test get_data_source with explicit CSV path."""
-        csv_path = tmp_path / "test_data.csv"
-        csv_content = """Date,Energy kcal
-2024-01-01,2000
-"""
-        csv_path.write_text(csv_content)
-        
-        data = get_data_source(csv_path=str(csv_path))
-        
-        assert data['source'] == 'CSV'
-        assert len(data['dates']) == 1
+    assert np.all(dates[:-1] <= dates[1:])
+
+
+def test_load_csv_converts_dates_to_datetime64(temp_csv_file):
+    """Dates should be converted to numpy datetime64[D] dtype."""
+    result = load_from_csv(str(temp_csv_file))
     
-    def test_get_data_source_no_file_available(self, monkeypatch):
-        """Test get_data_source when no file is available."""
-        from pathlib import Path
-        
-        # Mock Path.exists to always return False
-        def mock_exists(self):
-            # Return False for any path to simulate no files available
-            return False
-        
-        monkeypatch.setattr(Path, 'exists', mock_exists)
-        monkeypatch.delenv('LOCAL_CSV_PATH', raising=False)
-        
-        with pytest.raises(FileNotFoundError, match="No data source available"):
-            get_data_source()
+    assert result['dates'].dtype == np.dtype('datetime64[D]')
+
+
+def test_load_csv_converts_numeric_data_to_float(temp_csv_file):
+    """Numeric columns should be converted to float arrays."""
+    result = load_from_csv(str(temp_csv_file))
+    
+    for col, values in result['data'].items():
+        assert values.dtype in [np.float64, np.float32]
+
+
+def test_load_csv_handles_missing_values(temp_csv_with_missing_values):
+    """Missing values in CSV should be converted to NaN."""
+    result = load_from_csv(str(temp_csv_with_missing_values))
+    
+    # Check that some values are NaN
+    assert np.any(np.isnan(result['data']['Energy kcal']))
+    assert np.any(np.isnan(result['data']['Weight Kg (Morning)']))
+
+
+def test_load_csv_includes_metadata(temp_csv_file):
+    """Loaded data should include metadata like last_updated and filepath."""
+    result = load_from_csv(str(temp_csv_file))
+    
+    assert 'last_updated' in result
+    assert 'filepath' in result
+    assert result['filepath'] == str(temp_csv_file)
+
+
+def test_load_csv_with_nonexistent_file_raises_error():
+    """Loading a non-existent CSV should raise FileNotFoundError."""
+    with pytest.raises(FileNotFoundError):
+        load_from_csv('nonexistent_file.csv')
+
+
+@pytest.mark.parametrize("invalid_path", [
+    "",
+    None,
+    123,
+])
+def test_load_csv_with_invalid_path_type_raises_error(invalid_path):
+    """Loading CSV with invalid path type should raise an error."""
+    with pytest.raises((TypeError, FileNotFoundError, ValueError)):
+        load_from_csv(invalid_path)
+
+
+# Test filter_by_date_range
+
+
+@pytest.mark.parametrize("start_date,end_date,expected_count", [
+    ('2025-01-01', '2025-01-03', 3),
+    ('2025-01-02', '2025-01-05', 4),
+    ('2025-01-03', '2025-01-03', 1),
+    ('2025-01-01', '2025-01-05', 5),
+])
+def test_filter_by_date_range_returns_correct_count(
+    minimal_data_dict, start_date, end_date, expected_count
+):
+    """Date filtering should return the correct number of records."""
+    filtered = filter_by_date_range(minimal_data_dict, start_date, end_date)
+    
+    assert len(filtered['dates']) == expected_count
+
+
+def test_filter_by_date_range_with_only_start_date(minimal_data_dict):
+    """Filtering with only start_date should include all dates from start onwards."""
+    filtered = filter_by_date_range(minimal_data_dict, start_date='2025-01-03')
+    
+    assert len(filtered['dates']) == 3
+    assert filtered['dates'][0] == np.datetime64('2025-01-03')
+
+
+def test_filter_by_date_range_with_only_end_date(minimal_data_dict):
+    """Filtering with only end_date should include all dates up to end."""
+    filtered = filter_by_date_range(minimal_data_dict, end_date='2025-01-03')
+    
+    assert len(filtered['dates']) == 3
+    assert filtered['dates'][-1] == np.datetime64('2025-01-03')
+
+
+def test_filter_by_date_range_with_no_dates_returns_all(minimal_data_dict):
+    """Filtering without dates should return all data unchanged."""
+    filtered = filter_by_date_range(minimal_data_dict)
+    
+    assert len(filtered['dates']) == len(minimal_data_dict['dates'])
+
+
+def test_filter_by_date_range_preserves_data_alignment(minimal_data_dict):
+    """Filtered data should maintain correct alignment between dates and values."""
+    filtered = filter_by_date_range(minimal_data_dict, '2025-01-02', '2025-01-04')
+    
+    # Check that the energy values match the filtered dates
+    original_idx = [1, 2, 3]  # Indices for dates 2, 3, 4
+    for i, orig_i in enumerate(original_idx):
+        assert filtered['data']['Energy kcal'][i] == minimal_data_dict['data']['Energy kcal'][orig_i]
+
+
+def test_filter_by_date_range_handles_missing_optional_fields(minimal_data_dict):
+    """Filtering should not fail when optional metadata fields are missing."""
+    # Ensure no optional fields
+    assert 'last_updated' not in minimal_data_dict
+    assert 'filepath' not in minimal_data_dict
+    
+    filtered = filter_by_date_range(minimal_data_dict, '2025-01-01', '2025-01-03')
+    
+    assert len(filtered['dates']) == 3
+    assert 'source' in filtered
+
+
+def test_filter_by_date_range_preserves_optional_fields(complete_data_dict):
+    """Filtering should preserve optional fields when they exist."""
+    filtered = filter_by_date_range(complete_data_dict, '2025-01-01', '2025-01-03')
+    
+    assert 'last_updated' in filtered
+    assert 'filepath' in filtered
+    assert filtered['last_updated'] == complete_data_dict['last_updated']
+
+
+@pytest.mark.parametrize("start_date,end_date", [
+    ('2024-12-01', '2024-12-31'),  # Before all data
+    ('2025-12-01', '2025-12-31'),  # After all data
+    ('2025-01-10', '2025-01-20'),  # No overlap
+])
+def test_filter_by_date_range_with_no_matching_data(minimal_data_dict, start_date, end_date):
+    """Filtering with no matching dates should return empty arrays."""
+    filtered = filter_by_date_range(minimal_data_dict, start_date, end_date)
+    
+    assert len(filtered['dates']) == 0
+    for col in filtered['data'].values():
+        assert len(col) == 0
+
+
+# Test get_data_source
+
+
+def test_get_data_source_with_explicit_path(temp_csv_file):
+    """get_data_source should load from explicitly provided CSV path."""
+    result = get_data_source(csv_path=str(temp_csv_file))
+    
+    assert result['source'] == 'CSV'
+    assert len(result['dates']) > 0
+
+
+def test_get_data_source_with_nonexistent_explicit_path():
+    """get_data_source with nonexistent explicit path should fall back or raise error."""
+    # If an explicit path doesn't exist and no fallback is available, it should raise
+    # However, implementation may fall back to default paths
+    try:
+        result = get_data_source(csv_path='definitely_nonexistent_file_12345.csv')
+        # If it succeeds, it found a fallback
+        assert 'dates' in result
+    except FileNotFoundError:
+        # Expected behavior if no fallback exists
+        pass

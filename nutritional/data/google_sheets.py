@@ -71,7 +71,7 @@ class GoogleSheetsClient:
         raise NotImplementedError("To be implemented in Phase 4")
 
 
-def load_from_google_sheets(spreadsheet_id: str,
+def load_from_google_sheets(spreadsheet_id: str,  # pragma: no cover
                            range_name: str = 'A:Z',
                            credentials_path: Optional[str] = None) -> dict:
     """

@@ -4,6 +4,7 @@ from .transforms import (
     prepare_calories_weight_data,
     prepare_macro_breakdown_data,
     prepare_normalized_nutrients_data,
+    calculate_summary_statistics,
 )
 from .calories_weight import create_calories_weight_figure
 from .macros import create_macro_breakdown_figure
@@ -15,6 +16,7 @@ __all__ = [
     "prepare_calories_weight_data",
     "prepare_macro_breakdown_data",
     "prepare_normalized_nutrients_data",
+    "calculate_summary_statistics",
     # Figure creation functions
     "create_calories_weight_figure",
     "create_macro_breakdown_figure",
