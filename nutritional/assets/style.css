@@ -1,0 +1,717 @@
+/* Nutritional Tracker - Modern Design System */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ==================== CSS Variables (Design Tokens) ==================== */
+:root {
+    /* Color Palette - Health & Data Focused */
+    --primary: #0F766E;              /* Deep Teal - Main brand color */
+    --primary-hover: #0D5E57;        /* Darker teal for hover states */
+    --accent: #F59E0B;               /* Amber - Action/CTA color */
+    --accent-secondary: #10B981;     /* Emerald - Success/positive states */
+    --bg-body: #F4F6F8;              /* Off-white/Light Gray - Main background */
+    --surface: #FFFFFF;              /* Pure White - Card backgrounds */
+    --text-primary: #1E293B;         /* Dark Slate - Main text */
+    --text-secondary: #64748B;       /* Cool Gray - Secondary text */
+    --text-muted: #94A3B8;           /* Light gray - Muted text */
+    --border-light: #E2E8F0;         /* Light borders */
+
+    /* Semantic Colors */
+    --success: #10B981;
+    --danger: #EF4444;
+    --warning: #F59E0B;
+    --info: #3B82F6;
+
+    /* Spacing & Layout */
+    --radius-card: 16px;
+    --radius-btn: 8px;
+    --radius-input: 8px;
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-navbar: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-btn-primary: 0 4px 6px rgba(15, 118, 110, 0.2);
+    --gap-standard: 24px;
+
+    /* Typography */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-2xl: 32px;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+}
+
+/* ==================== Global Styles ==================== */
+body {
+    background-color: var(--bg-body) !important;
+    font-family: var(--font-primary) !important;
+    color: var(--text-primary) !important;
+    line-height: 1.6;
+}
+
+/* Container with max-width constraint for better UX on wide screens */
+.container, .container-fluid {
+    max-width: 1400px;
+    padding-left: var(--gap-standard);
+    padding-right: var(--gap-standard);
+}
+
+/* ==================== Typography ==================== */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: 1rem;
+}
+
+h1 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
+}
+
+h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+}
+
+h4 {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+p {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* ==================== Navigation Bar ==================== */
+.navbar {
+    background-color: var(--primary) !important;
+    box-shadow: var(--shadow-navbar);
+    padding: 1rem 0 !important;
+    min-height: 70px;
+    margin-bottom: var(--gap-standard) !important;
+}
+
+.navbar-brand {
+    font-size: 20px !important;
+    font-weight: var(--font-weight-bold) !important;
+    color: white !important;
+    letter-spacing: 0.3px;
+}
+
+.navbar .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: var(--font-weight-medium);
+    padding: 8px 16px !important;
+    border-radius: var(--radius-btn);
+    transition: all 0.2s ease;
+    margin: 0 4px;
+}
+
+.navbar .nav-link:hover {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white !important;
+}
+
+/* ==================== Cards ==================== */
+.card {
+    background-color: var(--surface) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: var(--shadow-card) !important;
+    border: none !important;
+    margin-bottom: var(--gap-standard);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover) !important;
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 2px solid var(--border-light) !important;
+    padding: 1.25rem 1.5rem !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.card-header h4 {
+    margin-bottom: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+}
+
+.card-body {
+    padding: 1.5rem !important;
+}
+
+/* Summary Statistics Cards */
+.summary-card {
+    background-color: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.summary-card h3 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.summary-card p {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-bottom: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Icon circles for summary cards */
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 24px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+}
+
+/* ==================== Buttons ==================== */
+button, .btn {
+    border-radius: var(--radius-btn) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    letter-spacing: 0.3px;
+    transition: all 0.15s ease !important;
+    padding: 10px 24px !important;
+    border: none;
+}
+
+/* Primary Button */
+.btn-primary, button.btn-primary {
+    background-color: var(--primary) !important;
+    border: none !important;
+    box-shadow: var(--shadow-btn-primary) !important;
+    color: white !important;
+}
+
+.btn-primary:hover, button.btn-primary:hover {
+    background-color: var(--primary-hover) !important;
+    box-shadow: 0 6px 12px rgba(15, 118, 110, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+.btn-primary:active, button.btn-primary:active {
+    transform: scale(0.98) !important;
+    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2) !important;
+}
+
+/* Accent/CTA Button */
+.btn-accent, .btn-warning {
+    background-color: var(--accent) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2) !important;
+}
+
+.btn-accent:hover, .btn-warning:hover {
+    background-color: #D97706 !important;
+    box-shadow: 0 6px 12px rgba(245, 158, 11, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+/* Success Button */
+.btn-success {
+    background-color: var(--success) !important;
+    border: none !important;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2) !important;
+}
+
+.btn-success:hover {
+    background-color: #059669 !important;
+    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+/* Danger Button */
+.btn-danger {
+    background-color: var(--danger) !important;
+    border: none !important;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2) !important;
+}
+
+.btn-danger:hover {
+    background-color: #DC2626 !important;
+    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+/* Secondary/Outline Button */
+.btn-secondary, .btn-outline-primary {
+    background-color: transparent !important;
+    border: 2px solid var(--primary) !important;
+    color: var(--primary) !important;
+    box-shadow: none !important;
+}
+
+.btn-secondary:hover, .btn-outline-primary:hover {
+    background-color: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 6px 16px !important;
+    font-size: var(--font-size-sm) !important;
+}
+
+/* ==================== Form Controls ==================== */
+.form-label, label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: var(--font-size-sm);
+}
+
+/* Modern filled input style */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+.form-control,
+.form-select {
+    background-color: #F1F5F9 !important;
+    border: 2px solid transparent !important;
+    border-radius: var(--radius-input) !important;
+    padding: 12px 16px !important;
+    font-size: var(--font-size-base) !important;
+    color: var(--text-primary) !important;
+    transition: all 0.2s ease !important;
+}
+
+input:focus,
+textarea:focus,
+.form-control:focus,
+.form-select:focus {
+    background-color: white !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1) !important;
+    outline: none !important;
+}
+
+input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Disabled inputs */
+input:disabled,
+.form-control:disabled {
+    background-color: #E2E8F0 !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed;
+}
+
+/* ==================== Dropdown (React Select / DCC Dropdown) ==================== */
+.Select-control,
+.dash-dropdown .Select-control {
+    background-color: #F1F5F9 !important;
+    border: 2px solid transparent !important;
+    border-radius: var(--radius-input) !important;
+    min-height: 44px !important;
+}
+
+.Select-control:hover,
+.dash-dropdown .Select-control:hover {
+    border-color: var(--border-light) !important;
+}
+
+.is-focused .Select-control,
+.is-focused.dash-dropdown .Select-control {
+    background-color: white !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1) !important;
+}
+
+.Select-placeholder,
+.dash-dropdown .Select-placeholder {
+    color: var(--text-muted) !important;
+}
+
+.Select-menu-outer {
+    border-radius: var(--radius-input) !important;
+    box-shadow: var(--shadow-card) !important;
+    border: none !important;
+    margin-top: 4px !important;
+}
+
+.Select-option {
+    padding: 12px 16px !important;
+}
+
+.Select-option.is-focused {
+    background-color: rgba(15, 118, 110, 0.1) !important;
+}
+
+.Select-option.is-selected {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+/* ==================== Tabs ==================== */
+.nav-tabs {
+    border-bottom: 2px solid var(--border-light) !important;
+    margin-bottom: var(--gap-standard);
+}
+
+.nav-tabs .nav-link {
+    border: none !important;
+    color: var(--text-secondary) !important;
+    font-weight: var(--font-weight-medium);
+    padding: 12px 24px !important;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary) !important;
+    background-color: rgba(15, 118, 110, 0.05) !important;
+    border-radius: var(--radius-btn) var(--radius-btn) 0 0 !important;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary) !important;
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 3px solid var(--primary) !important;
+    background-color: transparent !important;
+}
+
+/* ==================== Plotly Graph Containers ==================== */
+.graph-container {
+    background-color: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 1.5rem;
+    margin-bottom: var(--gap-standard);
+}
+
+/* Make Plotly graphs blend with card background */
+.js-plotly-plot,
+.plotly {
+    background-color: transparent !important;
+}
+
+/* ==================== Lists & Tables ==================== */
+.list-group-item {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border-light) !important;
+    padding: 1rem 1.25rem !important;
+    margin-bottom: 8px !important;
+    border-radius: var(--radius-btn) !important;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateX(2px);
+}
+
+/* Food item rows */
+.food-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: var(--radius-btn);
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.food-item-row:hover {
+    box-shadow: var(--shadow-card);
+    transform: translateX(2px);
+}
+
+/* Macro Badges */
+.macro-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    margin: 0 4px;
+}
+
+.badge-protein {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.badge-carbs {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.badge-fat {
+    background-color: #FCE7F3;
+    color: #9F1239;
+}
+
+.badge-calories {
+    background-color: #FFEDD5;
+    color: #9A3412;
+}
+
+/* ==================== Progress Bars ==================== */
+.progress {
+    height: 24px !important;
+    border-radius: 12px !important;
+    background-color: #E2E8F0 !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+    border-radius: 12px !important;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
+    transition: width 0.3s ease;
+}
+
+/* Nutrient-specific progress bars */
+.progress-protein .progress-bar {
+    background: linear-gradient(90deg, #3B82F6, #60A5FA) !important;
+}
+
+.progress-carbs .progress-bar {
+    background: linear-gradient(90deg, #F59E0B, #FBBF24) !important;
+}
+
+.progress-fat .progress-bar {
+    background: linear-gradient(90deg, #EC4899, #F472B6) !important;
+}
+
+.progress-calories .progress-bar {
+    background: linear-gradient(90deg, #0F766E, #10B981) !important;
+}
+
+/* ==================== Alerts & Messages ==================== */
+.alert {
+    border-radius: var(--radius-btn) !important;
+    border: none !important;
+    padding: 1rem 1.25rem !important;
+    font-weight: var(--font-weight-medium);
+}
+
+.alert-success {
+    background-color: #D1FAE5 !important;
+    color: #065F46 !important;
+}
+
+.alert-danger {
+    background-color: #FEE2E2 !important;
+    color: #991B1B !important;
+}
+
+.alert-warning {
+    background-color: #FEF3C7 !important;
+    color: #78350F !important;
+}
+
+.alert-info {
+    background-color: #DBEAFE !important;
+    color: #1E40AF !important;
+}
+
+/* ==================== Date Picker ==================== */
+.DateInput {
+    background-color: #F1F5F9 !important;
+    border-radius: var(--radius-input) !important;
+}
+
+.DateInput_input {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+    font-size: var(--font-size-base) !important;
+    padding: 12px 16px !important;
+    border-bottom: none !important;
+}
+
+.DateInput_input:focus {
+    border-bottom: none !important;
+}
+
+.DateRangePickerInput {
+    background-color: #F1F5F9 !important;
+    border-radius: var(--radius-input) !important;
+    border: 2px solid transparent !important;
+}
+
+.DateRangePickerInput:hover {
+    border-color: var(--border-light) !important;
+}
+
+.CalendarDay__selected {
+    background: var(--primary) !important;
+    border: 1px solid var(--primary) !important;
+}
+
+/* ==================== Loading Spinner ==================== */
+._dash-loading {
+    color: var(--primary) !important;
+}
+
+/* ==================== Spacing Utilities ==================== */
+.mb-4 {
+    margin-bottom: var(--gap-standard) !important;
+}
+
+.mt-4 {
+    margin-top: var(--gap-standard) !important;
+}
+
+.p-3 {
+    padding: 1rem !important;
+}
+
+/* Controls section */
+.bg-light.rounded {
+    background-color: var(--surface) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: var(--shadow-card) !important;
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 768px) {
+    :root {
+        --gap-standard: 16px;
+    }
+
+    .container, .container-fluid {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    .navbar {
+        min-height: 60px;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+
+    .summary-card h3 {
+        font-size: 24px;
+    }
+}
+
+/* ==================== Hover Effects & Animations ==================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card, .summary-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Icon hover effects */
+.icon-button {
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    padding: 8px;
+    border-radius: var(--radius-btn);
+}
+
+.icon-button:hover {
+    color: var(--primary);
+    background-color: rgba(15, 118, 110, 0.1);
+    transform: scale(1.1);
+}
+
+.icon-button.danger:hover {
+    color: var(--danger);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* ==================== Custom Scrollbar ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}

@@ -183,17 +183,19 @@ class FileStorage:
 
         # Update with new data
         date_str = str(daily_data.date)
+        # Calculate totals if not already present
+        totals = daily_data.totals if daily_data.totals else daily_data.calculate_totals()
         summaries[date_str] = {
             "Date": date_str,
-            "Energy kcal": f"{daily_data.totals.energy_kcal:.2f}",
-            "Fat g": f"{daily_data.totals.fat_g:.2f}",
-            "Saturated Fat g": f"{daily_data.totals.saturated_fat_g:.2f}",
-            "Carbohydrates g": f"{daily_data.totals.carbohydrates_g:.2f}",
-            "Sugar g": f"{daily_data.totals.sugar_g:.2f}",
-            "Protein g": f"{daily_data.totals.protein_g:.2f}",
-            "Fibre g": f"{daily_data.totals.fibre_g:.2f}",
-            "Salt g": f"{daily_data.totals.salt_g:.2f}",
-            "Calcium mg": f"{daily_data.totals.calcium_mg:.2f}",
+            "Energy kcal": f"{totals.energy_kcal:.2f}",
+            "Fat g": f"{totals.fat_g:.2f}",
+            "Saturated Fat g": f"{totals.saturated_fat_g:.2f}",
+            "Carbohydrates g": f"{totals.carbohydrates_g:.2f}",
+            "Sugar g": f"{totals.sugar_g:.2f}",
+            "Protein g": f"{totals.protein_g:.2f}",
+            "Fibre g": f"{totals.fibre_g:.2f}",
+            "Salt g": f"{totals.salt_g:.2f}",
+            "Calcium mg": f"{totals.calcium_mg:.2f}",
             "Morning Weight kg": (
                 f"{daily_data.measurements.morning_weight_kg:.2f}"
                 if daily_data.measurements.morning_weight_kg is not None

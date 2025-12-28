@@ -254,6 +254,7 @@ def test_save_overwrites_existing_daily_entry(
 
     # Verify overwrite
     loaded = storage.load_daily_entry(sample_daily_data.date)
+    assert loaded is not None
     assert loaded.measurements.evening_weight_kg == 72.0
 
 
@@ -491,6 +492,7 @@ def test_concurrent_modifications_last_write_wins(
     storage.save_food_item(sample_food_item)
 
     retrieved = storage.get_food_item(sample_food_item.id)
+    assert retrieved is not None
     assert retrieved.name == "Second Name"
 
 

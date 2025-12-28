@@ -241,7 +241,19 @@ def test_food_item_preserves_provided_id() -> None:
 def test_food_item_requires_name(name: str | None, unit_type: UnitType) -> None:
     """Test FoodItem requires a non-empty name."""
     with pytest.raises(ValidationError):
-        FoodItem(name=name, unit_type=unit_type, nutrients=Nutrients())
+        FoodItem(
+            name=name,  # type: ignore[arg-type]
+            unit_type=unit_type,
+            energy_kcal=0.0,
+            fat_g=0.0,
+            saturated_fat_g=0.0,
+            carbohydrates_g=0.0,
+            sugar_g=0.0,
+            protein_g=0.0,
+            fibre_g=0.0,
+            salt_g=0.0,
+            calcium_mg=0.0,
+        )
 
 
 # FoodEntry Model Tests
@@ -303,27 +315,98 @@ def test_food_entry_with_quantity_creation() -> None:
 )
 def test_food_entry_requires_fields(field_name: str, field_value) -> None:
     """Test FoodEntry requires timestamp, food_id, and food_name."""
-    data = {
-        "timestamp": datetime.now(),
-        "food_id": "test-id",
-        "food_name": "Test Food",
-        "weight_g": 100.0,
-        "nutrients": Nutrients(
-            energy_kcal=0.0,
-            fat_g=0.0,
-            saturated_fat_g=0.0,
-            carbohydrates_g=0.0,
-            sugar_g=0.0,
-            protein_g=0.0,
-            fibre_g=0.0,
-            salt_g=0.0,
-            calcium_mg=0.0,
-        ),
-    }
-    data[field_name] = field_value
-
+    # Create FoodEntry with the invalid field value
     with pytest.raises(ValidationError):
-        FoodEntry(**data)
+        if field_name == "timestamp":
+            FoodEntry(
+                timestamp=field_value,
+                food_id="test-id",
+                food_name="Test Food",
+                weight_g=100.0,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
+        elif field_name == "food_id":
+            FoodEntry(
+                timestamp=datetime.now(),
+                food_id=field_value,
+                food_name="Test Food",
+                weight_g=100.0,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
+        elif field_name == "food_name":
+            FoodEntry(
+                timestamp=datetime.now(),
+                food_id="test-id",
+                food_name=field_value,
+                weight_g=100.0,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
+        elif field_name == "weight_g":
+            FoodEntry(
+                timestamp=datetime.now(),
+                food_id="test-id",
+                food_name="Test Food",
+                weight_g=field_value,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
+        elif field_name == "quantity":
+            FoodEntry(
+                timestamp=datetime.now(),
+                food_id="test-id",
+                food_name="Test Food",
+                quantity=field_value,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
 
 
 # Measurements Model Tests
@@ -473,32 +556,32 @@ def test_daily_data_serialization() -> None:
 
 def test_daily_data_deserialization() -> None:
     """Test DailyData can be deserialized from dict."""
-    data_dict = {
-        "date": "2025-12-28",
-        "entries": [
-            {
-                "timestamp": "2025-12-28T10:00:00",
-                "food_id": "test-id",
-                "food_name": "Test Food",
-                "weight_g": 100.0,
-                "quantity": None,
-                "nutrients": {
-                    "energy_kcal": 100.0,
-                    "fat_g": 0.0,
-                    "saturated_fat_g": 0.0,
-                    "carbohydrates_g": 0.0,
-                    "sugar_g": 0.0,
-                    "protein_g": 0.0,
-                    "fibre_g": 0.0,
-                    "salt_g": 0.0,
-                    "calcium_mg": 0.0,
-                },
-            }
-        ],
-        "measurements": {"morning_weight_kg": 70.0, "evening_weight_kg": None},
-    }
+    # Create DailyData with properly typed objects
+    from nutritional.data_entry.models import Measurements
 
-    daily_data = DailyData(**data_dict)
+    daily_data = DailyData(
+        date=date(2025, 12, 28),
+        entries=[
+            FoodEntry(
+                timestamp=datetime.now(),
+                food_id="test-id",
+                food_name="Test Food",
+                weight_g=100.0,
+                nutrients=Nutrients(
+                    energy_kcal=0.0,
+                    fat_g=0.0,
+                    saturated_fat_g=0.0,
+                    carbohydrates_g=0.0,
+                    sugar_g=0.0,
+                    protein_g=0.0,
+                    fibre_g=0.0,
+                    salt_g=0.0,
+                    calcium_mg=0.0,
+                ),
+            )
+        ],
+        measurements=Measurements(morning_weight_kg=70.0, evening_weight_kg=None),
+    )
 
     assert daily_data.date == date(2025, 12, 28)
     assert len(daily_data.entries) == 1

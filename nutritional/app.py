@@ -29,7 +29,10 @@ else:  # pragma: no cover
 # Initialize Dash app with Bootstrap theme and multi-page support
 app = dash.Dash(  # pragma: no cover
     __name__,
-    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+    ],
     suppress_callback_exceptions=True,
     title="Nutritional Tracker",
     update_title="Updating...",

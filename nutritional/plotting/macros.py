@@ -41,9 +41,9 @@ def create_macro_breakdown_figure(
             y=carbs_cal,
             name="Carbohydrates",
             mode="lines",
-            line=dict(width=0.5, color=color_palette.get("warm_yellow", "#ffd166")),
+            line=dict(width=0.5, color="#F59E0B"),
             stackgroup="one",
-            fillcolor=color_palette.get("warm_yellow", "#ffd166"),
+            fillcolor="#F59E0B",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Carbs:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -56,9 +56,9 @@ def create_macro_breakdown_figure(
             y=protein_cal,
             name="Protein",
             mode="lines",
-            line=dict(width=0.5, color=color_palette.get("mint_green", "#06d6a0")),
+            line=dict(width=0.5, color="#3B82F6"),
             stackgroup="one",
-            fillcolor=color_palette.get("mint_green", "#06d6a0"),
+            fillcolor="#3B82F6",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Protein:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -71,9 +71,9 @@ def create_macro_breakdown_figure(
             y=other_fat_cal,
             name="Other Fat",
             mode="lines",
-            line=dict(width=0.5, color=color_palette.get("rich_purple", "#6a4c93")),
+            line=dict(width=0.5, color="#EC4899"),
             stackgroup="one",
-            fillcolor=color_palette.get("rich_purple", "#6a4c93"),
+            fillcolor="#EC4899",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Other Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -86,16 +86,16 @@ def create_macro_breakdown_figure(
             y=saturated_fat_cal,
             name="Saturated Fat",
             mode="lines",
-            line=dict(width=0.5, color=color_palette.get("vibrant_pink", "#ef476f")),
+            line=dict(width=0.5, color="#EF4444"),
             stackgroup="one",
-            fillcolor=color_palette.get("vibrant_pink", "#ef476f"),
+            fillcolor="#EF4444",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Saturated Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
         )
     )
 
-    # Update layout
+    # Update layout with transparent background and Inter font
     fig.update_layout(
         title=f"Macronutrient Calorie Breakdown ({rolling_window}-day avg)",
         xaxis_title="Date",
@@ -104,9 +104,13 @@ def create_macro_breakdown_figure(
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=600,
         template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", size=14, color="#1E293B"),
     )
 
-    # Y-axis starts at 0
-    fig.update_yaxes(rangemode="tozero")
+    # Update axes with lighter grid
+    fig.update_xaxes(gridcolor="rgba(0,0,0,0.05)")
+    fig.update_yaxes(rangemode="tozero", gridcolor="rgba(0,0,0,0.05)")
 
     return fig

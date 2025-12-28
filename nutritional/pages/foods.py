@@ -353,27 +353,40 @@ def save_food_item(n_clicks, name, unit_type, serving_size, *nutrients_and_id):
         return float(value)
 
     try:
-        # Create food item (only include id if editing existing item)
-        food_item_data = {
-            "name": name,
-            "unit_type": UnitType(unit_type),
-            "serving_size_g": serving_size if unit_type == "per_item" else None,
-            "energy_kcal": to_float_or_zero(energy),
-            "fat_g": to_float_or_zero(fat),
-            "saturated_fat_g": to_float_or_zero(sat_fat),
-            "carbohydrates_g": to_float_or_zero(carbs),
-            "sugar_g": to_float_or_zero(sugar),
-            "protein_g": to_float_or_zero(protein),
-            "fibre_g": to_float_or_zero(fibre),
-            "salt_g": to_float_or_zero(salt),
-            "calcium_mg": to_float_or_zero(calcium),
-        }
-
-        # Only add id if we're editing an existing item
+        # Create food item - construct directly to avoid type confusion
         if edit_id:
-            food_item_data["id"] = edit_id
-
-        food_item = FoodItem(**food_item_data)
+            # Editing existing item
+            food_item = FoodItem(
+                id=edit_id,
+                name=name,
+                unit_type=UnitType(unit_type),
+                serving_size_g=serving_size if unit_type == "per_item" else None,
+                energy_kcal=to_float_or_zero(energy),
+                fat_g=to_float_or_zero(fat),
+                saturated_fat_g=to_float_or_zero(sat_fat),
+                carbohydrates_g=to_float_or_zero(carbs),
+                sugar_g=to_float_or_zero(sugar),
+                protein_g=to_float_or_zero(protein),
+                fibre_g=to_float_or_zero(fibre),
+                salt_g=to_float_or_zero(salt),
+                calcium_mg=to_float_or_zero(calcium),
+            )
+        else:
+            # Creating new item (id will be auto-generated)
+            food_item = FoodItem(
+                name=name,
+                unit_type=UnitType(unit_type),
+                serving_size_g=serving_size if unit_type == "per_item" else None,
+                energy_kcal=to_float_or_zero(energy),
+                fat_g=to_float_or_zero(fat),
+                saturated_fat_g=to_float_or_zero(sat_fat),
+                carbohydrates_g=to_float_or_zero(carbs),
+                sugar_g=to_float_or_zero(sugar),
+                protein_g=to_float_or_zero(protein),
+                fibre_g=to_float_or_zero(fibre),
+                salt_g=to_float_or_zero(salt),
+                calcium_mg=to_float_or_zero(calcium),
+            )
 
         # Save to storage
         storage.save_food_item(food_item)
@@ -415,53 +428,101 @@ def update_food_list(search_query, _):
     if not items:
         return html.P("No food items found.", className="text-muted")
 
-    return dbc.ListGroup(
+    return html.Div(
         [
-            dbc.ListGroupItem(
+            html.Div(
                 [
                     html.Div(
                         [
-                            html.Strong(item.name),
-                            dbc.Badge(
-                                "Per 100g"
-                                if item.unit_type == UnitType.PER_100G
-                                else f"Per item ({item.serving_size_g}g)",
-                                color="info",
-                                className="ms-2",
+                            html.Strong(item.name, style={"fontSize": "16px"}),
+                            html.Div(
+                                [
+                                    dbc.Badge(
+                                        "Per 100g"
+                                        if item.unit_type == UnitType.PER_100G
+                                        else f"Per item ({item.serving_size_g}g)",
+                                        color="info",
+                                        className="ms-2",
+                                        style={"fontSize": "11px"},
+                                    ),
+                                ],
+                                style={"display": "inline"},
                             ),
                         ],
-                        className="d-flex justify-content-between align-items-center",
-                    ),
-                    html.Small(
-                        f"{item.energy_kcal}kcal | "
-                        f"P:{item.protein_g}g | "
-                        f"C:{item.carbohydrates_g}g | "
-                        f"F:{item.fat_g}g",
-                        className="text-muted",
+                        style={"flex": "1", "minWidth": "150px"},
                     ),
                     html.Div(
                         [
-                            dbc.Button(
-                                "Edit",
-                                id={"type": "edit-food", "index": item.id},
-                                color="warning",
-                                size="sm",
-                                className="me-2 mt-2",
+                            html.Span(
+                                f"{item.energy_kcal:.0f}",
+                                className="macro-badge badge-calories",
+                                title="Calories",
                             ),
-                            dbc.Button(
-                                "Delete",
-                                id={"type": "delete-food", "index": item.id},
-                                color="danger",
-                                size="sm",
-                                className="mt-2",
+                            html.Span(
+                                f"{item.protein_g:.1f}g P",
+                                className="macro-badge badge-protein",
+                                title="Protein",
                             ),
-                        ]
+                            html.Span(
+                                f"{item.carbohydrates_g:.1f}g C",
+                                className="macro-badge badge-carbs",
+                                title="Carbohydrates",
+                            ),
+                            html.Span(
+                                f"{item.fat_g:.1f}g F",
+                                className="macro-badge badge-fat",
+                                title="Fat",
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "gap": "8px",
+                            "flexWrap": "wrap",
+                            "alignItems": "center",
+                        },
                     ),
-                ]
+                    html.Div(
+                        [
+                            html.I(
+                                className="icon-button",
+                                children="✏️",
+                                id={"type": "edit-food", "index": item.id},
+                                n_clicks=0,
+                                title="Edit",
+                                style={
+                                    "cursor": "pointer",
+                                    "fontSize": "18px",
+                                    "padding": "8px",
+                                },
+                            ),
+                            html.I(
+                                className="icon-button danger",
+                                children="🗑️",
+                                id={"type": "delete-food", "index": item.id},
+                                n_clicks=0,
+                                title="Delete",
+                                style={
+                                    "cursor": "pointer",
+                                    "fontSize": "18px",
+                                    "padding": "8px",
+                                },
+                            ),
+                        ],
+                        style={"display": "flex", "gap": "4px"},
+                    ),
+                ],
+                className="food-item-row",
+                style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "gap": "16px",
+                    "flexWrap": "wrap",
+                },
             )
             for item in items
         ],
-        flush=True,
+        style={"display": "flex", "flexDirection": "column", "gap": "12px"},
     )
 
 
@@ -545,53 +606,101 @@ def delete_food_item(n_clicks):
     if not items:
         return html.P("No food items found.", className="text-muted")
 
-    return dbc.ListGroup(
+    return html.Div(
         [
-            dbc.ListGroupItem(
+            html.Div(
                 [
                     html.Div(
                         [
-                            html.Strong(item.name),
-                            dbc.Badge(
-                                "Per 100g"
-                                if item.unit_type == UnitType.PER_100G
-                                else f"Per item ({item.serving_size_g}g)",
-                                color="info",
-                                className="ms-2",
+                            html.Strong(item.name, style={"fontSize": "16px"}),
+                            html.Div(
+                                [
+                                    dbc.Badge(
+                                        "Per 100g"
+                                        if item.unit_type == UnitType.PER_100G
+                                        else f"Per item ({item.serving_size_g}g)",
+                                        color="info",
+                                        className="ms-2",
+                                        style={"fontSize": "11px"},
+                                    ),
+                                ],
+                                style={"display": "inline"},
                             ),
                         ],
-                        className="d-flex justify-content-between align-items-center",
-                    ),
-                    html.Small(
-                        f"{item.energy_kcal}kcal | "
-                        f"P:{item.protein_g}g | "
-                        f"C:{item.carbohydrates_g}g | "
-                        f"F:{item.fat_g}g",
-                        className="text-muted",
+                        style={"flex": "1", "minWidth": "150px"},
                     ),
                     html.Div(
                         [
-                            dbc.Button(
-                                "Edit",
-                                id={"type": "edit-food", "index": item.id},
-                                color="warning",
-                                size="sm",
-                                className="me-2 mt-2",
+                            html.Span(
+                                f"{item.energy_kcal:.0f}",
+                                className="macro-badge badge-calories",
+                                title="Calories",
                             ),
-                            dbc.Button(
-                                "Delete",
-                                id={"type": "delete-food", "index": item.id},
-                                color="danger",
-                                size="sm",
-                                className="mt-2",
+                            html.Span(
+                                f"{item.protein_g:.1f}g P",
+                                className="macro-badge badge-protein",
+                                title="Protein",
                             ),
-                        ]
+                            html.Span(
+                                f"{item.carbohydrates_g:.1f}g C",
+                                className="macro-badge badge-carbs",
+                                title="Carbohydrates",
+                            ),
+                            html.Span(
+                                f"{item.fat_g:.1f}g F",
+                                className="macro-badge badge-fat",
+                                title="Fat",
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "gap": "8px",
+                            "flexWrap": "wrap",
+                            "alignItems": "center",
+                        },
                     ),
-                ]
+                    html.Div(
+                        [
+                            html.I(
+                                className="icon-button",
+                                children="✏️",
+                                id={"type": "edit-food", "index": item.id},
+                                n_clicks=0,
+                                title="Edit",
+                                style={
+                                    "cursor": "pointer",
+                                    "fontSize": "18px",
+                                    "padding": "8px",
+                                },
+                            ),
+                            html.I(
+                                className="icon-button danger",
+                                children="🗑️",
+                                id={"type": "delete-food", "index": item.id},
+                                n_clicks=0,
+                                title="Delete",
+                                style={
+                                    "cursor": "pointer",
+                                    "fontSize": "18px",
+                                    "padding": "8px",
+                                },
+                            ),
+                        ],
+                        style={"display": "flex", "gap": "4px"},
+                    ),
+                ],
+                className="food-item-row",
+                style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "gap": "16px",
+                    "flexWrap": "wrap",
+                },
             )
             for item in items
         ],
-        flush=True,
+        style={"display": "flex", "flexDirection": "column", "gap": "12px"},
     )
 
 

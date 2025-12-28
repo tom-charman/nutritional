@@ -36,13 +36,13 @@ def create_calories_weight_figure(
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Add calories trace (primary y-axis)
+    # Add calories trace (primary y-axis) with new teal color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=calories_avg,
             name=f"Calories ({rolling_window}-day avg)",
-            line=dict(color=color_palette.get("deep_blue", "#0077b6"), width=3),
+            line=dict(color="#0F766E", width=3),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Calories:</b> %{y:.0f} kcal<br>"
@@ -51,14 +51,14 @@ def create_calories_weight_figure(
         secondary_y=False,
     )
 
-    # Add morning weight trace (secondary y-axis)
+    # Add morning weight trace (secondary y-axis) with amber accent color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_morning_avg,
             name=f"Morning Weight ({rolling_window}-day avg)",
             line=dict(
-                color=color_palette.get("vibrant_pink", "#ef476f"),
+                color="#F59E0B",
                 width=2,
                 dash="dashdot",
             ),
@@ -70,13 +70,13 @@ def create_calories_weight_figure(
         secondary_y=True,
     )
 
-    # Add evening weight trace (secondary y-axis)
+    # Add evening weight trace (secondary y-axis) with amber accent color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_evening_avg,
             name=f"Evening Weight ({rolling_window}-day avg)",
-            line=dict(color=color_palette.get("vibrant_pink", "#ef476f"), width=2, dash="dash"),
+            line=dict(color="#F59E0B", width=2, dash="dash"),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Evening:</b> %{y:.1f} kg<br>"
@@ -108,29 +108,24 @@ def create_calories_weight_figure(
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor=(
-                    f"rgba{tuple(
-                        list(int(color_palette.get('vibrant_pink', '#ef476f')[i:i+2], 16)
-                             for i in (1, 3, 5)) + [0.1]
-                    )}"
-                ),
+                fillcolor="rgba(245, 158, 11, 0.1)",
                 name="Weight Range",
                 hoverinfo="skip",
             ),
             secondary_y=True,
         )
 
-    # Update axes
+    # Update axes with lighter grid
     fig.update_xaxes(
         title_text="Date",
-        gridcolor="lightgray",
+        gridcolor="rgba(0,0,0,0.05)",
         showgrid=True,
     )
 
     fig.update_yaxes(
         title_text=f"Calories ({rolling_window}-day avg)",
         range=[y1_min, y1_max],
-        gridcolor="lightgray",
+        gridcolor="rgba(0,0,0,0.05)",
         showgrid=True,
         secondary_y=False,
     )
@@ -142,13 +137,16 @@ def create_calories_weight_figure(
         secondary_y=True,
     )
 
-    # Update layout
+    # Update layout with transparent background and Inter font
     fig.update_layout(
         title="Calories and Weight Trends",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=600,
         template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", size=14, color="#1E293B"),
     )
 
     return fig

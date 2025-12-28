@@ -85,40 +85,80 @@ def display_history(selected_date):
         if not daily_data:
             return html.P(f"No data found for {selected_date}.", className="text-muted")
 
-        # Display entries
-        entries_list = dbc.ListGroup(
+        # Display entries with modern styling
+        entries_list = html.Div(
             [
-                dbc.ListGroupItem(
+                html.Div(
                     [
                         html.Div(
                             [
-                                html.Strong(entry.food_name),
-                                dbc.Badge(
-                                    f"{entry.weight_g}g"
+                                html.Strong(entry.food_name, style={"fontSize": "15px"}),
+                                html.Span(
+                                    f"{entry.weight_g:.1f}g"
                                     if entry.weight_g
-                                    else f"{entry.quantity}x",
-                                    color="secondary",
-                                    className="ms-2",
+                                    else f"{entry.quantity:.1f}x",
+                                    style={
+                                        "marginLeft": "8px",
+                                        "color": "#64748B",
+                                        "fontSize": "14px",
+                                    },
                                 ),
                                 dbc.Badge(
                                     entry.timestamp.strftime("%H:%M"),
                                     color="info",
                                     className="ms-2",
+                                    style={"fontSize": "11px"},
                                 ),
-                            ]
+                            ],
+                            style={"flex": "1"},
                         ),
-                        html.Small(
-                            f"{entry.nutrients.energy_kcal:.0f}kcal | "
-                            f"P:{entry.nutrients.protein_g:.1f}g | "
-                            f"C:{entry.nutrients.carbohydrates_g:.1f}g | "
-                            f"F:{entry.nutrients.fat_g:.1f}g",
-                            className="text-muted",
+                        html.Div(
+                            [
+                                html.Span(
+                                    f"{entry.nutrients.energy_kcal:.0f}",
+                                    className="macro-badge badge-calories",
+                                    title="Calories",
+                                ),
+                                html.Span(
+                                    f"{entry.nutrients.protein_g:.1f}g P",
+                                    className="macro-badge badge-protein",
+                                    title="Protein",
+                                ),
+                                html.Span(
+                                    f"{entry.nutrients.carbohydrates_g:.1f}g C",
+                                    className="macro-badge badge-carbs",
+                                    title="Carbohydrates",
+                                ),
+                                html.Span(
+                                    f"{entry.nutrients.fat_g:.1f}g F",
+                                    className="macro-badge badge-fat",
+                                    title="Fat",
+                                ),
+                            ],
+                            style={
+                                "display": "flex",
+                                "gap": "6px",
+                                "flexWrap": "wrap",
+                            },
                         ),
-                    ]
+                    ],
+                    style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "space-between",
+                        "gap": "12px",
+                        "padding": "12px",
+                        "backgroundColor": "#FFFFFF",
+                        "borderRadius": "8px",
+                        "marginBottom": "8px",
+                        "boxShadow": "0 1px 3px rgba(0,0,0,0.05)",
+                        "borderLeft": "3px solid #0F766E",
+                        "flexWrap": "wrap",
+                    },
                 )
                 for entry in daily_data.entries
             ],
-            flush=True,
+            style={"display": "flex", "flexDirection": "column"},
         )
 
         # Display totals

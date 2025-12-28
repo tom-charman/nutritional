@@ -93,85 +93,76 @@ def get_layout():
                 [
                     dbc.Col(
                         [
-                            dbc.Card(
+                            html.Div(
                                 [
-                                    dbc.CardBody(
-                                        [
-                                            html.H3(
-                                                id="avg-calories",
-                                                className="text-primary",
-                                            ),
-                                            html.P(
-                                                "Avg Daily Calories",
-                                                className="mb-0 text-muted",
-                                            ),
-                                        ]
-                                    )
+                                    html.Div("🔥", className="stat-icon"),
+                                    html.H3(
+                                        id="avg-calories",
+                                        style={"color": "#0F766E"},
+                                    ),
+                                    html.P(
+                                        "Avg Daily Calories",
+                                        className="mb-0 text-muted",
+                                    ),
                                 ],
-                                className="text-center",
+                                className="summary-card",
                             )
                         ],
                         md=3,
                     ),
                     dbc.Col(
                         [
-                            dbc.Card(
+                            html.Div(
                                 [
-                                    dbc.CardBody(
-                                        [
-                                            html.H3(
-                                                id="avg-weight",
-                                                className="text-success",
-                                            ),
-                                            html.P(
-                                                "Avg Weight (kg)",
-                                                className="mb-0 text-muted",
-                                            ),
-                                        ]
-                                    )
+                                    html.Div("⚖️", className="stat-icon"),
+                                    html.H3(
+                                        id="avg-weight",
+                                        style={"color": "#0F766E"},
+                                    ),
+                                    html.P(
+                                        "Avg Weight (kg)",
+                                        className="mb-0 text-muted",
+                                    ),
                                 ],
-                                className="text-center",
+                                className="summary-card",
                             )
                         ],
                         md=3,
                     ),
                     dbc.Col(
                         [
-                            dbc.Card(
+                            html.Div(
                                 [
-                                    dbc.CardBody(
-                                        [
-                                            html.H3(id="avg-protein", className="text-info"),
-                                            html.P(
-                                                "Avg Protein (g)",
-                                                className="mb-0 text-muted",
-                                            ),
-                                        ]
-                                    )
+                                    html.Div("💪", className="stat-icon"),
+                                    html.H3(
+                                        id="avg-protein",
+                                        style={"color": "#0F766E"},
+                                    ),
+                                    html.P(
+                                        "Avg Protein (g)",
+                                        className="mb-0 text-muted",
+                                    ),
                                 ],
-                                className="text-center",
+                                className="summary-card",
                             )
                         ],
                         md=3,
                     ),
                     dbc.Col(
                         [
-                            dbc.Card(
+                            html.Div(
                                 [
-                                    dbc.CardBody(
-                                        [
-                                            html.H3(
-                                                id="data-points",
-                                                className="text-secondary",
-                                            ),
-                                            html.P(
-                                                "Data Points",
-                                                className="mb-0 text-muted",
-                                            ),
-                                        ]
-                                    )
+                                    html.Div("📊", className="stat-icon"),
+                                    html.H3(
+                                        id="data-points",
+                                        style={"color": "#0F766E"},
+                                    ),
+                                    html.P(
+                                        "Data Points",
+                                        className="mb-0 text-muted",
+                                    ),
                                 ],
-                                className="text-center",
+                                className="summary-card",
                             )
                         ],
                         md=3,
@@ -185,10 +176,15 @@ def get_layout():
                 [
                     dbc.Tab(
                         [
-                            dcc.Graph(
-                                id="calories-weight-plot",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "600px"},
+                            html.Div(
+                                [
+                                    dcc.Graph(
+                                        id="calories-weight-plot",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": "600px"},
+                                    )
+                                ],
+                                className="graph-container",
                             )
                         ],
                         label="📊 Calories & Weight",
@@ -196,10 +192,15 @@ def get_layout():
                     ),
                     dbc.Tab(
                         [
-                            dcc.Graph(
-                                id="macro-breakdown-plot",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "600px"},
+                            html.Div(
+                                [
+                                    dcc.Graph(
+                                        id="macro-breakdown-plot",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": "600px"},
+                                    )
+                                ],
+                                className="graph-container",
                             )
                         ],
                         label="🥗 Macronutrient Breakdown",
@@ -207,10 +208,15 @@ def get_layout():
                     ),
                     dbc.Tab(
                         [
-                            dcc.Graph(
-                                id="nutrients-rdi-plot",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "600px"},
+                            html.Div(
+                                [
+                                    dcc.Graph(
+                                        id="nutrients-rdi-plot",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": "600px"},
+                                    )
+                                ],
+                                className="graph-container",
                             )
                         ],
                         label="💊 Nutrients vs RDI",

@@ -28,16 +28,13 @@ def create_normalized_nutrients_figure(
     # Create figure
     fig = go.Figure()
 
-    # Define nutrient mapping (key in plot_data -> display name, color)
+    # Define nutrient mapping with new color palette
     nutrient_config = {
-        "saturated_fat_pct": (
-            "Saturated Fat",
-            color_palette.get("vibrant_pink", "#ef476f"),
-        ),
-        "sugar_pct": ("Sugar", color_palette.get("warm_yellow", "#ffd166")),
-        "fibre_pct": ("Fibre", color_palette.get("mint_green", "#06d6a0")),
-        "salt_pct": ("Salt", color_palette.get("deep_blue", "#0077b6")),
-        "calcium_pct": ("Calcium", color_palette.get("rich_purple", "#6a4c93")),
+        "saturated_fat_pct": ("Saturated Fat", "#EF4444"),
+        "sugar_pct": ("Sugar", "#F59E0B"),
+        "fibre_pct": ("Fibre", "#10B981"),
+        "salt_pct": ("Salt", "#0F766E"),
+        "calcium_pct": ("Calcium", "#8B5CF6"),
     }
 
     # Add a trace for each nutrient
@@ -67,7 +64,7 @@ def create_normalized_nutrients_figure(
         opacity=0.7,
     )
 
-    # Update layout
+    # Update layout with transparent background and Inter font
     fig.update_layout(
         title=f"Nutrient Intake vs RDI ({rolling_window}-day avg)",
         xaxis_title="Date",
@@ -83,9 +80,13 @@ def create_normalized_nutrients_figure(
         ),
         height=600,
         template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", size=14, color="#1E293B"),
     )
 
-    # Set y-axis range to show from 0 to a reasonable max
-    fig.update_yaxes(rangemode="tozero")
+    # Update axes with lighter grid
+    fig.update_xaxes(gridcolor="rgba(0,0,0,0.05)")
+    fig.update_yaxes(rangemode="tozero", gridcolor="rgba(0,0,0,0.05)")
 
     return fig

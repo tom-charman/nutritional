@@ -429,49 +429,89 @@ def add_food_entry(n_clicks, food_id, amount_list, current_entries, morning_weig
     prevent_initial_call=False,
 )
 def update_entries_list(entries, _):
-    """Display list of current entries."""
+    """Display list of current entries with modern styling."""
     if not entries:
         return html.P("No entries yet.", className="text-muted")
 
-    return dbc.ListGroup(
+    return html.Div(
         [
-            dbc.ListGroupItem(
+            html.Div(
                 [
                     html.Div(
                         [
-                            html.Strong(entry["food_name"]),
-                            dbc.Badge(
-                                f"{entry['weight_g']}g"
+                            html.Strong(entry["food_name"], style={"fontSize": "15px"}),
+                            html.Span(
+                                f"{entry['weight_g']:.1f}g"
                                 if entry["weight_g"]
-                                else f"{entry['quantity']}x",
-                                color="secondary",
-                                className="ms-2",
+                                else f"{entry['quantity']:.1f}x",
+                                style={
+                                    "marginLeft": "8px",
+                                    "color": "#64748B",
+                                    "fontSize": "14px",
+                                },
                             ),
-                        ]
-                    ),
-                    html.Small(
-                        f"{entry['nutrients']['energy_kcal']:.0f}kcal | "
-                        f"P:{entry['nutrients']['protein_g']:.1f}g | "
-                        f"C:{entry['nutrients']['carbohydrates_g']:.1f}g | "
-                        f"F:{entry['nutrients']['fat_g']:.1f}g",
-                        className="text-muted",
+                        ],
+                        style={"flex": "1"},
                     ),
                     html.Div(
                         [
-                            dbc.Button(
-                                "Remove",
-                                id={"type": "remove-entry", "index": i},
-                                color="danger",
-                                size="sm",
-                                className="mt-2",
+                            html.Span(
+                                f"{entry['nutrients']['energy_kcal']:.0f}",
+                                className="macro-badge badge-calories",
+                                title="Calories",
                             ),
-                        ]
+                            html.Span(
+                                f"{entry['nutrients']['protein_g']:.1f}g P",
+                                className="macro-badge badge-protein",
+                                title="Protein",
+                            ),
+                            html.Span(
+                                f"{entry['nutrients']['carbohydrates_g']:.1f}g C",
+                                className="macro-badge badge-carbs",
+                                title="Carbohydrates",
+                            ),
+                            html.Span(
+                                f"{entry['nutrients']['fat_g']:.1f}g F",
+                                className="macro-badge badge-fat",
+                                title="Fat",
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "gap": "6px",
+                            "flexWrap": "wrap",
+                        },
                     ),
-                ]
+                    html.I(
+                        className="icon-button danger",
+                        children="❌",
+                        id={"type": "remove-entry", "index": i},
+                        n_clicks=0,
+                        title="Remove",
+                        style={
+                            "cursor": "pointer",
+                            "fontSize": "16px",
+                            "padding": "4px",
+                        },
+                    ),
+                ],
+                style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "gap": "12px",
+                    "padding": "12px",
+                    "backgroundColor": "#FFFFFF",
+                    "borderRadius": "8px",
+                    "marginBottom": "8px",
+                    "boxShadow": "0 1px 3px rgba(0,0,0,0.05)",
+                    "borderLeft": "3px solid #0F766E",
+                    "flexWrap": "wrap",
+                },
             )
             for i, entry in enumerate(entries)
         ],
-        flush=True,
+        style={"display": "flex", "flexDirection": "column"},
     )
 
 
@@ -522,7 +562,7 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight):
     prevent_initial_call=False,
 )
 def update_daily_totals(entries, _):
-    """Calculate and display daily totals."""
+    """Calculate and display daily totals with visual progress bars."""
     if not entries:
         return html.P("No entries to calculate.", className="text-muted")
 
@@ -543,67 +583,137 @@ def update_daily_totals(entries, _):
         for nutrient in totals:
             totals[nutrient] += entry["nutrients"][nutrient]
 
-    return [
-        dbc.Row(
+    # Define daily targets (adjust these as needed)
+    targets = {
+        "energy_kcal": 2000,
+        "protein_g": 150,
+        "carbohydrates_g": 225,
+        "fat_g": 67,
+    }
+
+    def create_progress_bar(label, value, target, css_class, unit="g"):
+        """Create a modern progress bar with label and values."""
+        percentage = min((value / target * 100), 100) if target > 0 else 0
+
+        # Format values based on unit type
+        value_str = f"{value:.0f}" if unit == "kcal" else f"{value:.1f}"
+        target_str = f"{target:.0f}"
+
+        return html.Div(
             [
-                dbc.Col(html.Strong("Energy:"), width=6),
-                dbc.Col(f"{totals['energy_kcal']:.0f} kcal", width=6),
+                html.Div(
+                    [
+                        html.Strong(label, style={"color": "#1E293B"}),
+                        html.Span(
+                            f"{value_str} / {target_str}{unit}",
+                            style={"color": "#64748B", "fontSize": "14px"},
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "justifyContent": "space-between",
+                        "marginBottom": "6px",
+                    },
+                ),
+                dbc.Progress(
+                    value=percentage,
+                    className=css_class,
+                    style={"height": "24px", "marginBottom": "16px"},
+                    label=f"{percentage:.0f}%",
+                ),
             ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Protein:"), width=6),
-                dbc.Col(f"{totals['protein_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Carbohydrates:"), width=6),
-                dbc.Col(f"{totals['carbohydrates_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Fat:"), width=6),
-                dbc.Col(f"{totals['fat_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Fibre:"), width=6),
-                dbc.Col(f"{totals['fibre_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Sugar:"), width=6),
-                dbc.Col(f"{totals['sugar_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Saturated Fat:"), width=6),
-                dbc.Col(f"{totals['saturated_fat_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Salt:"), width=6),
-                dbc.Col(f"{totals['salt_g']:.1f} g", width=6),
-            ],
-            className="mb-1",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(html.Strong("Calcium:"), width=6),
-                dbc.Col(f"{totals['calcium_mg']:.0f} mg", width=6),
-            ],
-        ),
-    ]
+            style={"marginBottom": "12px"},
+        )
+
+    return html.Div(
+        [
+            create_progress_bar(
+                "Calories",
+                totals["energy_kcal"],
+                targets["energy_kcal"],
+                "progress-calories",
+                "kcal",
+            ),
+            create_progress_bar(
+                "Protein",
+                totals["protein_g"],
+                targets["protein_g"],
+                "progress-protein",
+                "g",
+            ),
+            create_progress_bar(
+                "Carbohydrates",
+                totals["carbohydrates_g"],
+                targets["carbohydrates_g"],
+                "progress-carbs",
+                "g",
+            ),
+            create_progress_bar("Fat", totals["fat_g"], targets["fat_g"], "progress-fat", "g"),
+            html.Hr(style={"margin": "20px 0"}),
+            html.H6("Additional Nutrients", style={"color": "#64748B", "marginBottom": "12px"}),
+            dbc.Row(
+                [
+                    dbc.Col(html.Strong("Fibre:"), width=6),
+                    dbc.Col(
+                        html.Span(
+                            f"{totals['fibre_g']:.1f} g",
+                            className="macro-badge badge-protein",
+                        ),
+                        width=6,
+                    ),
+                ],
+                className="mb-2",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(html.Strong("Sugar:"), width=6),
+                    dbc.Col(
+                        html.Span(
+                            f"{totals['sugar_g']:.1f} g",
+                            className="macro-badge badge-carbs",
+                        ),
+                        width=6,
+                    ),
+                ],
+                className="mb-2",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(html.Strong("Saturated Fat:"), width=6),
+                    dbc.Col(
+                        html.Span(
+                            f"{totals['saturated_fat_g']:.1f} g",
+                            className="macro-badge badge-fat",
+                        ),
+                        width=6,
+                    ),
+                ],
+                className="mb-2",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(html.Strong("Salt:"), width=6),
+                    dbc.Col(
+                        html.Span(
+                            f"{totals['salt_g']:.1f} g",
+                            className="macro-badge badge-calories",
+                        ),
+                        width=6,
+                    ),
+                ],
+                className="mb-2",
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(html.Strong("Calcium:"), width=6),
+                    dbc.Col(
+                        html.Span(
+                            f"{totals['calcium_mg']:.0f} mg",
+                            className="macro-badge badge-protein",
+                        ),
+                        width=6,
+                    ),
+                ],
+            ),
+        ]
+    )
