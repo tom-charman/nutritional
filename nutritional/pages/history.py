@@ -20,7 +20,7 @@ layout = dbc.Container(
                         dcc.Dropdown(
                             id="history-date-selector",
                             placeholder="Select a date...",
-                            style={"width": "250px"},
+                            className="history-date-dropdown",
                         ),
                     ],
                     className="toolbar-left",
@@ -31,14 +31,12 @@ layout = dbc.Container(
                 ),
             ],
             className="toolbar",
-            style={"marginBottom": "24px"},
         ),
         # Main Content
         html.Div(id="history-content"),
     ],
     fluid=True,
     className="page-content",
-    style={"maxWidth": "1000px"},
 )
 
 
@@ -63,14 +61,9 @@ def display_history(selected_date):
             html.Div(
                 html.P(
                     "Select a date from above to view history.",
-                    className="text-muted",
-                    style={"textAlign": "center", "padding": "60px 20px"},
+                    className="text-muted text-center p-3",
                 ),
-                style={
-                    "border": "1px solid var(--border)",
-                    "borderRadius": "8px",
-                    "background": "var(--surface)",
-                },
+                className="card",
             ),
             None,
         )
@@ -86,14 +79,9 @@ def display_history(selected_date):
                 html.Div(
                     html.P(
                         f"No data found for {selected_date}.",
-                        className="text-muted",
-                        style={"textAlign": "center", "padding": "60px 20px"},
+                        className="text-muted text-center p-3",
                     ),
-                    style={
-                        "border": "1px solid var(--border)",
-                        "borderRadius": "8px",
-                        "background": "var(--surface)",
-                    },
+                    className="card",
                 ),
                 None,
             )
@@ -106,25 +94,25 @@ def display_history(selected_date):
             [
                 html.Span(
                     f"{totals.energy_kcal:.0f} kcal",
-                    style={"fontWeight": "600", "fontSize": "14px", "color": "var(--text-main)"},
+                    className="summary-stat-primary",
                 ),
-                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(" | ", className="summary-separator"),
                 html.Span(
-                    f"{totals.protein_g:.1f}g P",
-                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                    f"{totals.protein_g:.1f} g Protein",
+                    className="summary-stat-secondary",
                 ),
-                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(" | ", className="summary-separator"),
                 html.Span(
-                    f"{totals.carbohydrates_g:.1f}g C",
-                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                    f"{totals.carbohydrates_g:.1f} g Carbs",
+                    className="summary-stat-secondary",
                 ),
-                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(" | ", className="summary-separator"),
                 html.Span(
-                    f"{totals.fat_g:.1f}g F",
-                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                    f"{totals.fat_g:.1f} g Fat",
+                    className="summary-stat-secondary",
                 ),
             ],
-            style={"display": "flex", "alignItems": "center"},
+            className="history-summary-compact",
         )
 
         # Receipt-style entries list
@@ -134,64 +122,51 @@ def display_history(selected_date):
                     [
                         html.Div(
                             [
-                                html.Strong(entry.food_name, style={"fontSize": "15px"}),
+                                html.Strong(entry.food_name, className="entry-name"),
                                 html.Span(
-                                    f" · {entry.weight_g:.1f}g"
+                                    f" · {entry.weight_g:.1f} g"
                                     if entry.weight_g
-                                    else f" · {entry.quantity:.1f}x",
-                                    style={
-                                        "color": "var(--text-muted)",
-                                        "fontSize": "14px",
-                                    },
+                                    else f" · {entry.quantity:.1f} x",
+                                    className="entry-meta",
                                 ),
                                 html.Span(
                                     f" · {entry.timestamp.strftime('%H:%M')}",
-                                    style={
-                                        "color": "var(--text-disabled)",
-                                        "fontSize": "13px",
-                                        "marginLeft": "4px",
-                                    },
+                                    className="entry-timestamp",
                                 ),
                             ],
-                            style={"flex": "1"},
+                            className="flex-1",
                         ),
                         html.Div(
                             [
                                 html.Span(
-                                    f"{entry.nutrients.energy_kcal:.0f}",
+                                    f"{entry.nutrients.energy_kcal:.0f} kcal",
                                     className="macro-badge badge-calories",
                                     title="Calories",
                                 ),
                                 html.Span(
-                                    f"{entry.nutrients.protein_g:.1f}g P",
+                                    f"{entry.nutrients.protein_g:.1f} g Protein",
                                     className="macro-badge badge-protein",
                                     title="Protein",
                                 ),
                                 html.Span(
-                                    f"{entry.nutrients.carbohydrates_g:.1f}g C",
+                                    f"{entry.nutrients.carbohydrates_g:.1f} g Carbs",
                                     className="macro-badge badge-carbs",
                                     title="Carbohydrates",
                                 ),
                                 html.Span(
-                                    f"{entry.nutrients.fat_g:.1f}g F",
+                                    f"{entry.nutrients.fat_g:.1f} g Fat",
                                     className="macro-badge badge-fat",
                                     title="Fat",
                                 ),
                             ],
-                            style={
-                                "display": "flex",
-                                "gap": "6px",
-                                "flexWrap": "wrap",
-                                "alignItems": "center",
-                            },
+                            className="macro-badges-container",
                         ),
                     ],
                     className="receipt-item",
                 )
                 for entry in daily_data.entries
             ],
-            className="receipt-list",
-            style={"marginBottom": "16px"},
+            className="receipt-list receipt-list-mb",
         )
 
         # Additional info
@@ -206,22 +181,14 @@ def display_history(selected_date):
                         [
                             html.Span(
                                 "Morning Weight",
-                                style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                className="measurement-label",
                             ),
                             html.Span(
                                 f"{daily_data.measurements.morning_weight_kg:.1f} kg",
-                                style={
-                                    "fontSize": "13px",
-                                    "fontWeight": "600",
-                                    "color": "var(--text-main)",
-                                },
+                                className="measurement-value",
                             ),
                         ],
-                        style={
-                            "display": "flex",
-                            "justifyContent": "space-between",
-                            "marginBottom": "6px",
-                        },
+                        className="measurement-item",
                     )
                 )
             if daily_data.measurements.evening_weight_kg:
@@ -230,37 +197,27 @@ def display_history(selected_date):
                         [
                             html.Span(
                                 "Evening Weight",
-                                style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                className="measurement-label",
                             ),
                             html.Span(
                                 f"{daily_data.measurements.evening_weight_kg:.1f} kg",
-                                style={
-                                    "fontSize": "13px",
-                                    "fontWeight": "600",
-                                    "color": "var(--text-main)",
-                                },
+                                className="measurement-value",
                             ),
                         ],
-                        style={"display": "flex", "justifyContent": "space-between"},
+                        className="measurement-item",
                     )
                 )
 
             additional_info.append(
                 html.Div(
                     [
-                        html.Div(
-                            "BODY WEIGHT", className="section-label", style={"marginBottom": "8px"}
-                        ),
+                        html.Div("BODY WEIGHT", className="section-label section-label-mb"),
                         html.Div(
                             measurements_content,
-                            style={
-                                "padding": "12px",
-                                "background": "var(--background)",
-                                "borderRadius": "6px",
-                            },
+                            className="measurement-container",
                         ),
                     ],
-                    style={"marginTop": "16px"},
+                    className="nutrients-section",
                 )
             )
 
@@ -270,8 +227,7 @@ def display_history(selected_date):
                 [
                     html.Div(
                         "ADDITIONAL NUTRIENTS",
-                        className="section-label",
-                        style={"marginBottom": "8px", "marginTop": "16px"},
+                        className="section-label section-label-mt",
                     ),
                     html.Div(
                         [
@@ -279,88 +235,56 @@ def display_history(selected_date):
                                 [
                                     html.Span(
                                         "Fibre",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                        className="measurement-label",
                                     ),
                                     html.Span(
-                                        f"{totals.fibre_g:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
+                                        f"{totals.fibre_g:.1f} g",
+                                        className="measurement-value",
                                     ),
                                 ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
+                                className="measurement-item",
                             ),
                             html.Div(
                                 [
                                     html.Span(
                                         "Sugar",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                        className="measurement-label",
                                     ),
                                     html.Span(
-                                        f"{totals.sugar_g:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
+                                        f"{totals.sugar_g:.1f} g",
+                                        className="measurement-value",
                                     ),
                                 ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
+                                className="measurement-item",
                             ),
                             html.Div(
                                 [
                                     html.Span(
                                         "Sat Fat",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                        className="measurement-label",
                                     ),
                                     html.Span(
-                                        f"{totals.saturated_fat_g:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
+                                        f"{totals.saturated_fat_g:.1f} g",
+                                        className="measurement-value",
                                     ),
                                 ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
+                                className="measurement-item",
                             ),
                             html.Div(
                                 [
                                     html.Span(
                                         "Salt",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                        className="measurement-label",
                                     ),
                                     html.Span(
-                                        f"{totals.salt_g:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
+                                        f"{totals.salt_g:.1f} g",
+                                        className="measurement-value",
                                     ),
                                 ],
-                                style={"display": "flex", "justifyContent": "space-between"},
+                                className="measurement-item",
                             ),
                         ],
-                        style={
-                            "padding": "12px",
-                            "background": "var(--background)",
-                            "borderRadius": "6px",
-                        },
+                        className="measurement-container",
                     ),
                 ],
             )
@@ -376,14 +300,9 @@ def display_history(selected_date):
             html.Div(
                 html.P(
                     f"Error loading history: {str(e)}",
-                    className="text-danger",
-                    style={"textAlign": "center", "padding": "60px 20px"},
+                    className="text-danger text-center p-3",
                 ),
-                style={
-                    "border": "1px solid var(--border)",
-                    "borderRadius": "8px",
-                    "background": "var(--surface)",
-                },
+                className="card",
             ),
             None,
         )

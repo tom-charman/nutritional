@@ -722,6 +722,64 @@ input:disabled,
     background: var(--primary) !important;
 }
 
+.progress-fibre .progress-bar {
+    background: #059669 !important; /* Emerald 600 */
+}
+
+.progress-sugar .progress-bar {
+    background: #DC2626 !important; /* Red 600 */
+}
+
+.progress-saturated-fat .progress-bar {
+    background: #EA580C !important; /* Orange 600 */
+}
+
+.progress-salt .progress-bar {
+    background: #7C3AED !important; /* Violet 600 */
+}
+
+.progress-calcium .progress-bar {
+    background: #0891B2 !important; /* Cyan 600 */
+}
+
+/* Target/Limit Indicators */
+.target-met {
+    color: #059669;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.target-warning {
+    color: #D97706;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.target-exceeded {
+    color: #DC2626;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.progress-label {
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-body);
+}
+
+.progress-value {
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-main);
+}
+
 /* ==================== Alerts & Messages ==================== */
 .alert {
     border-radius: var(--radius-sm) !important;
@@ -1156,4 +1214,260 @@ input:disabled,
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
+}
+
+/* ==================== Layout Utility Classes ==================== */
+.control-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px 0;
+}
+
+.control-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.rolling-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-right: 8px;
+}
+
+.rolling-dropdown {
+    width: 120px;
+    font-size: 14px;
+}
+
+.date-picker-style {
+    font-size: 14px;
+}
+
+.visualizations-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-top: 40px;
+}
+
+.graph-wrapper {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+}
+
+.graph-height {
+    height: 600px;
+}
+
+.tab-content-padding {
+    margin-top: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ==================== Summary & Stat Classes ==================== */
+.summary-stat-primary {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.summary-stat-secondary {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.summary-separator {
+    color: var(--text-disabled);
+    margin: 0 8px;
+}
+
+.flex-row {
+    display: flex;
+    align-items: center;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+}
+
+.flex-between-mb {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.food-selector-full-width {
+    width: 100% !important;
+    flex: 1;
+}
+
+.food-selector-full-width .Select,
+.food-selector-full-width .Select-control {
+    width: 100% !important;
+}
+
+/* ==================== Entry & Food Item Classes ==================== */
+.entry-name {
+    font-size: 15px;
+}
+
+.entry-meta {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.entry-timestamp {
+    color: var(--text-disabled);
+    font-size: 13px;
+    margin-left: 4px;
+}
+
+.macro-badges-container {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.receipt-list-mb {
+    margin-bottom: 16px;
+}
+
+/* ==================== Form Labels ==================== */
+.form-label-sm {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.form-label-xs {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.section-label-mb {
+    margin-bottom: 8px;
+}
+
+.section-label-mt {
+    margin-bottom: 8px;
+    margin-top: 16px;
+}
+
+/* ==================== Measurement & Nutrient Display ==================== */
+.measurement-container {
+    padding: 12px;
+    background: var(--background);
+    border-radius: 6px;
+}
+
+.measurement-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.measurement-item:last-child {
+    margin-bottom: 0;
+}
+
+.measurement-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.measurement-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.nutrients-section {
+    margin-top: 16px;
+}
+
+/* ==================== Page Specific ==================== */
+.page-max-width-1200 {
+    max-width: 1200px;
+}
+
+.action-row-flex {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+}
+
+.action-row-flex > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-flex-70 {
+    flex: 70%;
+}
+
+.editor-flex-30 {
+    flex: 30%;
+}
+
+.form-row-mb {
+    margin-bottom: 16px;
+}
+
+.card-padding {
+    padding: 16px;
+}
+
+.card-border {
+    border: 1px solid var(--border);
+}
+
+.margin-bottom-0 {
+    margin-bottom: 0;
+}
+
+/* ==================== History Page ==================== */
+.history-summary-compact {
+    display: flex;
+    align-items: center;
+}
+
+.history-date-dropdown {
+    width: 250px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.p-3 {
+    padding: 60px 20px;
+}
+
+/* ==================== Foods Page ==================== */
+.search-input-rounded {
+    width: 300px;
+    border-radius: 20px;
+}
+
+.page-max-width-1400 {
+    max-width: 1400px;
+}
+
+.page-padding-top-20 {
+    padding-top: 20px;
 }

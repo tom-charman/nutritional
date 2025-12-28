@@ -23,7 +23,7 @@ layout = dbc.Container(
                             id="search-food",
                             placeholder="🔍 Search foods...",
                             type="text",
-                            style={"width": "300px", "borderRadius": "20px"},
+                            className="search-input-rounded",
                             size="sm",
                         ),
                     ],
@@ -65,8 +65,7 @@ layout = dbc.Container(
                             children=[
                                 html.P(
                                     "Select a food from the list or click '+ New Food' to begin.",
-                                    className="text-muted",
-                                    style={"textAlign": "center", "padding": "40px 20px"},
+                                    className="text-muted text-center p-3",
                                 ),
                             ],
                         ),
@@ -80,11 +79,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Food Name",
-                                                    style={
-                                                        "fontSize": "12px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-sm",
                                                 ),
                                                 dbc.Input(
                                                     id="food-name",
@@ -93,17 +88,13 @@ layout = dbc.Container(
                                                     size="sm",
                                                 ),
                                             ],
-                                            style={"flex": "70%"},
+                                            className="editor-flex-70",
                                         ),
                                         html.Div(
                                             [
                                                 html.Label(
                                                     "Unit Type",
-                                                    style={
-                                                        "fontSize": "12px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-sm",
                                                 ),
                                                 dbc.RadioItems(
                                                     id="unit-type",
@@ -115,11 +106,10 @@ layout = dbc.Container(
                                                     inline=True,
                                                 ),
                                             ],
-                                            style={"flex": "30%"},
+                                            className="editor-flex-30",
                                         ),
                                     ],
-                                    className="editor-grid-2col",
-                                    style={"display": "none"},
+                                    className="editor-grid-2col hidden",
                                     id="form-row-1",
                                 ),
                                 # Serving Size
@@ -127,11 +117,7 @@ layout = dbc.Container(
                                     [
                                         html.Label(
                                             "Serving Size (g)",
-                                            style={
-                                                "fontSize": "12px",
-                                                "color": "var(--text-muted)",
-                                                "marginBottom": "4px",
-                                            },
+                                            className="form-label-sm",
                                         ),
                                         dbc.Input(
                                             id="serving-size",
@@ -142,14 +128,13 @@ layout = dbc.Container(
                                             size="sm",
                                         ),
                                     ],
-                                    style={"marginBottom": "16px", "display": "none"},
+                                    className="form-row-mb hidden",
                                     id="form-row-2",
                                 ),
                                 # Nutritional Values Label
                                 html.Div(
                                     "NUTRITIONAL VALUES",
-                                    className="section-label",
-                                    style={"display": "none"},
+                                    className="section-label hidden",
                                     id="form-label",
                                 ),
                                 # Nutritional Grid
@@ -159,11 +144,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Kcal",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="energy-kcal",
@@ -180,11 +161,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Protein (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="protein-g",
@@ -201,11 +178,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Carbs (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="carbohydrates-g",
@@ -222,11 +195,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Fat (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="fat-g",
@@ -243,11 +212,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Sugar (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="sugar-g",
@@ -264,11 +229,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Sat Fat (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="saturated-fat-g",
@@ -285,11 +246,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Fibre (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="fibre-g",
@@ -306,11 +263,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Salt (g)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="salt-g",
@@ -327,11 +280,7 @@ layout = dbc.Container(
                                             [
                                                 html.Label(
                                                     "Calcium (mg)",
-                                                    style={
-                                                        "fontSize": "11px",
-                                                        "color": "var(--text-muted)",
-                                                        "marginBottom": "4px",
-                                                    },
+                                                    className="form-label-xs",
                                                 ),
                                                 dbc.Input(
                                                     id="calcium-mg",
@@ -345,8 +294,7 @@ layout = dbc.Container(
                                             className="compact-input",
                                         ),
                                     ],
-                                    className="editor-grid",
-                                    style={"display": "none"},
+                                    className="editor-grid hidden",
                                     id="form-grid",
                                 ),
                                 # Editor Actions
@@ -366,8 +314,7 @@ layout = dbc.Container(
                                             size="sm",
                                         ),
                                     ],
-                                    className="editor-actions",
-                                    style={"display": "none"},
+                                    className="editor-actions hidden",
                                     id="form-actions",
                                 ),
                             ],
@@ -382,8 +329,7 @@ layout = dbc.Container(
         html.Div(id="food-save-message", className="mt-3"),
     ],
     fluid=True,
-    className="page-content",
-    style={"maxWidth": "1400px", "paddingTop": "20px"},
+    className="page-content page-max-width-1400 page-padding-top-20",
 )
 
 
@@ -768,22 +714,22 @@ def delete_food_item(n_clicks):
                     html.Div(
                         [
                             html.Span(
-                                f"{item.energy_kcal:.0f}",
+                                f"{item.energy_kcal:.0f} kcal",
                                 className="macro-badge badge-calories",
                                 title="Calories",
                             ),
                             html.Span(
-                                f"{item.protein_g:.1f}g P",
+                                f"{item.protein_g:.1f} g Protein",
                                 className="macro-badge badge-protein",
                                 title="Protein",
                             ),
                             html.Span(
-                                f"{item.carbohydrates_g:.1f}g C",
+                                f"{item.carbohydrates_g:.1f} g Carbs",
                                 className="macro-badge badge-carbs",
                                 title="Carbohydrates",
                             ),
                             html.Span(
-                                f"{item.fat_g:.1f}g F",
+                                f"{item.fat_g:.1f} g Fat",
                                 className="macro-badge badge-fat",
                                 title="Fat",
                             ),

@@ -106,6 +106,74 @@ class Measurements(BaseModel):
     evening_weight_kg: float | None = Field(default=None, ge=0, le=500)
 
 
+class TargetMode(str, Enum):
+    """Mode for nutrient targets."""
+
+    TARGET = "target"  # Goal to reach
+    LIMIT = "limit"  # Maximum to stay under
+
+
+class DailyTargets(BaseModel):
+    """Daily nutritional targets and limits."""
+
+    date: date
+    mode: TargetMode = TargetMode.TARGET
+    energy_kcal: float = Field(default=2000, ge=0)
+    protein_g: float = Field(default=50, ge=0)
+    carbohydrates_g: float = Field(default=260, ge=0)
+    fat_g: float = Field(default=70, ge=0)
+    sugar_g: float = Field(default=90, ge=0)
+    saturated_fat_g: float = Field(default=20, ge=0)
+    fibre_g: float = Field(default=30, ge=0)
+    salt_g: float = Field(default=6, ge=0)
+    calcium_mg: float = Field(default=700, ge=0)
+
+    # Per-nutrient mode overrides (if not set, use the global mode)
+    energy_mode: TargetMode | None = None
+    protein_mode: TargetMode | None = None
+    carbohydrates_mode: TargetMode | None = None
+    fat_mode: TargetMode | None = None
+    sugar_mode: TargetMode | None = None
+    saturated_fat_mode: TargetMode | None = None
+    fibre_mode: TargetMode | None = None
+    salt_mode: TargetMode | None = None
+    calcium_mode: TargetMode | None = None
+
+    def get_nutrient_mode(self, nutrient_name: str) -> TargetMode:
+        """Get the mode for a specific nutrient."""
+        mode_attr = f"{nutrient_name}_mode"
+        specific_mode = getattr(self, mode_attr, None)
+        return specific_mode if specific_mode is not None else self.mode
+
+    @classmethod
+    def get_default_targets(cls) -> "DailyTargets":
+        """Get default targets with sensible defaults."""
+        from datetime import date
+
+        return cls(
+            date=date.today(),
+            energy_kcal=2000,
+            protein_g=150,
+            carbohydrates_g=225,
+            fat_g=67,
+            sugar_g=90,
+            saturated_fat_g=20,
+            fibre_g=30,
+            salt_g=6,
+            calcium_mg=700,
+            # Set default modes for specific nutrients
+            energy_mode=TargetMode.TARGET,
+            protein_mode=TargetMode.TARGET,
+            carbohydrates_mode=TargetMode.TARGET,
+            fat_mode=TargetMode.TARGET,
+            sugar_mode=TargetMode.LIMIT,
+            saturated_fat_mode=TargetMode.LIMIT,
+            fibre_mode=TargetMode.TARGET,
+            salt_mode=TargetMode.LIMIT,
+            calcium_mode=TargetMode.TARGET,
+        )
+
+
 class DailyData(BaseModel):
     """Complete data for a single day."""
 

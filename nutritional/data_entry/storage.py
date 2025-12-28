@@ -5,7 +5,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 
-from nutritional.data_entry.models import DailyData, FoodItem
+from nutritional.data_entry.models import DailyData, DailyTargets, FoodItem
 
 
 class FileStorage:
@@ -22,6 +22,7 @@ class FileStorage:
         self.daily_entries_path = self.base_path / "daily_entries"
         self.summaries_path = self.base_path / "daily_summaries.csv"
         self.history_path = self.base_path / "history.jsonl"
+        self.targets_path = self.base_path / "daily_targets.json"
 
         # Ensure directories exist
         self.base_path.mkdir(exist_ok=True)
@@ -246,3 +247,106 @@ class FileStorage:
             except ValueError:
                 continue
         return sorted(dates, reverse=True)
+
+    def save_daily_targets(self, targets: DailyTargets) -> None:
+        """Save daily targets.
+
+        Args:
+            targets: DailyTargets to save
+        """
+        # Load existing targets
+        all_targets = {}
+        if self.targets_path.exists():
+            with open(self.targets_path, encoding="utf-8") as f:
+                data = json.load(f)
+                all_targets = {item["date"]: item for item in data.get("targets", [])}
+
+        # Update with new targets
+        date_str = str(targets.date)
+        all_targets[date_str] = targets.model_dump(mode="json")
+
+        # Save back to file
+        data = {"targets": list(all_targets.values())}
+        with open(self.targets_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+
+    def load_daily_targets(self, target_date: date) -> DailyTargets | None:
+        """Load daily targets for a specific date.
+
+        Args:
+            target_date: Date to load targets for
+
+        Returns:
+            DailyTargets if found, None otherwise
+        """
+        if not self.targets_path.exists():
+            return None
+
+        with open(self.targets_path, encoding="utf-8") as f:
+            data = json.load(f)
+            for item in data.get("targets", []):
+                if item["date"] == str(target_date):
+                    return DailyTargets(**item)
+        return None
+
+    def get_previous_day_targets(self, target_date: date) -> DailyTargets | None:
+        """Get targets from the most recent day before the given date.
+
+        Args:
+            target_date: Reference date
+
+        Returns:
+            DailyTargets from previous day, or None if not found
+        """
+        if not self.targets_path.exists():
+            return None
+
+        with open(self.targets_path, encoding="utf-8") as f:
+            data = json.load(f)
+            targets_list = data.get("targets", [])
+
+        # Find all dates before the target date
+        previous_targets = []
+        for item in targets_list:
+            try:
+                item_date = date.fromisoformat(item["date"])
+                if item_date < target_date:
+                    previous_targets.append((item_date, item))
+            except (ValueError, KeyError):
+                continue
+
+        if not previous_targets:
+            return None
+
+        # Get the most recent one
+        previous_targets.sort(key=lambda x: x[0], reverse=True)
+        most_recent = previous_targets[0][1]
+
+        # Create new targets with the target date but values from previous day
+        targets = DailyTargets(**most_recent)
+        targets.date = target_date
+        return targets
+
+    def get_or_create_daily_targets(self, target_date: date) -> DailyTargets:
+        """Get targets for a date, creating from previous day or defaults if not found.
+
+        Args:
+            target_date: Date to get targets for
+
+        Returns:
+            DailyTargets for the date
+        """
+        # Try to load existing targets
+        targets = self.load_daily_targets(target_date)
+        if targets:
+            return targets
+
+        # Try to get from previous day
+        targets = self.get_previous_day_targets(target_date)
+        if targets:
+            return targets
+
+        # Fall back to defaults
+        targets = DailyTargets.get_default_targets()
+        targets.date = target_date
+        return targets

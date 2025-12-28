@@ -33,24 +33,16 @@ def get_layout():
                                                 display_format="YYYY-MM-DD",
                                                 start_date_placeholder_text="Start Date",
                                                 end_date_placeholder_text="End Date",
-                                                style={"fontSize": "14px"},
+                                                className="date-picker-style",
                                             ),
                                         ],
-                                        style={
-                                            "display": "flex",
-                                            "gap": "12px",
-                                            "alignItems": "center",
-                                        },
+                                        className="control-group",
                                     ),
                                     html.Div(
                                         [
                                             html.Span(
                                                 "Rolling:",
-                                                style={
-                                                    "fontSize": "13px",
-                                                    "color": "var(--text-muted)",
-                                                    "marginRight": "8px",
-                                                },
+                                                className="rolling-label",
                                             ),
                                             dcc.Dropdown(
                                                 id="rolling-window-dropdown",
@@ -62,19 +54,13 @@ def get_layout():
                                                 ],
                                                 value=7,
                                                 clearable=False,
-                                                style={"width": "120px", "fontSize": "14px"},
+                                                className="rolling-dropdown",
                                             ),
                                         ],
-                                        style={"display": "flex", "alignItems": "center"},
+                                        className="control-group",
                                     ),
                                 ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "alignItems": "center",
-                                    "marginBottom": "24px",
-                                    "padding": "16px 0",
-                                },
+                                className="control-section",
                             ),
                             # Visualization Tabs - Clean, no emojis
                             dbc.Tabs(
@@ -89,15 +75,10 @@ def get_layout():
                                                             "displayModeBar": True,
                                                             "displaylogo": False,
                                                         },
-                                                        style={"height": "600px"},
+                                                        className="graph-height",
                                                     )
                                                 ],
-                                                style={
-                                                    "background": "var(--surface)",
-                                                    "borderRadius": "8px",
-                                                    "padding": "16px",
-                                                    "border": "1px solid var(--border)",
-                                                },
+                                                className="graph-wrapper",
                                             )
                                         ],
                                         label="Calories & Weight",
@@ -113,15 +94,10 @@ def get_layout():
                                                             "displayModeBar": True,
                                                             "displaylogo": False,
                                                         },
-                                                        style={"height": "600px"},
+                                                        className="graph-height",
                                                     )
                                                 ],
-                                                style={
-                                                    "background": "var(--surface)",
-                                                    "borderRadius": "8px",
-                                                    "padding": "16px",
-                                                    "border": "1px solid var(--border)",
-                                                },
+                                                className="graph-wrapper",
                                             )
                                         ],
                                         label="Macronutrient Breakdown",
@@ -137,15 +113,10 @@ def get_layout():
                                                             "displayModeBar": True,
                                                             "displaylogo": False,
                                                         },
-                                                        style={"height": "600px"},
+                                                        className="graph-height",
                                                     )
                                                 ],
-                                                style={
-                                                    "background": "var(--surface)",
-                                                    "borderRadius": "8px",
-                                                    "padding": "16px",
-                                                    "border": "1px solid var(--border)",
-                                                },
+                                                className="graph-wrapper",
                                             )
                                         ],
                                         label="Nutrients vs RDI",
@@ -154,14 +125,10 @@ def get_layout():
                                 ],
                                 id="plot-tabs",
                                 active_tab="tab-1",
-                                style={"marginTop": "0"},
+                                className="tab-content-padding",
                             ),
                         ],
-                        style={
-                            "maxWidth": "1400px",
-                            "margin": "0 auto",
-                            "paddingTop": "40px",
-                        },
+                        className="visualizations-container",
                     ),
                 ],
             ),
@@ -177,14 +144,14 @@ def get_layout():
             # Hidden elements for removed components (keep callbacks working)
             html.Div(
                 [
-                    html.Div(id="avg-calories", style={"display": "none"}),
-                    html.Div(id="avg-weight", style={"display": "none"}),
-                    html.Div(id="avg-protein", style={"display": "none"}),
-                    html.Div(id="data-points", style={"display": "none"}),
-                    html.Div(id="data-source-info", style={"display": "none"}),
-                    dbc.Button("Refresh", id="refresh-button", style={"display": "none"}),
+                    html.Div(id="avg-calories", className="hidden"),
+                    html.Div(id="avg-weight", className="hidden"),
+                    html.Div(id="avg-protein", className="hidden"),
+                    html.Div(id="data-points", className="hidden"),
+                    html.Div(id="data-source-info", className="hidden"),
+                    dbc.Button("Refresh", id="refresh-button", className="hidden"),
                 ],
-                style={"display": "none"},
+                className="hidden",
             ),
         ],
         fluid=True,

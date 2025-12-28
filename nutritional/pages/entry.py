@@ -8,7 +8,14 @@ from dash import Input, Output, State, callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
 from nutritional.data_entry.calculator import calculate_nutrients
-from nutritional.data_entry.models import DailyData, FoodEntry, Measurements, UnitType
+from nutritional.data_entry.models import (
+    DailyData,
+    DailyTargets,
+    FoodEntry,
+    Measurements,
+    TargetMode,
+    UnitType,
+)
 from nutritional.data_entry.storage import FileStorage
 
 dash.register_page(__name__, path="/entry", title="Daily Entry")
@@ -18,13 +25,13 @@ storage = FileStorage()
 layout = dbc.Container(
     [
         # Hidden trigger to reload data when page is visited
-        html.Div(id="page-load-trigger", style={"display": "none"}),
+        html.Div(id="page-load-trigger", className="hidden"),
         # Unified Daily Log Header
         html.Div(
             [
                 html.Div(
                     [
-                        html.H1(id="current-date-display", style={"marginBottom": "0"}),
+                        html.H1(id="current-date-display", className="margin-bottom-0"),
                     ],
                     className="daily-header-left",
                 ),
@@ -48,11 +55,10 @@ layout = dbc.Container(
                                     id="food-selector",
                                     placeholder="🔍 Search foods...",
                                     searchable=True,
-                                    style={"flex": "1"},
+                                    className="food-selector-full-width",
                                 ),
                             ],
-                            className="action-row",
-                            style={"display": "flex", "gap": "12px", "alignItems": "center"},
+                            className="action-row action-row-flex",
                         ),
                         # Inline Amount Input (appears when food selected)
                         html.Div(id="food-input-container"),
@@ -71,7 +77,7 @@ layout = dbc.Container(
                                 html.Div(id="entry-message", className="mt-2"),
                             ],
                             id="add-controls-container",
-                            style={"display": "none"},
+                            className="hidden",
                         ),
                         # Receipt-style List
                         html.Div(
@@ -79,7 +85,28 @@ layout = dbc.Container(
                             className="receipt-list mt-3",
                         ),
                         # Inline Totals (thin footer style)
-                        html.Div(id="daily-totals-inline", className="mt-3"),
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.Div(id="daily-totals-inline"),
+                                        html.Div(
+                                            [
+                                                dbc.Button(
+                                                    "Edit Targets",
+                                                    id="open-targets-modal",
+                                                    color="link",
+                                                    size="sm",
+                                                    className="mt-2",
+                                                ),
+                                            ],
+                                            style={"textAlign": "center"},
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            className="mt-3",
+                        ),
                     ],
                     width=12,
                     lg=8,
@@ -100,11 +127,7 @@ layout = dbc.Container(
                                                             [
                                                                 html.Label(
                                                                     "Morning (kg)",
-                                                                    style={
-                                                                        "fontSize": "12px",
-                                                                        "color": "var(--text-muted)",  # noqa: E501
-                                                                        "marginBottom": "4px",
-                                                                    },
+                                                                    className="form-label-sm",
                                                                 ),
                                                                 dbc.Input(
                                                                     id="morning-weight",
@@ -126,11 +149,7 @@ layout = dbc.Container(
                                                             [
                                                                 html.Label(
                                                                     "Evening (kg)",
-                                                                    style={
-                                                                        "fontSize": "12px",
-                                                                        "color": "var(--text-muted)",  # noqa: E501
-                                                                        "marginBottom": "4px",
-                                                                    },
+                                                                    className="form-label-sm",
                                                                 ),
                                                                 dbc.Input(
                                                                     id="evening-weight",
@@ -148,10 +167,10 @@ layout = dbc.Container(
                                             ]
                                         ),
                                     ],
-                                    style={"padding": "16px"},
+                                    className="card-padding",
                                 ),
                             ],
-                            style={"border": "1px solid var(--border)"},
+                            className="card-border",
                         ),
                     ],
                     width=12,
@@ -159,10 +178,324 @@ layout = dbc.Container(
                 ),
             ]
         ),
+        # Targets Editor Modal
+        dbc.Modal(
+            [
+                dbc.ModalHeader(dbc.ModalTitle("Edit Daily Targets")),
+                dbc.ModalBody(
+                    [
+                        html.Div(
+                            [
+                                html.P(
+                                    "Set your daily nutritional targets. Toggle "
+                                    "between Target (goal to reach) and Limit "
+                                    "(maximum to stay under) for each nutrient.",
+                                    className="text-muted mb-3",
+                                ),
+                                # Two-column layout for inputs
+                                dbc.Row(
+                                    [
+                                        # Left column
+                                        dbc.Col(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.Label("Calories (kcal)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-energy",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=10,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-energy",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Protein (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-protein",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-protein",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Carbohydrates (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-carbohydrates",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-carbohydrates",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Fat (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-fat",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-fat",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Fibre (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-fibre",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-fibre",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                            ],
+                                            md=6,
+                                        ),
+                                        # Right column
+                                        dbc.Col(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.Label("Sugar (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-sugar",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-sugar",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Saturated Fat (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-saturated-fat",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-saturated-fat",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Salt (g)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-salt",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=0.1,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-salt",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.Label("Calcium (mg)"),
+                                                        dbc.InputGroup(
+                                                            [
+                                                                dbc.Input(
+                                                                    id="target-calcium",
+                                                                    type="number",
+                                                                    min=0,
+                                                                    step=10,
+                                                                ),
+                                                                dbc.Select(
+                                                                    id="mode-calcium",
+                                                                    options=[
+                                                                        {
+                                                                            "label": "Target",
+                                                                            "value": "target",
+                                                                        },
+                                                                        {
+                                                                            "label": "Limit",
+                                                                            "value": "limit",
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                            className="mb-3",
+                                                        ),
+                                                    ]
+                                                ),
+                                            ],
+                                            md=6,
+                                        ),
+                                    ]
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+                dbc.ModalFooter(
+                    [
+                        dbc.Button(
+                            "Copy from Previous Day",
+                            id="copy-previous-targets",
+                            color="secondary",
+                            className="me-auto",
+                        ),
+                        dbc.Button("Cancel", id="close-targets-modal", className="ms-1"),
+                        dbc.Button(
+                            "Save Targets", id="save-targets", color="primary", className="ms-1"
+                        ),
+                    ]
+                ),
+            ],
+            id="targets-modal",
+            size="lg",
+            is_open=False,
+        ),
     ],
     fluid=True,
-    className="page-content",
-    style={"maxWidth": "1200px"},
+    className="page-content page-max-width-1200",
 )
 
 
@@ -333,16 +666,16 @@ def calculate_and_display_nutrients(food_id, amount_list):
                 html.H5("Calculated Nutrients:", className="alert-heading"),
                 html.P(
                     f"Energy: {nutrients.energy_kcal:.1f} kcal | "
-                    f"Protein: {nutrients.protein_g:.1f}g | "
-                    f"Carbs: {nutrients.carbohydrates_g:.1f}g | "
-                    f"Fat: {nutrients.fat_g:.1f}g"
+                    f"Protein: {nutrients.protein_g:.1f} g | "
+                    f"Carbs: {nutrients.carbohydrates_g:.1f} g | "
+                    f"Fat: {nutrients.fat_g:.1f} g"
                 ),
                 html.Small(
-                    f"Fibre: {nutrients.fibre_g:.1f}g | "
-                    f"Sugar: {nutrients.sugar_g:.1f}g | "
-                    f"Sat Fat: {nutrients.saturated_fat_g:.1f}g | "
-                    f"Salt: {nutrients.salt_g:.1f}g | "
-                    f"Calcium: {nutrients.calcium_mg:.1f}mg"
+                    f"Fibre: {nutrients.fibre_g:.1f} g | "
+                    f"Sugar: {nutrients.sugar_g:.1f} g | "
+                    f"Sat Fat: {nutrients.saturated_fat_g:.1f} g | "
+                    f"Salt: {nutrients.salt_g:.1f} g | "
+                    f"Calcium: {nutrients.calcium_mg:.1f} mg"
                 ),
             ],
             color="info",
@@ -491,22 +824,22 @@ def update_entries_list(entries, _):
                 html.Div(
                     [
                         html.Span(
-                            f"{entry['nutrients']['energy_kcal']:.0f}",
+                            f"{entry['nutrients']['energy_kcal']:.0f} kcal",
                             className="macro-badge badge-calories",
                             title="Calories",
                         ),
                         html.Span(
-                            f"{entry['nutrients']['protein_g']:.1f}g P",
+                            f"{entry['nutrients']['protein_g']:.1f} g Protein",
                             className="macro-badge badge-protein",
                             title="Protein",
                         ),
                         html.Span(
-                            f"{entry['nutrients']['carbohydrates_g']:.1f}g C",
+                            f"{entry['nutrients']['carbohydrates_g']:.1f} g Carbs",
                             className="macro-badge badge-carbs",
                             title="Carbohydrates",
                         ),
                         html.Span(
-                            f"{entry['nutrients']['fat_g']:.1f}g F",
+                            f"{entry['nutrients']['fat_g']:.1f} g Fat",
                             className="macro-badge badge-fat",
                             title="Fat",
                         ),
@@ -580,8 +913,11 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight):
 )
 def update_daily_totals(entries, _):
     """Calculate and display daily totals in both compact header and inline footer."""
+    # Load targets for today
+    targets = storage.get_or_create_daily_targets(date.today())
+
     if not entries:
-        compact_summary = html.Span("0 / 2000 kcal", className="text-muted")
+        compact_summary = html.Span(f"0 / {targets.energy_kcal:.0f} kcal", className="text-muted")
         inline_totals = None
         return compact_summary, inline_totals
 
@@ -606,55 +942,73 @@ def update_daily_totals(entries, _):
     compact_summary = html.Div(
         [
             html.Span(
-                f"{totals['energy_kcal']:.0f} / 2000 kcal",
+                f"{totals['energy_kcal']:.0f} / {targets.energy_kcal:.0f} kcal",
                 className="summary-item",
                 style={"fontWeight": "600", "color": "var(--text-main)"},
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
             html.Span(
-                f"{totals['protein_g']:.1f}g P",
+                f"{totals['protein_g']:.1f} g Protein",
                 className="summary-item",
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
             html.Span(
-                f"{totals['carbohydrates_g']:.1f}g C",
+                f"{totals['carbohydrates_g']:.1f} g Carbs",
                 className="summary-item",
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
             html.Span(
-                f"{totals['fat_g']:.1f}g F",
+                f"{totals['fat_g']:.1f} g Fat",
                 className="summary-item",
             ),
         ]
     )
 
-    # Define daily targets
-    targets = {
-        "energy_kcal": 2000,
-        "protein_g": 150,
-        "carbohydrates_g": 225,
-        "fat_g": 67,
-    }
-
-    def create_thin_progress_bar(label, value, target, css_class):
-        """Create a thin, modern progress bar."""
+    def create_thin_progress_bar(label, value, target, css_class, mode="target", unit="g"):
+        """Create a thin, modern progress bar with visual feedback."""
         percentage = min((value / target * 100), 100) if target > 0 else 0
-        value_str = f"{value:.0f}" if "kcal" in label.lower() else f"{value:.1f}g"
-        target_str = f"{target:.0f}" if "kcal" in label.lower() else f"{target:.0f}g"
+
+        # Format values
+        if unit == "kcal":
+            value_str = f"{value:.0f}"
+            target_str = f"{target:.0f}"
+        elif unit == "mg":
+            value_str = f"{value:.0f} mg"
+            target_str = f"{target:.0f} mg"
+        else:
+            value_str = f"{value:.1f} g"
+            target_str = f"{target:.0f} g"
+
+        # Determine visual indicator
+        indicator = None
+        if mode == "limit":
+            # Limit mode - show warnings when exceeding
+            if value > target * 1.1:
+                indicator = html.Span("⚠️", className="target-exceeded", title="Limit exceeded")
+            elif value > target:
+                indicator = html.Span("⚠️", className="target-warning", title="Near limit")
+        else:
+            # Target mode - show checkmark when met
+            if value >= target:
+                indicator = html.Span("✓", className="target-met", title="Target met")
 
         return html.Div(
             [
                 html.Div(
                     [
-                        html.Span(label, className="progress-label", style={"fontSize": "13px"}),
-                        html.Span(
-                            f"{value_str} / {target_str}",
-                            className="progress-value",
-                            style={"fontSize": "12px"},
+                        html.Span(label, className="progress-label"),
+                        html.Div(
+                            [
+                                html.Span(
+                                    f"{value_str} / {target_str}",
+                                    className="progress-value",
+                                ),
+                                indicator if indicator else None,
+                            ],
+                            style={"display": "flex", "gap": "6px", "alignItems": "center"},
                         ),
                     ],
                     className="progress-header",
-                    style={"marginBottom": "6px"},
                 ),
                 dbc.Progress(
                     value=percentage,
@@ -665,34 +1019,96 @@ def update_daily_totals(entries, _):
             style={"marginBottom": "16px"},
         )
 
-    # Inline Totals (Thin Progress Bars + Secondary Nutrients)
+    # Inline Totals with all 9 nutrients as progress bars
     inline_totals = html.Div(
         [
             html.Div(
                 [
-                    create_thin_progress_bar(
-                        "Calories",
-                        totals["energy_kcal"],
-                        targets["energy_kcal"],
-                        "progress-calories",
-                    ),
-                    create_thin_progress_bar(
-                        "Protein",
-                        totals["protein_g"],
-                        targets["protein_g"],
-                        "progress-protein",
-                    ),
-                    create_thin_progress_bar(
-                        "Carbs",
-                        totals["carbohydrates_g"],
-                        targets["carbohydrates_g"],
-                        "progress-carbs",
-                    ),
-                    create_thin_progress_bar(
-                        "Fat",
-                        totals["fat_g"],
-                        targets["fat_g"],
-                        "progress-fat",
+                    html.Div(
+                        [
+                            # Left column - macros
+                            html.Div(
+                                [
+                                    create_thin_progress_bar(
+                                        "Calories",
+                                        totals["energy_kcal"],
+                                        targets.energy_kcal,
+                                        "progress-calories",
+                                        mode=targets.get_nutrient_mode("energy").value,
+                                        unit="kcal",
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Protein",
+                                        totals["protein_g"],
+                                        targets.protein_g,
+                                        "progress-protein",
+                                        mode=targets.get_nutrient_mode("protein").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Carbs",
+                                        totals["carbohydrates_g"],
+                                        targets.carbohydrates_g,
+                                        "progress-carbs",
+                                        mode=targets.get_nutrient_mode("carbohydrates").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Fat",
+                                        totals["fat_g"],
+                                        targets.fat_g,
+                                        "progress-fat",
+                                        mode=targets.get_nutrient_mode("fat").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Fibre",
+                                        totals["fibre_g"],
+                                        targets.fibre_g,
+                                        "progress-fibre",
+                                        mode=targets.get_nutrient_mode("fibre").value,
+                                    ),
+                                ],
+                                style={"flex": "1"},
+                            ),
+                            # Right column - sugars, fats, minerals
+                            html.Div(
+                                [
+                                    create_thin_progress_bar(
+                                        "Sugar",
+                                        totals["sugar_g"],
+                                        targets.sugar_g,
+                                        "progress-sugar",
+                                        mode=targets.get_nutrient_mode("sugar").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Saturated Fat",
+                                        totals["saturated_fat_g"],
+                                        targets.saturated_fat_g,
+                                        "progress-saturated-fat",
+                                        mode=targets.get_nutrient_mode("saturated_fat").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Salt",
+                                        totals["salt_g"],
+                                        targets.salt_g,
+                                        "progress-salt",
+                                        mode=targets.get_nutrient_mode("salt").value,
+                                    ),
+                                    create_thin_progress_bar(
+                                        "Calcium",
+                                        totals["calcium_mg"],
+                                        targets.calcium_mg,
+                                        "progress-calcium",
+                                        mode=targets.get_nutrient_mode("calcium").value,
+                                        unit="mg",
+                                    ),
+                                ],
+                                style={"flex": "1"},
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "gap": "24px",
+                            "flexWrap": "wrap",
+                        },
                     ),
                 ],
                 style={
@@ -700,109 +1116,167 @@ def update_daily_totals(entries, _):
                     "background": "var(--surface)",
                     "border": "1px solid var(--border)",
                     "borderRadius": "8px",
-                    "marginBottom": "12px",
                 },
-            ),
-            html.Div(
-                [
-                    html.Div(
-                        "ADDITIONAL NUTRIENTS",
-                        className="section-label",
-                        style={"marginBottom": "8px"},
-                    ),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Span(
-                                        "Fibre",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
-                                    ),
-                                    html.Span(
-                                        f"{totals['fibre_g']:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
-                            ),
-                            html.Div(
-                                [
-                                    html.Span(
-                                        "Sugar",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
-                                    ),
-                                    html.Span(
-                                        f"{totals['sugar_g']:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
-                            ),
-                            html.Div(
-                                [
-                                    html.Span(
-                                        "Sat Fat",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
-                                    ),
-                                    html.Span(
-                                        f"{totals['saturated_fat_g']:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "display": "flex",
-                                    "justifyContent": "space-between",
-                                    "marginBottom": "6px",
-                                },
-                            ),
-                            html.Div(
-                                [
-                                    html.Span(
-                                        "Salt",
-                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
-                                    ),
-                                    html.Span(
-                                        f"{totals['salt_g']:.1f}g",
-                                        style={
-                                            "fontSize": "13px",
-                                            "fontWeight": "600",
-                                            "color": "var(--text-main)",
-                                        },
-                                    ),
-                                ],
-                                style={"display": "flex", "justifyContent": "space-between"},
-                            ),
-                        ],
-                        style={
-                            "padding": "12px",
-                            "background": "var(--background)",
-                            "borderRadius": "6px",
-                        },
-                    ),
-                ],
-                style={"marginTop": "8px"},
             ),
         ],
     )
 
     return compact_summary, inline_totals
+
+
+# Targets Modal Callbacks
+@callback(
+    Output("targets-modal", "is_open"),
+    [
+        Input("open-targets-modal", "n_clicks"),
+        Input("close-targets-modal", "n_clicks"),
+        Input("save-targets", "n_clicks"),
+    ],
+    [State("targets-modal", "is_open")],
+    prevent_initial_call=True,
+)
+def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
+    """Toggle the targets editor modal."""
+    return not is_open
+
+
+@callback(
+    [
+        Output("target-energy", "value"),
+        Output("target-protein", "value"),
+        Output("target-carbohydrates", "value"),
+        Output("target-fat", "value"),
+        Output("target-sugar", "value"),
+        Output("target-saturated-fat", "value"),
+        Output("target-fibre", "value"),
+        Output("target-salt", "value"),
+        Output("target-calcium", "value"),
+        Output("mode-energy", "value"),
+        Output("mode-protein", "value"),
+        Output("mode-carbohydrates", "value"),
+        Output("mode-fat", "value"),
+        Output("mode-sugar", "value"),
+        Output("mode-saturated-fat", "value"),
+        Output("mode-fibre", "value"),
+        Output("mode-salt", "value"),
+        Output("mode-calcium", "value"),
+    ],
+    [Input("open-targets-modal", "n_clicks"), Input("copy-previous-targets", "n_clicks")],
+    prevent_initial_call=True,
+)
+def load_targets_into_modal(open_clicks, copy_clicks):
+    """Load current or previous day's targets into the modal."""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if trigger_id == "copy-previous-targets":
+        # Get previous day's targets
+        targets = storage.get_previous_day_targets(date.today())
+        if not targets:
+            targets = storage.get_or_create_daily_targets(date.today())
+    else:
+        # Load today's targets
+        targets = storage.get_or_create_daily_targets(date.today())
+
+    return (
+        targets.energy_kcal,
+        targets.protein_g,
+        targets.carbohydrates_g,
+        targets.fat_g,
+        targets.sugar_g,
+        targets.saturated_fat_g,
+        targets.fibre_g,
+        targets.salt_g,
+        targets.calcium_mg,
+        targets.get_nutrient_mode("energy").value,
+        targets.get_nutrient_mode("protein").value,
+        targets.get_nutrient_mode("carbohydrates").value,
+        targets.get_nutrient_mode("fat").value,
+        targets.get_nutrient_mode("sugar").value,
+        targets.get_nutrient_mode("saturated_fat").value,
+        targets.get_nutrient_mode("fibre").value,
+        targets.get_nutrient_mode("salt").value,
+        targets.get_nutrient_mode("calcium").value,
+    )
+
+
+@callback(
+    Output("daily-totals-inline", "children", allow_duplicate=True),
+    Input("save-targets", "n_clicks"),
+    [
+        State("target-energy", "value"),
+        State("target-protein", "value"),
+        State("target-carbohydrates", "value"),
+        State("target-fat", "value"),
+        State("target-sugar", "value"),
+        State("target-saturated-fat", "value"),
+        State("target-fibre", "value"),
+        State("target-salt", "value"),
+        State("target-calcium", "value"),
+        State("mode-energy", "value"),
+        State("mode-protein", "value"),
+        State("mode-carbohydrates", "value"),
+        State("mode-fat", "value"),
+        State("mode-sugar", "value"),
+        State("mode-saturated-fat", "value"),
+        State("mode-fibre", "value"),
+        State("mode-salt", "value"),
+        State("mode-calcium", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def save_targets_to_storage(
+    n_clicks,
+    energy,
+    protein,
+    carbs,
+    fat,
+    sugar,
+    sat_fat,
+    fibre,
+    salt,
+    calcium,
+    mode_energy,
+    mode_protein,
+    mode_carbs,
+    mode_fat,
+    mode_sugar,
+    mode_sat_fat,
+    mode_fibre,
+    mode_salt,
+    mode_calcium,
+):
+    """Save targets to storage and refresh display."""
+    if not n_clicks:
+        raise PreventUpdate
+
+    # Create and save targets
+    targets = DailyTargets(
+        date=date.today(),
+        energy_kcal=float(energy),
+        protein_g=float(protein),
+        carbohydrates_g=float(carbs),
+        fat_g=float(fat),
+        sugar_g=float(sugar),
+        saturated_fat_g=float(sat_fat),
+        fibre_g=float(fibre),
+        salt_g=float(salt),
+        calcium_mg=float(calcium),
+        energy_mode=TargetMode(mode_energy),
+        protein_mode=TargetMode(mode_protein),
+        carbohydrates_mode=TargetMode(mode_carbs),
+        fat_mode=TargetMode(mode_fat),
+        sugar_mode=TargetMode(mode_sugar),
+        saturated_fat_mode=TargetMode(mode_sat_fat),
+        fibre_mode=TargetMode(mode_fibre),
+        salt_mode=TargetMode(mode_salt),
+        calcium_mode=TargetMode(mode_calcium),
+    )
+
+    storage.save_daily_targets(targets)
+
+    # Trigger a refresh by returning no_update (the other callback will handle the display)
+    return no_update
