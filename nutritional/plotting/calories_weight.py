@@ -36,14 +36,15 @@ def create_calories_weight_figure(
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Add calories trace (primary y-axis) with new teal color
+    # Add calories trace (primary y-axis) with royal blue color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=calories_avg,
             name=f"Calories ({rolling_window}-day avg)",
-            line=dict(color="#0F766E", width=3),
-            mode="lines",
+            line=dict(color="#2563EB", width=3, shape="spline"),
+            mode="lines+markers",
+            marker=dict(size=6, color="#2563EB", line=dict(width=2, color="white")),
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Calories:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -51,16 +52,17 @@ def create_calories_weight_figure(
         secondary_y=False,
     )
 
-    # Add morning weight trace (secondary y-axis) with amber accent color
+    # Add morning weight trace (secondary y-axis) with emerald color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_morning_avg,
             name=f"Morning Weight ({rolling_window}-day avg)",
             line=dict(
-                color="#F59E0B",
+                color="#059669",
                 width=2,
                 dash="dashdot",
+                shape="spline",
             ),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
@@ -70,13 +72,13 @@ def create_calories_weight_figure(
         secondary_y=True,
     )
 
-    # Add evening weight trace (secondary y-axis) with amber accent color
+    # Add evening weight trace (secondary y-axis) with emerald color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_evening_avg,
             name=f"Evening Weight ({rolling_window}-day avg)",
-            line=dict(color="#F59E0B", width=2, dash="dash"),
+            line=dict(color="#059669", width=2, dash="dash", shape="spline"),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Evening:</b> %{y:.1f} kg<br>"
@@ -108,25 +110,29 @@ def create_calories_weight_figure(
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor="rgba(245, 158, 11, 0.1)",
+                fillcolor="rgba(5, 150, 105, 0.1)",
                 name="Weight Range",
                 hoverinfo="skip",
             ),
             secondary_y=True,
         )
 
-    # Update axes with lighter grid
+    # Update axes with premium styling
     fig.update_xaxes(
         title_text="Date",
-        gridcolor="rgba(0,0,0,0.05)",
-        showgrid=True,
+        showgrid=False,
+        linecolor="#E2E8F0",
+        tickfont=dict(size=12, color="#64748B"),
     )
 
     fig.update_yaxes(
         title_text=f"Calories ({rolling_window}-day avg)",
         range=[y1_min, y1_max],
-        gridcolor="rgba(0,0,0,0.05)",
+        gridcolor="#F1F5F9",
+        gridwidth=1,
         showgrid=True,
+        linecolor="#E2E8F0",
+        tickfont=dict(size=12, color="#64748B"),
         secondary_y=False,
     )
 
@@ -134,10 +140,12 @@ def create_calories_weight_figure(
         title_text=f"Weight (kg) ({rolling_window}-day avg)",
         range=[y2_min, y2_max],
         showgrid=False,
+        linecolor="#E2E8F0",
+        tickfont=dict(size=12, color="#64748B"),
         secondary_y=True,
     )
 
-    # Update layout with transparent background and Inter font
+    # Update layout with premium styling
     fig.update_layout(
         title="Calories and Weight Trends",
         hovermode="x unified",
@@ -146,7 +154,8 @@ def create_calories_weight_figure(
         template="plotly_white",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", size=14, color="#1E293B"),
+        font=dict(family="Inter, sans-serif", size=13, color="#475569"),
+        margin=dict(l=60, r=20, t=40, b=40),
     )
 
     return fig

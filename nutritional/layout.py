@@ -35,9 +35,9 @@ def get_layout():
                 ]
             ),
             # Controls Row
-            dbc.Row(
+            html.Div(
                 [
-                    dbc.Col(
+                    html.Div(
                         [
                             html.Label("Date Range:", className="fw-bold"),
                             dcc.DatePickerRange(
@@ -45,31 +45,13 @@ def get_layout():
                                 display_format="YYYY-MM-DD",
                                 start_date_placeholder_text="Start Date",
                                 end_date_placeholder_text="End Date",
-                                className="mb-2",
                             ),
                         ],
-                        md=6,
+                        className="control-group-left",
                     ),
-                    dbc.Col(
+                    html.Div(
                         [
-                            html.Label("Actions:", className="fw-bold"),
-                            html.Div(
-                                [
-                                    dbc.Button(
-                                        "Refresh Data",
-                                        id="refresh-button",
-                                        color="primary",
-                                        className="me-2",
-                                        n_clicks=0,
-                                    ),
-                                ]
-                            ),
-                        ],
-                        md=3,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label("Rolling Window:", className="fw-bold"),
+                            html.Label("Rolling Window:", className="fw-bold me-2"),
                             dcc.Dropdown(
                                 id="rolling-window-dropdown",
                                 options=[
@@ -80,12 +62,20 @@ def get_layout():
                                 ],
                                 value=7,
                                 clearable=False,
+                                style={"width": "150px"},
+                            ),
+                            dbc.Button(
+                                "Refresh",
+                                id="refresh-button",
+                                color="secondary",
+                                className="ms-2",
+                                n_clicks=0,
                             ),
                         ],
-                        md=3,
+                        className="control-group-right",
                     ),
                 ],
-                className="mb-4 p-3 bg-light rounded",
+                className="control-bar",
             ),
             # Summary Statistics Cards
             html.H4("Summary Statistics", className="mt-4 mb-3"),
@@ -95,14 +85,12 @@ def get_layout():
                         [
                             html.Div(
                                 [
-                                    html.Div("🔥", className="stat-icon"),
                                     html.H3(
                                         id="avg-calories",
-                                        style={"color": "#0F766E"},
                                     ),
                                     html.P(
                                         "Avg Daily Calories",
-                                        className="mb-0 text-muted",
+                                        className="mb-0",
                                     ),
                                 ],
                                 className="summary-card",
@@ -114,14 +102,12 @@ def get_layout():
                         [
                             html.Div(
                                 [
-                                    html.Div("⚖️", className="stat-icon"),
                                     html.H3(
                                         id="avg-weight",
-                                        style={"color": "#0F766E"},
                                     ),
                                     html.P(
                                         "Avg Weight (kg)",
-                                        className="mb-0 text-muted",
+                                        className="mb-0",
                                     ),
                                 ],
                                 className="summary-card",
@@ -133,14 +119,12 @@ def get_layout():
                         [
                             html.Div(
                                 [
-                                    html.Div("💪", className="stat-icon"),
                                     html.H3(
                                         id="avg-protein",
-                                        style={"color": "#0F766E"},
                                     ),
                                     html.P(
                                         "Avg Protein (g)",
-                                        className="mb-0 text-muted",
+                                        className="mb-0",
                                     ),
                                 ],
                                 className="summary-card",
@@ -152,14 +136,12 @@ def get_layout():
                         [
                             html.Div(
                                 [
-                                    html.Div("📊", className="stat-icon"),
                                     html.H3(
                                         id="data-points",
-                                        style={"color": "#0F766E"},
                                     ),
                                     html.P(
                                         "Data Points",
-                                        className="mb-0 text-muted",
+                                        className="mb-0",
                                     ),
                                 ],
                                 className="summary-card",

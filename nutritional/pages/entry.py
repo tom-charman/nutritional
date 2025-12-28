@@ -603,26 +603,20 @@ def update_daily_totals(entries, _):
             [
                 html.Div(
                     [
-                        html.Strong(label, style={"color": "#1E293B"}),
+                        html.Span(label, className="progress-label"),
                         html.Span(
-                            f"{value_str} / {target_str}{unit}",
-                            style={"color": "#64748B", "fontSize": "14px"},
+                            f"{value_str} / {target_str}{unit} ({percentage:.0f}%)",
+                            className="progress-value",
                         ),
                     ],
-                    style={
-                        "display": "flex",
-                        "justifyContent": "space-between",
-                        "marginBottom": "6px",
-                    },
+                    className="progress-header",
                 ),
                 dbc.Progress(
                     value=percentage,
                     className=css_class,
-                    style={"height": "24px", "marginBottom": "16px"},
-                    label=f"{percentage:.0f}%",
                 ),
             ],
-            style={"marginBottom": "12px"},
+            className="progress-container",
         )
 
     return html.Div(
