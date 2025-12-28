@@ -15,12 +15,14 @@ dependencies = [
     "numpy>=2.3.4",
     "pandas>=2.3.3",
     "plotly>=6.5.0",
+    "pydantic>=2.10.0",
     "python-dotenv>=1.2.1",
     "seaborn>=0.13.2",
 ]
 
 [dependency-groups]
 dev = [
+    "numpy>=2.3.4",
     "pre-commit>=4.4.0",
     "pytest>=9.0.1",
     "pytest-cov>=7.0.0",
@@ -38,6 +40,7 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "nutritional/__main__.py" = ["E402"]  # Module imports after dotenv setup
 "nutritional/app.py" = ["E402"]  # Layout/callbacks imported after app creation
+"nutritional/pages/*.py" = ["E402"]  # Page imports after dash.register_page
 "tests/**/*.py" = ["F401", "F811"]  # Allow unused imports in tests
 
 [tool.ty]

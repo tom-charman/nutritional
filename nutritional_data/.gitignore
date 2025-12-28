@@ -1,0 +1,5 @@
+# Ignore all data files except the structure
+*.json
+*.jsonl
+*.csv
+!.gitignore
