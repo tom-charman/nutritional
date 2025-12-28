@@ -14,14 +14,15 @@ def test_get_layout_returns_container():
 
 
 def test_layout_contains_header():
-    """Layout should contain header elements."""
+    """Layout should contain essential UI elements."""
     from nutritional.layout import get_layout
 
     layout = get_layout()
 
-    # Convert layout to string to check for header text
+    # Convert layout to string to check for essential elements
     layout_str = str(layout)
-    assert "Nutritional Dashboard" in layout_str or "nutritional" in layout_str.lower()
+    # Check for tab labels which serve as the main navigation/header
+    assert "Calories & Weight" in layout_str or "calories" in layout_str.lower()
 
 
 def test_layout_contains_controls():
