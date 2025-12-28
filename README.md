@@ -19,6 +19,17 @@ Interactive Plotly Dash application for visualizing and tracking nutritional dat
 - 🔢 **NumPy-First**: Fast data processing using NumPy instead of Pandas
 - 💾 **Flexible Data Sources**: Google Sheets (primary) with CSV fallback
 
+## This project uses
+
+- **Python 3.13**: Modern Python with latest features
+- **Plotly Dash**: Interactive web-based data visualization
+- **NumPy**: Fast numerical computing for data processing
+- **Bootstrap**: Responsive UI components
+- **Pydantic**: Data validation and settings management
+- **Google Sheets API**: Cloud-based data synchronization
+- **pytest**: Comprehensive testing framework
+- **uv**: Fast Python package manager
+
 ## Installation
 
 This project uses [uv](https://github.com/astral-sh/uv) for package management:
@@ -83,28 +94,6 @@ Your CSV should have the following columns:
 
 ## Development
 
-### Running Tests
-
-```bash
-# Run all tests
-uv run pytest tests/ -v
-
-# Run with coverage
-uv run pytest tests/ --cov=nutritional --cov-report=term-missing
-
-# Run specific test file
-uv run pytest tests/test_transforms.py -v
-```
-
-### Test Coverage
-
-The project maintains 97% test coverage with 277 tests following pytest best practices:
-- ✅ All tests are bare functions (no test classes)
-- ✅ Extensive use of `pytest.mark.parametrize` for comprehensive test cases
-- ✅ Shared fixtures in `conftest.py` for reusable test data
-- ✅ Behavior-focused docstrings for every test
-- ✅ No magic values in tests
-
 ### Project Structure
 
 ```
@@ -134,7 +123,7 @@ nutritional/
 │   ├── layout.py         # UI layout definition
 │   ├── callbacks.py      # Interactive callbacks
 │   └── settings.py       # Configuration and constants
-├── tests/                # Comprehensive test suite (277 tests)
+├── tests/                # Test suite
 ├── nutritional_data/     # Data storage directory
 │   ├── food_database.json    # Food items
 │   ├── history.jsonl         # Entry history
@@ -144,22 +133,18 @@ nutritional/
 
 ```
 
-## Architecture
+### Running Tests
 
-The application follows a clean layered architecture with multiple pages:
+```bash
+# Run all tests
+uv run pytest tests/ -v
 
-1. **Data Layer** (`nutritional/data/`): NumPy-based data loading, filtering, and validation
-2. **Data Entry Layer** (`nutritional/data_entry/`): Food database and daily entry management
-3. **Plotting Layer** (`nutritional/plotting/`): Data transformations and Plotly figure creation
-4. **Application Layer** (`nutritional/`): Multi-page Dash web interface with callbacks
+# Run with coverage
+uv run pytest tests/ --cov=nutritional --cov-report=term-missing
 
-This separation ensures:
-- Plotting functions remain simple (just create figures)
-- Data manipulation is centralized and testable
-- Easy to swap data sources (CSV → Google Sheets)
-- Clear separation between visualization and data entry
-
-## Development
+# Run specific test file
+uv run pytest tests/test_transforms.py -v
+```
 
 ### Pre-commit Hooks
 
@@ -175,21 +160,5 @@ uv run pre-commit run --all-files
 
 Configured hooks:
 - **ruff**: Fast Python linter and formatter (replaces flake8, isort, black)
-- **Standard hooks**: trailing whitespace, end-of-file fixer, YAML/TOML/JSON checks, large files detection
-
-### Running Tests
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=nutritional --cov-report=term-missing
-
-# Run specific test file
-uv run pytest tests/test_callbacks.py -v
-```
-
-## License
-
-MIT
+- **ty**: Astral's type checker for Python (local installation)
+- **Standard hooks**: trailing whitespace, end-of-file fixer, YAML/TOML/JSON/merge conflict checks, large files detection, and private key detection
