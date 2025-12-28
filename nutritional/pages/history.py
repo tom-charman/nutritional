@@ -12,48 +12,33 @@ storage = FileStorage()
 
 layout = dbc.Container(
     [
-        dbc.Row(
+        # Integrated Toolbar with Date Selector
+        html.Div(
             [
-                dbc.Col(html.H1("Food Entry History"), width=12),
-            ],
-            className="mb-4",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
+                html.Div(
                     [
-                        dbc.Card(
-                            [
-                                dbc.CardHeader(html.H4("Browse Days")),
-                                dbc.CardBody(
-                                    [
-                                        dbc.Label("Select Date"),
-                                        dcc.Dropdown(
-                                            id="history-date-selector",
-                                            placeholder="Select a date...",
-                                        ),
-                                    ]
-                                ),
-                            ]
+                        dcc.Dropdown(
+                            id="history-date-selector",
+                            placeholder="Select a date...",
+                            style={"width": "250px"},
                         ),
                     ],
-                    width=12,
+                    className="toolbar-left",
+                ),
+                html.Div(
+                    id="history-summary-bar",
+                    className="toolbar-right",
                 ),
             ],
-            className="mb-3",
+            className="toolbar",
+            style={"marginBottom": "24px"},
         ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.Div(id="history-content"),
-                    ],
-                    width=12,
-                ),
-            ]
-        ),
+        # Main Content
+        html.Div(id="history-content"),
     ],
     fluid=True,
+    className="page-content",
+    style={"maxWidth": "1000px"},
 )
 
 
@@ -68,13 +53,27 @@ def update_date_options(_):
 
 
 @callback(
-    Output("history-content", "children"),
+    [Output("history-content", "children"), Output("history-summary-bar", "children")],
     Input("history-date-selector", "value"),
 )
 def display_history(selected_date):
-    """Display history for the selected date."""
+    """Display history for the selected date with integrated summary."""
     if not selected_date:
-        return html.P("Select a date to view history.", className="text-muted")
+        return (
+            html.Div(
+                html.P(
+                    "Select a date from above to view history.",
+                    className="text-muted",
+                    style={"textAlign": "center", "padding": "60px 20px"},
+                ),
+                style={
+                    "border": "1px solid var(--border)",
+                    "borderRadius": "8px",
+                    "background": "var(--surface)",
+                },
+            ),
+            None,
+        )
 
     from datetime import datetime
 
@@ -83,9 +82,52 @@ def display_history(selected_date):
         daily_data = storage.load_daily_entry(date_obj)
 
         if not daily_data:
-            return html.P(f"No data found for {selected_date}.", className="text-muted")
+            return (
+                html.Div(
+                    html.P(
+                        f"No data found for {selected_date}.",
+                        className="text-muted",
+                        style={"textAlign": "center", "padding": "60px 20px"},
+                    ),
+                    style={
+                        "border": "1px solid var(--border)",
+                        "borderRadius": "8px",
+                        "background": "var(--surface)",
+                    },
+                ),
+                None,
+            )
 
-        # Display entries with modern styling
+        # Calculate totals
+        totals = daily_data.totals if daily_data.totals else daily_data.calculate_totals()
+
+        # Summary Bar
+        summary_bar = html.Div(
+            [
+                html.Span(
+                    f"{totals.energy_kcal:.0f} kcal",
+                    style={"fontWeight": "600", "fontSize": "14px", "color": "var(--text-main)"},
+                ),
+                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(
+                    f"{totals.protein_g:.1f}g P",
+                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                ),
+                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(
+                    f"{totals.carbohydrates_g:.1f}g C",
+                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                ),
+                html.Span(" | ", style={"color": "var(--text-disabled)", "margin": "0 8px"}),
+                html.Span(
+                    f"{totals.fat_g:.1f}g F",
+                    style={"fontSize": "13px", "color": "var(--text-muted)"},
+                ),
+            ],
+            style={"display": "flex", "alignItems": "center"},
+        )
+
+        # Receipt-style entries list
         entries_list = html.Div(
             [
                 html.Div(
@@ -94,20 +136,21 @@ def display_history(selected_date):
                             [
                                 html.Strong(entry.food_name, style={"fontSize": "15px"}),
                                 html.Span(
-                                    f"{entry.weight_g:.1f}g"
+                                    f" · {entry.weight_g:.1f}g"
                                     if entry.weight_g
-                                    else f"{entry.quantity:.1f}x",
+                                    else f" · {entry.quantity:.1f}x",
                                     style={
-                                        "marginLeft": "8px",
-                                        "color": "#64748B",
+                                        "color": "var(--text-muted)",
                                         "fontSize": "14px",
                                     },
                                 ),
-                                dbc.Badge(
-                                    entry.timestamp.strftime("%H:%M"),
-                                    color="info",
-                                    className="ms-2",
-                                    style={"fontSize": "11px"},
+                                html.Span(
+                                    f" · {entry.timestamp.strftime('%H:%M')}",
+                                    style={
+                                        "color": "var(--text-disabled)",
+                                        "fontSize": "13px",
+                                        "marginLeft": "4px",
+                                    },
                                 ),
                             ],
                             style={"flex": "1"},
@@ -139,105 +182,208 @@ def display_history(selected_date):
                                 "display": "flex",
                                 "gap": "6px",
                                 "flexWrap": "wrap",
+                                "alignItems": "center",
                             },
                         ),
                     ],
-                    style={
-                        "display": "flex",
-                        "alignItems": "center",
-                        "justifyContent": "space-between",
-                        "gap": "12px",
-                        "padding": "12px",
-                        "backgroundColor": "#FFFFFF",
-                        "borderRadius": "8px",
-                        "marginBottom": "8px",
-                        "boxShadow": "0 1px 3px rgba(0,0,0,0.05)",
-                        "borderLeft": "3px solid #0F766E",
-                        "flexWrap": "wrap",
-                    },
+                    className="receipt-item",
                 )
                 for entry in daily_data.entries
             ],
-            style={"display": "flex", "flexDirection": "column"},
+            className="receipt-list",
+            style={"marginBottom": "16px"},
         )
 
-        # Display totals
-        totals = daily_data.totals if daily_data.totals else daily_data.calculate_totals()
+        # Additional info
+        additional_info = []
 
-        totals_card = dbc.Card(
-            [
-                dbc.CardHeader(html.H5("Daily Totals")),
-                dbc.CardBody(
+        # Measurements
+        if daily_data.measurements.morning_weight_kg or daily_data.measurements.evening_weight_kg:
+            measurements_content = []
+            if daily_data.measurements.morning_weight_kg:
+                measurements_content.append(
+                    html.Div(
+                        [
+                            html.Span(
+                                "Morning Weight",
+                                style={"fontSize": "13px", "color": "var(--text-muted)"},
+                            ),
+                            html.Span(
+                                f"{daily_data.measurements.morning_weight_kg:.1f} kg",
+                                style={
+                                    "fontSize": "13px",
+                                    "fontWeight": "600",
+                                    "color": "var(--text-main)",
+                                },
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "justifyContent": "space-between",
+                            "marginBottom": "6px",
+                        },
+                    )
+                )
+            if daily_data.measurements.evening_weight_kg:
+                measurements_content.append(
+                    html.Div(
+                        [
+                            html.Span(
+                                "Evening Weight",
+                                style={"fontSize": "13px", "color": "var(--text-muted)"},
+                            ),
+                            html.Span(
+                                f"{daily_data.measurements.evening_weight_kg:.1f} kg",
+                                style={
+                                    "fontSize": "13px",
+                                    "fontWeight": "600",
+                                    "color": "var(--text-main)",
+                                },
+                            ),
+                        ],
+                        style={"display": "flex", "justifyContent": "space-between"},
+                    )
+                )
+
+            additional_info.append(
+                html.Div(
                     [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [html.Strong("Energy:"), f" {totals.energy_kcal:.0f} kcal"],
-                                    width=3,
-                                ),
-                                dbc.Col(
-                                    [html.Strong("Protein:"), f" {totals.protein_g:.1f} g"], width=3
-                                ),
-                                dbc.Col(
-                                    [html.Strong("Carbs:"), f" {totals.carbohydrates_g:.1f} g"],
-                                    width=3,
-                                ),
-                                dbc.Col([html.Strong("Fat:"), f" {totals.fat_g:.1f} g"], width=3),
-                            ]
+                        html.Div(
+                            "BODY WEIGHT", className="section-label", style={"marginBottom": "8px"}
                         ),
-                        html.Hr(),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [html.Strong("Fibre:"), f" {totals.fibre_g:.1f} g"], width=3
-                                ),
-                                dbc.Col(
-                                    [html.Strong("Sugar:"), f" {totals.sugar_g:.1f} g"], width=3
-                                ),
-                                dbc.Col(
-                                    [html.Strong("Sat Fat:"), f" {totals.saturated_fat_g:.1f} g"],
-                                    width=3,
-                                ),
-                                dbc.Col([html.Strong("Salt:"), f" {totals.salt_g:.1f} g"], width=3),
-                            ]
+                        html.Div(
+                            measurements_content,
+                            style={
+                                "padding": "12px",
+                                "background": "var(--background)",
+                                "borderRadius": "6px",
+                            },
                         ),
-                    ]
-                ),
-            ],
-            className="mt-3",
+                    ],
+                    style={"marginTop": "16px"},
+                )
+            )
+
+        # Additional nutrients
+        additional_info.append(
+            html.Div(
+                [
+                    html.Div(
+                        "ADDITIONAL NUTRIENTS",
+                        className="section-label",
+                        style={"marginBottom": "8px", "marginTop": "16px"},
+                    ),
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.Span(
+                                        "Fibre",
+                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                    ),
+                                    html.Span(
+                                        f"{totals.fibre_g:.1f}g",
+                                        style={
+                                            "fontSize": "13px",
+                                            "fontWeight": "600",
+                                            "color": "var(--text-main)",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justifyContent": "space-between",
+                                    "marginBottom": "6px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        "Sugar",
+                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                    ),
+                                    html.Span(
+                                        f"{totals.sugar_g:.1f}g",
+                                        style={
+                                            "fontSize": "13px",
+                                            "fontWeight": "600",
+                                            "color": "var(--text-main)",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justifyContent": "space-between",
+                                    "marginBottom": "6px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        "Sat Fat",
+                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                    ),
+                                    html.Span(
+                                        f"{totals.saturated_fat_g:.1f}g",
+                                        style={
+                                            "fontSize": "13px",
+                                            "fontWeight": "600",
+                                            "color": "var(--text-main)",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justifyContent": "space-between",
+                                    "marginBottom": "6px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        "Salt",
+                                        style={"fontSize": "13px", "color": "var(--text-muted)"},
+                                    ),
+                                    html.Span(
+                                        f"{totals.salt_g:.1f}g",
+                                        style={
+                                            "fontSize": "13px",
+                                            "fontWeight": "600",
+                                            "color": "var(--text-main)",
+                                        },
+                                    ),
+                                ],
+                                style={"display": "flex", "justifyContent": "space-between"},
+                            ),
+                        ],
+                        style={
+                            "padding": "12px",
+                            "background": "var(--background)",
+                            "borderRadius": "6px",
+                        },
+                    ),
+                ],
+            )
         )
 
-        # Display measurements
-        measurements_info = []
-        if daily_data.measurements.morning_weight_kg:
-            measurements_info.append(
-                html.P(f"Morning Weight: {daily_data.measurements.morning_weight_kg:.1f} kg")
-            )
-        if daily_data.measurements.evening_weight_kg:
-            measurements_info.append(
-                html.P(f"Evening Weight: {daily_data.measurements.evening_weight_kg:.1f} kg")
-            )
-
-        measurements_card = None
-        if measurements_info:
-            measurements_card = dbc.Card(
-                [
-                    dbc.CardHeader(html.H5("Body Weight")),
-                    dbc.CardBody(measurements_info),
-                ],
-                className="mt-3",
-            )
-
-        return [
-            dbc.Card(
-                [
-                    dbc.CardHeader(html.H4(f"Entries for {selected_date}")),
-                    dbc.CardBody([entries_list]),
-                ]
-            ),
-            totals_card,
-            measurements_card,
-        ]
+        return (
+            html.Div([entries_list] + additional_info),
+            summary_bar,
+        )
 
     except Exception as e:
-        return html.P(f"Error loading history: {str(e)}", className="text-danger")
+        return (
+            html.Div(
+                html.P(
+                    f"Error loading history: {str(e)}",
+                    className="text-danger",
+                    style={"textAlign": "center", "padding": "60px 20px"},
+                ),
+                style={
+                    "border": "1px solid var(--border)",
+                    "borderRadius": "8px",
+                    "background": "var(--surface)",
+                },
+            ),
+            None,
+        )

@@ -14,260 +14,458 @@ storage = FileStorage()
 
 layout = dbc.Container(
     [
-        dbc.Row(
+        # Toolbar - Search and Add New
+        html.Div(
             [
-                dbc.Col(html.H1("Food Database Manager"), width=12),
-            ],
-            className="mb-4",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
+                html.Div(
                     [
-                        dbc.Card(
-                            [
-                                dbc.CardHeader(html.H4("Add/Edit Food Item")),
-                                dbc.CardBody(
-                                    [
-                                        dcc.Store(id="edit-food-id"),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Food Name"),
-                                                        dbc.Input(
-                                                            id="food-name",
-                                                            placeholder="e.g., Chicken Breast",
-                                                            type="text",
-                                                        ),
-                                                    ],
-                                                    width=12,
-                                                ),
-                                            ],
-                                            className="mb-3",
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Unit Type"),
-                                                        dbc.RadioItems(
-                                                            id="unit-type",
-                                                            options=[
-                                                                {
-                                                                    "label": "Per 100g",
-                                                                    "value": "per_100g",
-                                                                },
-                                                                {
-                                                                    "label": "Per Item",
-                                                                    "value": "per_item",
-                                                                },
-                                                            ],
-                                                            value="per_100g",
-                                                            inline=True,
-                                                        ),
-                                                    ],
-                                                    width=6,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Serving Size (g)"),
-                                                        dbc.Input(
-                                                            id="serving-size",
-                                                            placeholder="Required for per-item",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                            disabled=True,
-                                                        ),
-                                                        dbc.FormText(
-                                                            "Only for per-item foods "
-                                                            "(e.g., 118g for medium banana)"
-                                                        ),
-                                                    ],
-                                                    width=6,
-                                                ),
-                                            ],
-                                            className="mb-3",
-                                        ),
-                                        html.H5("Nutritional Values", className="mt-3 mb-2"),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Energy (kcal)"),
-                                                        dbc.Input(
-                                                            id="energy-kcal",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Fat (g)"),
-                                                        dbc.Input(
-                                                            id="fat-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Saturated Fat (g)"),
-                                                        dbc.Input(
-                                                            id="saturated-fat-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                            ],
-                                            className="mb-2",
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Carbohydrates (g)"),
-                                                        dbc.Input(
-                                                            id="carbohydrates-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Sugar (g)"),
-                                                        dbc.Input(
-                                                            id="sugar-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Protein (g)"),
-                                                        dbc.Input(
-                                                            id="protein-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                            ],
-                                            className="mb-2",
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Fibre (g)"),
-                                                        dbc.Input(
-                                                            id="fibre-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Salt (g)"),
-                                                        dbc.Input(
-                                                            id="salt-g",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Label("Calcium (mg)"),
-                                                        dbc.Input(
-                                                            id="calcium-mg",
-                                                            type="number",
-                                                            min=0,
-                                                            step=0.1,
-                                                        ),
-                                                    ],
-                                                    width=4,
-                                                ),
-                                            ],
-                                            className="mb-3",
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    [
-                                                        dbc.Button(
-                                                            "Save Food Item",
-                                                            id="save-food-btn",
-                                                            color="primary",
-                                                            className="me-2",
-                                                        ),
-                                                        dbc.Button(
-                                                            "Clear Form",
-                                                            id="clear-food-form-btn",
-                                                            color="secondary",
-                                                        ),
-                                                    ]
-                                                ),
-                                            ]
-                                        ),
-                                        html.Div(id="food-save-message", className="mt-3"),
-                                    ]
-                                ),
-                            ]
+                        dbc.Input(
+                            id="search-food",
+                            placeholder="🔍 Search foods...",
+                            type="text",
+                            style={"width": "300px", "borderRadius": "20px"},
+                            size="sm",
                         ),
                     ],
-                    width=6,
+                    className="toolbar-left",
                 ),
-                dbc.Col(
+                html.Div(
                     [
-                        dbc.Card(
+                        dbc.Button(
+                            "+ New Food",
+                            id="new-food-btn",
+                            color="primary",
+                            size="sm",
+                        ),
+                    ],
+                    className="toolbar-right",
+                ),
+            ],
+            className="toolbar",
+        ),
+        # Master-Detail Layout
+        html.Div(
+            [
+                # Master Panel - Food List
+                html.Div(
+                    [
+                        html.Div(
+                            id="food-list",
+                            className="master-list",
+                        ),
+                    ],
+                    className="master-panel",
+                ),
+                # Detail Panel - Editor
+                html.Div(
+                    [
+                        dcc.Store(id="edit-food-id"),
+                        html.Div(
+                            id="food-editor",
+                            children=[
+                                html.P(
+                                    "Select a food from the list or click '+ New Food' to begin.",
+                                    className="text-muted",
+                                    style={"textAlign": "center", "padding": "40px 20px"},
+                                ),
+                            ],
+                        ),
+                        # Food form (always present but values controlled by callbacks)
+                        html.Div(
                             [
-                                dbc.CardHeader(html.H4("Food Items")),
-                                dbc.CardBody(
+                                # Name and Unit Type Row
+                                html.Div(
                                     [
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Food Name",
+                                                    style={
+                                                        "fontSize": "12px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="food-name",
+                                                    placeholder="e.g., Chicken Breast",
+                                                    type="text",
+                                                    size="sm",
+                                                ),
+                                            ],
+                                            style={"flex": "70%"},
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Unit Type",
+                                                    style={
+                                                        "fontSize": "12px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.RadioItems(
+                                                    id="unit-type",
+                                                    options=[
+                                                        {"label": "Per 100g", "value": "per_100g"},
+                                                        {"label": "Per Item", "value": "per_item"},
+                                                    ],
+                                                    value="per_100g",
+                                                    inline=True,
+                                                ),
+                                            ],
+                                            style={"flex": "30%"},
+                                        ),
+                                    ],
+                                    className="editor-grid-2col",
+                                    style={"display": "none"},
+                                    id="form-row-1",
+                                ),
+                                # Serving Size
+                                html.Div(
+                                    [
+                                        html.Label(
+                                            "Serving Size (g)",
+                                            style={
+                                                "fontSize": "12px",
+                                                "color": "var(--text-muted)",
+                                                "marginBottom": "4px",
+                                            },
+                                        ),
                                         dbc.Input(
-                                            id="search-food",
-                                            placeholder="Search foods...",
-                                            type="text",
-                                            className="mb-3",
+                                            id="serving-size",
+                                            placeholder="Required for per-item",
+                                            type="number",
+                                            min=0,
+                                            step=0.1,
+                                            size="sm",
                                         ),
-                                        html.Div(id="food-list"),
-                                    ]
+                                    ],
+                                    style={"marginBottom": "16px", "display": "none"},
+                                    id="form-row-2",
                                 ),
-                            ]
+                                # Nutritional Values Label
+                                html.Div(
+                                    "NUTRITIONAL VALUES",
+                                    className="section-label",
+                                    style={"display": "none"},
+                                    id="form-label",
+                                ),
+                                # Nutritional Grid
+                                html.Div(
+                                    [
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Kcal",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="energy-kcal",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Protein (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="protein-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Carbs (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="carbohydrates-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Fat (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="fat-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Sugar (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="sugar-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Sat Fat (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="saturated-fat-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Fibre (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="fibre-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Salt (g)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="salt-g",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Label(
+                                                    "Calcium (mg)",
+                                                    style={
+                                                        "fontSize": "11px",
+                                                        "color": "var(--text-muted)",
+                                                        "marginBottom": "4px",
+                                                    },
+                                                ),
+                                                dbc.Input(
+                                                    id="calcium-mg",
+                                                    type="number",
+                                                    min=0,
+                                                    step=0.1,
+                                                    size="sm",
+                                                    placeholder="0",
+                                                ),
+                                            ],
+                                            className="compact-input",
+                                        ),
+                                    ],
+                                    className="editor-grid",
+                                    style={"display": "none"},
+                                    id="form-grid",
+                                ),
+                                # Editor Actions
+                                html.Div(
+                                    [
+                                        dbc.Button(
+                                            "Clear",
+                                            id="clear-food-form-btn",
+                                            color="secondary",
+                                            size="sm",
+                                            outline=True,
+                                        ),
+                                        dbc.Button(
+                                            "Save Food",
+                                            id="save-food-btn",
+                                            color="primary",
+                                            size="sm",
+                                        ),
+                                    ],
+                                    className="editor-actions",
+                                    style={"display": "none"},
+                                    id="form-actions",
+                                ),
+                            ],
                         ),
                     ],
-                    width=6,
+                    className="detail-panel",
                 ),
             ],
-            className="mb-4",
+            className="master-detail",
         ),
+        # Save message
+        html.Div(id="food-save-message", className="mt-3"),
     ],
     fluid=True,
+    className="page-content",
+    style={"maxWidth": "1400px", "paddingTop": "20px"},
 )
+
+
+# Callback to load food into editor or clear for new food
+@callback(
+    [
+        Output("food-editor", "style"),
+        Output("form-row-1", "style"),
+        Output("form-row-2", "style"),
+        Output("form-label", "style"),
+        Output("form-grid", "style"),
+        Output("form-actions", "style"),
+        Output("edit-food-id", "data", allow_duplicate=True),
+        Output("food-name", "value", allow_duplicate=True),
+        Output("unit-type", "value", allow_duplicate=True),
+        Output("serving-size", "value", allow_duplicate=True),
+        Output("energy-kcal", "value", allow_duplicate=True),
+        Output("fat-g", "value", allow_duplicate=True),
+        Output("saturated-fat-g", "value", allow_duplicate=True),
+        Output("carbohydrates-g", "value", allow_duplicate=True),
+        Output("sugar-g", "value", allow_duplicate=True),
+        Output("protein-g", "value", allow_duplicate=True),
+        Output("fibre-g", "value", allow_duplicate=True),
+        Output("salt-g", "value", allow_duplicate=True),
+        Output("calcium-mg", "value", allow_duplicate=True),
+    ],
+    [
+        Input("new-food-btn", "n_clicks"),
+        Input({"type": "select-food", "index": dash.ALL}, "n_clicks"),
+    ],
+    [State("edit-food-id", "data")],
+    prevent_initial_call=True,
+)
+def load_food_editor(new_btn_clicks, select_clicks, current_id):
+    """Load food into editor or show new food form."""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Check if "New Food" button was clicked
+    if trigger_id == "new-food-btn":
+        food_id = None
+        food_item = None
+    else:
+        # Extract food ID from the clicked list item
+        try:
+            button_info = eval(trigger_id)
+            food_id = button_info["index"]
+            food_item = storage.get_food_item(food_id)
+        except Exception:
+            raise PreventUpdate
+
+    # Show form, hide placeholder
+    editor_hidden = {"display": "none"}
+    form_visible = {"display": "block"}
+    form_grid_visible = {"display": "grid"}
+    form_actions_visible = {"display": "flex"}
+
+    # Return all values
+    return (
+        editor_hidden,  # Hide placeholder message
+        form_visible,  # Show form row 1
+        form_visible,  # Show form row 2
+        form_visible,  # Show form label
+        form_grid_visible,  # Show form grid
+        form_actions_visible,  # Show form actions
+        food_id,
+        food_item.name if food_item else "",
+        food_item.unit_type.value if food_item else "per_100g",
+        food_item.serving_size_g if food_item and food_item.unit_type.value == "per_item" else None,
+        food_item.energy_kcal if food_item else None,
+        food_item.fat_g if food_item else None,
+        food_item.saturated_fat_g if food_item else None,
+        food_item.carbohydrates_g if food_item else None,
+        food_item.sugar_g if food_item else None,
+        food_item.protein_g if food_item else None,
+        food_item.fibre_g if food_item else None,
+        food_item.salt_g if food_item else None,
+        food_item.calcium_mg if food_item else None,
+    )
 
 
 @callback(
@@ -282,18 +480,18 @@ def toggle_serving_size(unit_type):
 @callback(
     [
         Output("food-save-message", "children"),
-        Output("food-name", "value"),
-        Output("serving-size", "value"),
-        Output("energy-kcal", "value"),
-        Output("fat-g", "value"),
-        Output("saturated-fat-g", "value"),
-        Output("carbohydrates-g", "value"),
-        Output("sugar-g", "value"),
-        Output("protein-g", "value"),
-        Output("fibre-g", "value"),
-        Output("salt-g", "value"),
-        Output("calcium-mg", "value"),
-        Output("edit-food-id", "data"),
+        Output("food-name", "value", allow_duplicate=True),
+        Output("serving-size", "value", allow_duplicate=True),
+        Output("energy-kcal", "value", allow_duplicate=True),
+        Output("fat-g", "value", allow_duplicate=True),
+        Output("saturated-fat-g", "value", allow_duplicate=True),
+        Output("carbohydrates-g", "value", allow_duplicate=True),
+        Output("sugar-g", "value", allow_duplicate=True),
+        Output("protein-g", "value", allow_duplicate=True),
+        Output("fibre-g", "value", allow_duplicate=True),
+        Output("salt-g", "value", allow_duplicate=True),
+        Output("calcium-mg", "value", allow_duplicate=True),
+        Output("edit-food-id", "data", allow_duplicate=True),
     ],
     Input("save-food-btn", "n_clicks"),
     [
@@ -416,114 +614,52 @@ def save_food_item(n_clicks, name, unit_type, serving_size, *nutrients_and_id):
 
 @callback(
     Output("food-list", "children"),
-    [Input("search-food", "value"), Input("save-food-btn", "n_clicks")],
+    [
+        Input("search-food", "value"),
+        Input("save-food-btn", "n_clicks"),
+        Input("edit-food-id", "data"),
+    ],
 )
-def update_food_list(search_query, _):
-    """Update the list of food items."""
+def update_food_list(search_query, _, selected_id):
+    """Update the list of food items with master-list styling."""
     if search_query:
         items = storage.search_food_items(search_query)
     else:
         items = storage.load_food_database()
 
     if not items:
-        return html.P("No food items found.", className="text-muted")
+        return html.Div(
+            html.P(
+                "No food items found.",
+                className="text-muted",
+                style={"padding": "20px", "textAlign": "center"},
+            ),
+        )
 
-    return html.Div(
-        [
-            html.Div(
-                [
-                    html.Div(
-                        [
-                            html.Strong(item.name, style={"fontSize": "16px"}),
-                            html.Div(
-                                [
-                                    dbc.Badge(
-                                        "Per 100g"
-                                        if item.unit_type == UnitType.PER_100G
-                                        else f"Per item ({item.serving_size_g}g)",
-                                        color="info",
-                                        className="ms-2",
-                                        style={"fontSize": "11px"},
-                                    ),
-                                ],
-                                style={"display": "inline"},
-                            ),
-                        ],
-                        style={"flex": "1", "minWidth": "150px"},
-                    ),
-                    html.Div(
-                        [
-                            html.Span(
-                                f"{item.energy_kcal:.0f}",
-                                className="macro-badge badge-calories",
-                                title="Calories",
-                            ),
-                            html.Span(
-                                f"{item.protein_g:.1f}g P",
-                                className="macro-badge badge-protein",
-                                title="Protein",
-                            ),
-                            html.Span(
-                                f"{item.carbohydrates_g:.1f}g C",
-                                className="macro-badge badge-carbs",
-                                title="Carbohydrates",
-                            ),
-                            html.Span(
-                                f"{item.fat_g:.1f}g F",
-                                className="macro-badge badge-fat",
-                                title="Fat",
-                            ),
-                        ],
-                        style={
-                            "display": "flex",
-                            "gap": "8px",
-                            "flexWrap": "wrap",
-                            "alignItems": "center",
-                        },
-                    ),
-                    html.Div(
-                        [
-                            html.I(
-                                className="icon-button",
-                                children="✏️",
-                                id={"type": "edit-food", "index": item.id},
-                                n_clicks=0,
-                                title="Edit",
-                                style={
-                                    "cursor": "pointer",
-                                    "fontSize": "18px",
-                                    "padding": "8px",
-                                },
-                            ),
-                            html.I(
-                                className="icon-button danger",
-                                children="🗑️",
-                                id={"type": "delete-food", "index": item.id},
-                                n_clicks=0,
-                                title="Delete",
-                                style={
-                                    "cursor": "pointer",
-                                    "fontSize": "18px",
-                                    "padding": "8px",
-                                },
-                            ),
-                        ],
-                        style={"display": "flex", "gap": "4px"},
-                    ),
-                ],
-                className="food-item-row",
-                style={
-                    "display": "flex",
-                    "alignItems": "center",
-                    "justifyContent": "space-between",
-                    "gap": "16px",
-                    "flexWrap": "wrap",
-                },
-            )
-            for item in items
-        ],
-        style={"display": "flex", "flexDirection": "column", "gap": "12px"},
-    )
+    return [
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.Div(item.name, className="master-list-item-name"),
+                    ],
+                    style={"flex": "1"},
+                ),
+                html.Div(
+                    [
+                        html.Span(
+                            "Per 100g" if item.unit_type == UnitType.PER_100G else "Per item",
+                            className="master-list-item-badge",
+                        ),
+                    ],
+                ),
+            ],
+            className=f"master-list-item {'selected' if selected_id == item.id else ''}",
+            id={"type": "select-food", "index": item.id},
+            n_clicks=0,
+        )
+        for item in items
+    ]
 
 
 @callback(
