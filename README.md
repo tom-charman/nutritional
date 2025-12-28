@@ -1,19 +1,21 @@
 # nutritional
 
 [![Tests](https://github.com/tom-charman/nutritional/actions/workflows/tests.yml/badge.svg)](https://github.com/tom-charman/nutritional/actions/workflows/tests.yml)
-![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 
-Interactive Plotly Dash application for visualizing nutritional data from CSV files or Google Sheets.
+Interactive Plotly Dash application for visualizing and tracking nutritional data from CSV files or Google Sheets.
 
 ## Features
 
 - 📊 **Interactive Plotly Charts**: Calories vs weight, macro breakdown, and RDI-normalized nutrients
+- 🍔 **Food Database & Entry System**: Track daily food intake with a searchable food database
 - ☁️ **Google Sheets Integration**: Load data directly from Google Sheets with automatic updates
 - 🔄 **Rolling Averages**: Smooth out daily fluctuations with configurable rolling windows (1, 3, 7, 14, 30 days)
 - 📅 **Date Range Filtering**: Focus on specific time periods
-- 🎨 **Responsive UI**: Bootstrap-based layout that works on desktop and mobile
+- 🎨 **Responsive UI**: Bootstrap-based multi-page layout
 - 📈 **Summary Statistics**: At-a-glance metrics for calories, weight, and protein
+- 📊 **Historical Analysis**: View trends and patterns over time
 - 🔢 **NumPy-First**: Fast data processing using NumPy instead of Pandas
 - 💾 **Flexible Data Sources**: Google Sheets (primary) with CSV fallback
 
@@ -47,8 +49,6 @@ uv run python -m nutritional
 ```
 
 ### Option 2: Using Google Sheets (Recommended for Regular Use)
-
-See [Google Sheets Setup Guide](docs/google-sheets-setup.md) for detailed instructions.
 
 Quick setup:
 1. Create a Google Cloud project and enable Sheets/Drive APIs
@@ -98,7 +98,7 @@ uv run pytest tests/test_transforms.py -v
 
 ### Test Coverage
 
-The project maintains 96%+ test coverage with 164+ tests following pytest best practices:
+The project maintains 97% test coverage with 277 tests following pytest best practices:
 - ✅ All tests are bare functions (no test classes)
 - ✅ Extensive use of `pytest.mark.parametrize` for comprehensive test cases
 - ✅ Shared fixtures in `conftest.py` for reusable test data
@@ -113,35 +113,51 @@ nutritional/
 │   ├── data/              # Data loading and preprocessing
 │   │   ├── loaders.py     # CSV/Google Sheets loading
 │   │   ├── preprocessing.py  # NumPy transformations
-│   │   └── validators.py  # Data quality checks
+│   │   ├── validators.py  # Data quality checks
+│   │   └── google_sheets.py  # Google Sheets API client
+│   ├── data_entry/        # Food database and entry system
+│   │   ├── models.py      # Pydantic data models
+│   │   ├── calculator.py  # Nutritional calculations
+│   │   └── storage.py     # JSON/JSONL persistence
 │   ├── plotting/          # Plotly visualization
 │   │   ├── transforms.py  # Plot data preparation
 │   │   ├── calories_weight.py  # Calories vs weight figure
 │   │   ├── macros.py      # Macro breakdown figure
 │   │   ├── nutrients.py   # RDI nutrients figure
 │   │   └── utils.py       # Shared plotting utilities
+│   ├── pages/             # Multi-page Dash app
+│   │   ├── home.py        # Main dashboard
+│   │   ├── entry.py       # Daily food entry
+│   │   ├── foods.py       # Food database management
+│   │   └── history.py     # Historical data view
 │   ├── app.py            # Dash app initialization
 │   ├── layout.py         # UI layout definition
 │   ├── callbacks.py      # Interactive callbacks
 │   └── settings.py       # Configuration and constants
-├── tests/                # Comprehensive test suite
-├── local_data/           # Place your CSV here
-└── plots/                # HTML plot exports
+├── tests/                # Comprehensive test suite (277 tests)
+├── nutritional_data/     # Data storage directory
+│   ├── food_database.json    # Food items
+│   ├── history.jsonl         # Entry history
+│   ├── daily_summaries.csv   # Aggregated data
+│   └── daily_entries/        # Daily entry files
+└── docs/                 # Documentation
 
 ```
 
 ## Architecture
 
-The application follows a clean layered architecture:
+The application follows a clean layered architecture with multiple pages:
 
 1. **Data Layer** (`nutritional/data/`): NumPy-based data loading, filtering, and validation
-2. **Plotting Layer** (`nutritional/plotting/`): Data transformations and Plotly figure creation
-3. **Application Layer** (`nutritional/`): Dash web interface with callbacks
+2. **Data Entry Layer** (`nutritional/data_entry/`): Food database and daily entry management
+3. **Plotting Layer** (`nutritional/plotting/`): Data transformations and Plotly figure creation
+4. **Application Layer** (`nutritional/`): Multi-page Dash web interface with callbacks
 
 This separation ensures:
 - Plotting functions remain simple (just create figures)
 - Data manipulation is centralized and testable
 - Easy to swap data sources (CSV → Google Sheets)
+- Clear separation between visualization and data entry
 
 ## Development
 
@@ -160,7 +176,6 @@ uv run pre-commit run --all-files
 Configured hooks:
 - **ruff**: Fast Python linter and formatter (replaces flake8, isort, black)
 - **Standard hooks**: trailing whitespace, end-of-file fixer, YAML/TOML/JSON checks, large files detection
-- **ty**: Astral's new type checker (coming soon - currently commented out)
 
 ### Running Tests
 
@@ -174,14 +189,6 @@ uv run pytest --cov=nutritional --cov-report=term-missing
 # Run specific test file
 uv run pytest tests/test_callbacks.py -v
 ```
-
-## Roadmap
-
-- [x] Phase 1: NumPy data layer
-- [x] Phase 2: Plotly plotting layer
-- [x] Phase 3: Dash application
-- [x] Phase 4: Google Sheets integration
-- [ ] Phase 5: Deployment & Polish
 
 ## License
 
