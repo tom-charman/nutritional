@@ -1,5 +1,9 @@
 # Nutritional Tracker Migration Plan: Google Sheets → Database
 
+**Status Update (December 2025):** ✅ **Phase 1 Complete** - File-based data entry system with full UI, daily targets/limits tracking, and comprehensive testing. Phase 2 (Database) and Phase 3 (Migration) remain planned.
+
+---
+
 ## Current System Overview
 
 ### Existing Google Sheets Structure
@@ -34,25 +38,145 @@
 
 ## Migration Strategy: 3-Phase Approach
 
-### Phase 1: File-Based Data Entry System
+### Phase 1: File-Based Data Entry System ✅ COMPLETE
 **Goal**: Build data entry interface without database dependency
+**Status**: Fully implemented with multi-page Dash application, auto-save functionality, and daily targets tracking
+**Implementation Date**: December 2025
 
-#### 1.1 Data Model (JSON/CSV Storage)
+#### 1.1 Data Model (JSON/CSV Storage) ✅
 
+**Implemented Structure:**
 ```
 nutritional_data/
-├── food_database.json          # Nutrients tab equivalent
-├── daily_entries/              # One file per day
-│   ├── 2024-01-15.json
-│   ├── 2024-01-16.json
+├── food_database.json          # All food items with nutritional data
+├── daily_entries/              # One JSON file per day
+│   ├── 2025-12-28.json
+│   ├── 2025-12-29.json
 │   └── ...
-├── daily_summaries.csv         # Replaces Daily tab (current app data source)
-└── history.jsonl               # Complete meal history (JSONL for append efficiency)
+├── daily_summaries.csv         # Daily totals (app data source)
+├── daily_targets.json          # Per-day nutritional targets/limits
+└── history.jsonl               # Append-only meal history log
 ```
 
-**File Formats**:
+**Implemented Pydantic Models (models.py):**
 
-**food_database.json**:
+**Core Enums:**
+```python
+class UnitType(str, Enum):
+    PER_100G = "per_100g"    # Weight-based (nutrients per 100g)
+    PER_ITEM = "per_item"     # Quantity-based (nutrients per whole item)
+
+class TargetMode(str, Enum):
+    TARGET = "target"         # Goal to reach (e.g., protein)
+    LIMIT = "limit"           # Maximum to stay under (e.g., sugar)
+```
+
+**Nutrients Model:**
+```python
+class Nutrients(BaseModel):
+    energy_kcal: float = 0.0
+    protein_g: float = 0.0
+    carbohydrates_g: float = 0.0
+    fat_g: float = 0.0
+    sugar_g: float = 0.0
+    saturated_fat_g: float = 0.0
+    fibre_g: float = 0.0
+    salt_g: float = 0.0
+    calcium_mg: float = 0.0
+```
+
+**FoodItem Model:**
+```python
+class FoodItem(BaseModel):
+    id: Optional[str] = None  # UUID generated on save
+    name: str
+    unit_type: UnitType = UnitType.PER_100G
+    serving_size_g: Optional[float] = None  # Required for PER_100G
+    nutrients: Nutrients = Field(default_factory=Nutrients)
+
+    @field_validator('serving_size_g')
+    def validate_serving_size(cls, v, info):
+        if info.data.get('unit_type') == UnitType.PER_100G and v is None:
+            raise ValueError("serving_size_g required for per_100g items")
+        return v
+```
+
+**FoodEntry Model:**
+```python
+class FoodEntry(BaseModel):
+    timestamp: datetime
+    food_id: str
+    food_name: str  # Cached for display
+    weight_g: Optional[float] = None      # For PER_100G foods
+    quantity: Optional[float] = None      # For PER_ITEM foods
+    nutrients: Nutrients = Field(default_factory=Nutrients)
+
+    @field_validator('nutrients')
+    def validate_amount(cls, v, info):
+        weight = info.data.get('weight_g')
+        quantity = info.data.get('quantity')
+        if not weight and not quantity:
+            raise ValueError("Either weight_g or quantity required")
+        return v
+```
+
+**Measurements Model:**
+```python
+class Measurements(BaseModel):
+    morning_weight_kg: Optional[float] = None
+    evening_weight_kg: Optional[float] = None
+```
+
+**DailyData Model:**
+```python
+class DailyData(BaseModel):
+    date: date
+    entries: list[FoodEntry] = Field(default_factory=list)
+    measurements: Measurements = Field(default_factory=Measurements)
+```
+
+**DailyTargets Model:**
+```python
+class DailyTargets(BaseModel):
+    date: date
+    default_mode: TargetMode = TargetMode.TARGET
+
+    # Target values for all 9 nutrients
+    energy_kcal: float = 2000
+    protein_g: float = 150
+    carbohydrates_g: float = 225
+    fat_g: float = 67
+    sugar_g: float = 90
+    saturated_fat_g: float = 20
+    fibre_g: float = 30
+    salt_g: float = 6
+    calcium_mg: float = 700
+
+    # Per-nutrient mode overrides
+    energy_mode: Optional[TargetMode] = None
+    protein_mode: Optional[TargetMode] = None
+    carbohydrates_mode: Optional[TargetMode] = None
+    fat_mode: Optional[TargetMode] = None
+    sugar_mode: Optional[TargetMode] = TargetMode.LIMIT
+    saturated_fat_mode: Optional[TargetMode] = TargetMode.LIMIT
+    fibre_mode: Optional[TargetMode] = None
+    salt_mode: Optional[TargetMode] = TargetMode.LIMIT
+    calcium_mode: Optional[TargetMode] = None
+
+    def get_nutrient_mode(self, nutrient: str) -> TargetMode:
+        """Get mode for specific nutrient with fallback to default"""
+        mode_attr = f"{nutrient}_mode"
+        return getattr(self, mode_attr) or self.default_mode
+
+    @classmethod
+    def get_default_targets(cls, target_date: date) -> "DailyTargets":
+        """Factory method with sensible defaults"""
+        return cls(date=target_date)
+```
+
+**File Format Examples:**
+
+**food_database.json:**
 ```json
 {
   "items": [
@@ -226,9 +350,13 @@ class FoodEntry(BaseModel):
     nutrients: dict  # Auto-calculated
 ```
 
-**calculator.py** - Nutrient calculation:
+**calculator.py** - Nutrient calculation (IMPLEMENTED):
 ```python
-def calculate_nutrients(food_item: FoodItem, weight_g: float, quantity: float = 1.0) -> dict:
+def calculate_nutrients(
+    food_item: FoodItem,
+    weight_g: Optional[float] = None,
+    quantity: Optional[float] = None
+) -> Nutrients:
     """Calculate nutrients based on unit type.
 
     Args:
@@ -279,79 +407,151 @@ def calculate_daily_totals(entries: list[FoodEntry]) -> dict:
     return totals
 ```
 
-**storage.py** - File operations:
+**storage.py** - File operations (IMPLEMENTED):
 ```python
 class FileStorage:
     def __init__(self, base_path: str = "nutritional_data"):
         self.base_path = Path(base_path)
+        self.base_path.mkdir(exist_ok=True)
+        (self.base_path / "daily_entries").mkdir(exist_ok=True)
 
-    def load_food_database(self) -> list[FoodItem]:
-        """Load food database from JSON"""
+    # Food Database Operations
+    def get_all_food_items(self) -> list[FoodItem]:
+        """Load all food items from JSON"""
 
-    def save_food_item(self, item: FoodItem):
-        """Add/update food item in database"""
+    def get_food_item(self, food_id: str) -> Optional[FoodItem]:
+        """Get single food item by ID"""
 
-    def load_daily_entry(self, date: date) -> dict:
+    def save_food_item(self, food_item: FoodItem) -> FoodItem:
+        """Add/update food item, auto-generates UUID if needed"""
+
+    def delete_food_item(self, food_id: str) -> bool:
+        """Remove food item from database"""
+
+    # Daily Entry Operations
+    def load_daily_entry(self, entry_date: date) -> DailyData:
         """Load daily entry for specific date"""
 
-    def save_daily_entry(self, date: date, data: dict):
+    def save_daily_entry(self, daily_data: DailyData) -> None:
         """Save daily entry and auto-update summaries"""
+        # 1. Save to daily_entries/YYYY-MM-DD.json
+        # 2. Append to history.jsonl
+        # 3. Update daily_summaries.csv
         # 1. Save to daily_entries/{date}.json
         # 2. Append entries to history.jsonl
         # 3. Update daily_summaries.csv
 
     def get_food_items(self) -> list[FoodItem]:
         """Get all food items for dropdown"""
+
+    # Daily Targets Operations
+    def save_daily_targets(self, targets: DailyTargets) -> None:
+        """Save daily targets to JSON"""
+
+    def load_daily_targets(self, target_date: date) -> Optional[DailyTargets]:
+        """Load targets for specific date"""
+
+    def get_previous_day_targets(self, target_date: date) -> Optional[DailyTargets]:
+        """Get targets from previous day for copying"""
+
+    def get_or_create_daily_targets(self, target_date: date) -> DailyTargets:
+        """Smart fallback: today → yesterday → defaults"""
 ```
 
-#### 1.3 Data Entry UI
+#### 1.3 Multi-Page Application UI ✅
 
-**Main Views**:
+**Architecture**: Dash pages plugin (`use_pages=True`) with shared navigation
 
-1. **Food Database Manager**
-   - Add/edit/delete food items
-   - Search and filter
-   - Import from CSV (for bulk addition)
+**Implemented Pages:**
 
-2. **Daily Entry Form** (replicates "Day" tab)
-   - Date selector (defaults to today)
-   - Add food entries:
-     - Food item dropdown (searchable) - shows unit type in label
+**1. Home (`/`)** - Dashboard
+   - Existing visualization components
+   - Date filtering
+   - Rolling averages
+   - Calorie/macro tracking
+   - Nutrient monitoring charts
+
+**2. Food Database Manager (`/foods`)**
+   - ✅ Add new food items with full nutritional data
+   - ✅ Edit existing food items (populates form)
+   - ✅ Delete food items with confirmation
+   - ✅ Search/filter food list (real-time)
+   - ✅ Supports both PER_100G and PER_ITEM unit types
+   - ✅ Pattern-matching callbacks for dynamic edit/delete buttons
+   - ✅ Validation with user-friendly error messages
+
+**3. Daily Entry Form (`/entry`)** - Today's tracking
+   - ✅ Food selector dropdown (searchable, shows unit type)
+   - ✅ Dynamic amount input:
      - **Smart input field**:
        - For `per_100g` items: "Weight (g)" input field
        - For `per_item` items: "Quantity" input field with serving size hint
          - Example: "Quantity" with helper text "(1 item = 118g)"
      - Auto-show calculated nutrients
-     - Timestamp (defaults to now)
-   - Delete/edit food entries
-   - Morning/evening weight inputs
-   - Real-time daily totals display
-   - Visual indicators for RDI goals
-   - **"Save Day" button** - Triggers automatic:
-     - Save to daily_entries/
+     - For PER_100G: "Weight (g)" input
+     - For PER_ITEM: "Quantity" input with serving size hint
+   - ✅ Auto-save on every action (no explicit save button)
+   - ✅ Delete/edit food entries with pattern-matching callbacks
+   - ✅ Morning/evening weight inputs (persistent across sessions)
+   - ✅ Real-time daily totals display (all 9 nutrients)
+   - ✅ **Daily Targets & Progress Tracking**:
+     - Progress bars for all 9 nutrients (2-column layout)
+     - Color-coded by nutrient type
+     - Visual indicators:
+       - Green ✓ when target met
+       - Yellow ⚠️ when limit approaching (100-110%)
+       - Red ⚠️ when limit exceeded (>110%)
+     - "Edit Targets" button opens modal
+   - ✅ **Target Editor Modal**:
+     - Edit target values for all 9 nutrients
+     - Per-nutrient TARGET/LIMIT mode selector
+     - "Copy from Previous Day" functionality
+     - Save/Cancel actions
+   - ✅ **Auto-save behavior** - Every action triggers:
+     - Save to daily_entries/YYYY-MM-DD.json
      - Append to history.jsonl
      - Update daily_summaries.csv
 
-   **UI Example for food selection**:
+   **UI Example:**
    ```
+   Food Selection:
    [Dropdown: Chicken Breast (per 100g)     ▼]
    [Weight (g): 150                         ]
+   [Add Entry]
 
    [Dropdown: Medium Banana (per item, ~118g) ▼]
    [Quantity: 1.5                           ]
+   [Add Entry]
+
+   Progress (Today: 2025-12-29):
+   Calories  [████████░░] 1847 / 2000 kcal ✓
+   Protein   [██████████] 156 / 150 g     ✓
+   ...
+   [Edit Targets]
    ```
 
-3. **History Viewer**
-   - Browse past days
-   - Edit previous entries
-   - Search entries by food item
-   - Date range filtering
+**4. History Viewer (`/history`)**
+   - ✅ Date picker to select any past date
+   - ✅ Display all entries for selected date
+   - ✅ Show daily totals and measurements
+   - ⚠️ View-only (editing past days planned for future)
 
-**UI Layout** (Dash Bootstrap):
+**Implemented UI Layout** (Dash Bootstrap Components):
 ```python
-# Split-panel layout
+# Multi-page navigation
+dbc.NavbarSimple(
+    children=[
+        dbc.NavItem(dbc.NavLink("Home", href="/")),
+        dbc.NavItem(dbc.NavLink("Foods", href="/foods")),
+        dbc.NavItem(dbc.NavLink("Entry", href="/entry")),
+        dbc.NavItem(dbc.NavLink("History", href="/history")),
+    ],
+    brand="Nutritional Tracker",
+)
+
+# Entry page layout
 dbc.Container([
-    dbc.Row([
+    dbc.Row([  # Food entry form
         dbc.Col([
             # Food selector and weight/quantity input
             # Food entry list with delete buttons
@@ -365,37 +565,264 @@ dbc.Container([
 ])
 ```
 
-#### 1.4 Integration with Existing Visualization App
+#### 1.4 State Management & Integration ✅
 
-**Two deployment options**:
+**Implemented Solution: Multi-Page Dash App** (Option B)
+- ✅ Single app with `dash.page_registry` routing
+- ✅ `/` - Visualization dashboard (home.py wrapper)
+- ✅ `/entry` - Data entry interface
+- ✅ `/foods` - Food database manager
+- ✅ `/history` - History browser
 
-**Option A: Separate Apps** (Recommended for Phase 1)
-- Data entry app: `python -m nutritional.data_entry.app` (port 8051)
-- Visualization app: `python -m nutritional` (port 8050)
-- Both read from same `nutritional_data/` directory
-- Add "Open Data Entry" link in viz app
+**Session State Management:**
 
-**Option B: Multi-Page Dash App**
-- Use `dash.page_registry` for routing
-- `/` - Visualization dashboard (existing)
-- `/entry` - Data entry interface
-- `/foods` - Food database manager
-- `/history` - History browser
+**Persistent Stores (dcc.Store with storage_type='session'):**
+```python
+# In entry.py layout
+dcc.Store(id="persistent-entries", storage_type="session")
+dcc.Store(id="persistent-morning-weight", storage_type="session")
+dcc.Store(id="persistent-evening-weight", storage_type="session")
+```
 
-#### 1.5 Implementation Checklist
+**Key Patterns:**
 
-- [ ] Create data models with Pydantic
-- [ ] Implement FileStorage class
-- [ ] Create calculator module
-- [ ] Build food database manager UI
-- [ ] Build daily entry form UI
-- [ ] Add real-time totals calculation
-- [ ] Implement auto-save workflow
-- [ ] Add history viewer
-- [ ] Update loaders.py to support file-based storage
-- [ ] Add migration script: Google Sheets → File storage
-- [ ] Testing: Unit tests for all calculations
-- [ ] Testing: Integration tests for save workflow
+1. **Page Load Pattern** - Load data on page visit:
+```python
+@callback(
+    Output("entries-store", "data"),
+    [Input("persistent-entries", "data"),
+     Input("page-load-trigger", "children")],
+    prevent_initial_call=False,
+)
+def load_data_on_page_visit(stored_data, _):
+    if stored_data:
+        return stored_data
+    # Load from file if not in store
+    daily_data = storage.load_daily_entry(date.today())
+    return [entry.model_dump() for entry in daily_data.entries]
+```
+
+2. **Auto-Save Pattern** - Save immediately on changes:
+```python
+@callback(
+    Output("persistent-entries", "data"),
+    Input("add-entry-btn", "n_clicks"),
+    State("persistent-entries", "data"),
+    prevent_initial_call=True,
+)
+def add_and_save(n_clicks, entries):
+    # Modify entries
+    new_entry = create_entry(...)
+    entries.append(new_entry)
+
+    # Save to file immediately
+    daily_data = DailyData(date=date.today(), entries=entries)
+    storage.save_daily_entry(daily_data)
+
+    return entries  # Update persistent store
+```
+
+3. **Pattern-Matching for Dynamic Components**:
+```python
+@callback(
+    Output("entries-container", "children"),
+    Input({"type": "remove-entry", "index": dash.ALL}, "n_clicks"),
+    State("persistent-entries", "data"),
+)
+def handle_dynamic_buttons(n_clicks, entries):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    # Extract which button was clicked
+    button_id = eval(ctx.triggered[0]["prop_id"].split(".")[0])
+    index = button_id["index"]
+
+    # Remove entry and save
+    entries.pop(index)
+    storage.save_daily_entry(DailyData(date=date.today(), entries=entries))
+    return entries
+```
+
+**Why Auto-Save Instead of Explicit Save Button:**
+- ✅ Reduced cognitive load (users don't forget to save)
+- ✅ No data loss on accidental navigation
+- ✅ Simpler mental model ("what you see is saved")
+- ✅ Better mobile UX (fewer taps required)
+- ✅ Persistent stores bridge multi-page navigation
+
+#### 1.5 Implementation Checklist ✅ COMPLETE
+
+- [x] Create data models with Pydantic (models.py)
+- [x] Implement FileStorage class (storage.py)
+- [x] Create calculator module (calculator.py)
+- [x] Build food database manager UI (/foods page)
+- [x] Build daily entry form UI (/entry page)
+- [x] Add real-time totals calculation
+- [x] Implement auto-save workflow with persistent stores
+- [x] Add history viewer (/history page)
+- [x] Add daily targets/limits tracking system
+- [x] Add visual progress indicators (color-coded bars)
+- [x] Add target editor modal with copy-from-previous
+- [x] Add CSS styling for progress bars and indicators
+- [x] Update loaders.py to support file-based storage
+- [ ] Add migration script: Google Sheets → File storage (deferred to Phase 3)
+- [x] Testing: Unit tests for models, calculator, storage (294 tests passing)
+- [x] Testing: Pattern-matching callbacks
+- [x] Testing: Daily targets storage and fallback logic
+
+**Test Coverage:**
+- ✅ 294 tests passing
+- ✅ 18 tests for daily targets feature
+- ✅ Model validation tests
+- ✅ Calculator tests (both unit types)
+- ✅ Storage operations tests
+- ✅ Edge case handling tests
+
+---
+
+### Phase 1.5: Daily Targets & Limits Tracking ✅ COMPLETE
+
+**Goal**: Add comprehensive nutrient tracking with customizable targets/limits and visual feedback
+**Implementation Date**: December 2025
+
+#### Feature Overview
+
+Added a complete daily targets system that allows users to set nutritional goals (targets to reach) or limits (maximums to stay under) for all 9 tracked nutrients, with real-time visual feedback on progress.
+
+#### Data Model
+
+**TargetMode Enum:**
+```python
+class TargetMode(str, Enum):
+    TARGET = "target"  # Goal to reach (e.g., protein, fibre)
+    LIMIT = "limit"    # Maximum to stay under (e.g., sugar, salt)
+```
+
+**DailyTargets Model:**
+- Date-specific targets for all 9 nutrients
+- Global default mode with per-nutrient overrides
+- Smart fallback logic: today → yesterday → defaults
+- Factory method for sensible defaults
+
+**Default Values:**
+- Energy: 2000 kcal (TARGET)
+- Protein: 150 g (TARGET)
+- Carbohydrates: 225 g (TARGET)
+- Fat: 67 g (TARGET)
+- Sugar: 90 g (LIMIT)
+- Saturated Fat: 20 g (LIMIT)
+- Fibre: 30 g (TARGET)
+- Salt: 6 g (LIMIT)
+- Calcium: 700 mg (TARGET)
+
+#### Storage Implementation
+
+Added to FileStorage class:
+```python
+def save_daily_targets(self, targets: DailyTargets) -> None:
+    """Save to daily_targets.json with date as key"""
+
+def load_daily_targets(self, target_date: date) -> Optional[DailyTargets]:
+    """Load targets for specific date"""
+
+def get_previous_day_targets(self, target_date: date) -> Optional[DailyTargets]:
+    """Get targets from previous day for copying"""
+
+def get_or_create_daily_targets(self, target_date: date) -> DailyTargets:
+    """Smart fallback: today → yesterday → defaults"""
+```
+
+#### UI Implementation
+
+**Progress Bars (All 9 Nutrients):**
+- Two-column responsive layout
+- Left column: Calories, Protein, Carbs, Fat, Fibre
+- Right column: Sugar, Saturated Fat, Salt, Calcium
+- Color-coded by nutrient type:
+  - Calories: Royal blue
+  - Protein: Sky blue
+  - Carbs: Amber
+  - Fat: Pink
+  - Fibre: Emerald
+  - Sugar: Red
+  - Saturated Fat: Orange
+  - Salt: Violet
+  - Calcium: Cyan
+
+**Visual Feedback System:**
+- **Target Mode**: Green ✓ when value ≥ target
+- **Limit Mode**:
+  - Yellow ⚠️ when 100-110% of limit
+  - Red ⚠️ when >110% of limit
+
+**Target Editor Modal:**
+```python
+# Components
+- Input fields for all 9 nutrient values
+- Dropdown for TARGET/LIMIT mode per nutrient
+- "Copy from Previous Day" button
+- Save/Cancel buttons
+
+# Callbacks
+@callback(...)  # Open/close modal
+@callback(...)  # Load targets into form
+@callback(...)  # Copy from previous day
+@callback(...)  # Save changes and refresh display
+```
+
+#### CSS Styling (style.css)
+
+Added classes:
+```css
+/* Progress bar colors for each nutrient */
+.progress-calories { background: linear-gradient(to right, #3b82f6, #2563eb); }
+.progress-protein { background: linear-gradient(to right, #0ea5e9, #0284c7); }
+.progress-carbs { background: linear-gradient(to right, #f59e0b, #d97706); }
+.progress-fat { background: linear-gradient(to right, #ec4899, #db2777); }
+.progress-fibre { background: linear-gradient(to right, #10b981, #059669); }
+.progress-sugar { background: linear-gradient(to right, #ef4444, #dc2626); }
+.progress-saturated-fat { background: linear-gradient(to right, #f97316, #ea580c); }
+.progress-salt { background: linear-gradient(to right, #8b5cf6, #7c3aed); }
+.progress-calcium { background: linear-gradient(to right, #06b6d4, #0891b2); }
+
+/* Visual indicators */
+.target-met { color: #10b981; }      /* Green checkmark */
+.target-warning { color: #f59e0b; }   /* Yellow warning */
+.target-exceeded { color: #ef4444; }  /* Red warning */
+
+/* Progress display */
+.progress-header { font-weight: 600; margin-bottom: 0.5rem; }
+.progress-label { font-size: 0.875rem; color: #6b7280; }
+.progress-value { font-size: 0.875rem; font-weight: 500; }
+```
+
+#### User Experience Flow
+
+1. User visits `/entry` page
+2. System loads targets (today → yesterday → defaults)
+3. Progress bars display all 9 nutrients with current vs target
+4. Visual indicators show status:
+   - Green ✓ for met targets
+   - Yellow ⚠️ for approaching limits
+   - Red ⚠️ for exceeded limits
+5. User adds food entries → progress updates in real-time
+6. User clicks "Edit Targets" → modal opens
+7. User adjusts values or copies from previous day
+8. Changes save → progress bars update immediately
+
+#### Testing
+
+Added test file: `tests/test_daily_targets.py` (18 tests)
+- Model creation and validation
+- Default values and modes
+- Nutrient mode resolution (override vs default)
+- Storage save/load operations
+- Previous day fallback logic
+- Multi-date scenarios
+- Edge cases (missing files, invalid data)
+
+**Results**: All 294 tests passing ✅
 
 ---
 
@@ -932,13 +1359,21 @@ psql nutritional_db < backup_pre_migration.sql
 
 ## Appendix: Key Files to Create/Modify
 
-### New Files (Phase 1)
-- `nutritional/data_entry/__init__.py`
-- `nutritional/data_entry/models.py`
-- `nutritional/data_entry/storage.py`
-- `nutritional/data_entry/calculator.py`
-- `nutritional/data_entry/app.py`
-- `nutritional/data_entry/layout.py`
+### Implemented Files (Phase 1) ✅
+- ✅ `nutritional/data_entry/__init__.py` - Module exports
+- ✅ `nutritional/data_entry/models.py` - Pydantic models (UnitType, TargetMode, Nutrients, FoodItem, FoodEntry, Measurements, DailyData, DailyTargets)
+- ✅ `nutritional/data_entry/storage.py` - FileStorage class with food, entry, and targets operations
+- ✅ `nutritional/data_entry/calculator.py` - Nutrient calculation logic
+- ✅ `nutritional/pages/__init__.py` - Pages module
+- ✅ `nutritional/pages/home.py` - Dashboard wrapper for existing visualizations
+- ✅ `nutritional/pages/foods.py` - Food database CRUD interface
+- ✅ `nutritional/pages/entry.py` - Daily entry form with targets/progress
+- ✅ `nutritional/pages/history.py` - Historical data viewer
+- ✅ `nutritional/assets/style.css` - Added progress bar styles and indicators
+- ✅ `tests/test_data_entry_models.py` - Model validation tests
+- ✅ `tests/test_calculator.py` - Calculation tests
+- ✅ `tests/test_storage.py` - Storage operation tests
+- ✅ `tests/test_daily_targets.py` - Daily targets feature tests (18 tests)
 
 ### New Files (Phase 2)
 - `nutritional/database/__init__.py`
@@ -959,14 +1394,97 @@ psql nutritional_db < backup_pre_migration.sql
 - `pyproject.toml` - Add new dependencies (SQLAlchemy, Alembic, psycopg2)
 - `README.md` - Update setup instructions
 
-### New Dependencies
+### Dependencies
+
+**Phase 1 (Implemented):**
 ```toml
-[tool.poetry.dependencies]
-pydantic = "^2.5.0"
+[project.dependencies]
+dash = ">=3.3.0"
+dash-bootstrap-components = ">=2.0.4"
+pandas = ">=2.2.3"
+plotly = ">=5.24.1"
+pydantic = ">=2.0.0"  # ✅ Added for Phase 1
+python-dotenv = ">=1.0.0"  # ✅ Already present
+```
+
+**Phase 2 (Planned):**
+```toml
 sqlalchemy = "^2.0.0"
 alembic = "^1.13.0"
 psycopg2-binary = "^2.9.0"  # or asyncpg for async
-python-dotenv = "^1.0.0"  # Already present
+```
+
+---
+
+## Current Project Structure (Phase 1)
+
+```
+nutritional/
+├── __init__.py
+├── __main__.py                      # App entry point
+├── app.py                           # Main Dash app setup (multi-page)
+├── callbacks.py                     # Legacy callbacks for home page
+├── layout.py                        # Legacy layout for home page
+├── settings.py                      # Configuration
+├── assets/
+│   └── style.css                    # ✅ Updated with progress bar styles
+├── data/
+│   ├── __init__.py
+│   ├── google_sheets.py             # Original Google Sheets integration
+│   ├── loaders.py                   # Data loading for visualizations
+│   ├── preprocessing.py             # Data transformations
+│   └── validators.py                # Data validation
+├── data_entry/                      # ✅ NEW Phase 1 module
+│   ├── __init__.py
+│   ├── models.py                    # Pydantic models
+│   ├── calculator.py                # Nutrient calculations
+│   └── storage.py                   # File I/O operations
+├── pages/                           # ✅ NEW Phase 1 multi-page structure
+│   ├── __init__.py
+│   ├── home.py                      # Dashboard (existing viz)
+│   ├── foods.py                     # Food database manager
+│   ├── entry.py                     # Daily entry + targets
+│   └── history.py                   # Historical viewer
+└── plotting/
+    ├── __init__.py
+    ├── calories_weight.py
+    ├── macros.py
+    ├── nutrients.py
+    ├── transforms.py
+    └── utils.py
+
+nutritional_data/                    # ✅ NEW Phase 1 storage
+├── food_database.json               # All food items
+├── daily_summaries.csv              # Daily totals (viz data source)
+├── daily_targets.json               # ✅ Per-day targets/limits
+├── history.jsonl                    # Append-only meal log
+└── daily_entries/                   # Individual day files
+    ├── 2025-12-28.json
+    ├── 2025-12-29.json
+    └── ...
+
+tests/
+├── __init__.py
+├── conftest.py                      # Pytest fixtures
+├── test_calculator.py               # ✅ NEW Phase 1
+├── test_callbacks.py
+├── test_data_entry_models.py        # ✅ NEW Phase 1
+├── test_data_loaders.py
+├── test_daily_targets.py            # ✅ NEW Phase 1.5 (18 tests)
+├── test_edge_cases.py
+├── test_google_sheets.py
+├── test_layout.py
+├── test_loader_coverage.py
+├── test_plotting_functions.py
+├── test_preprocessing.py
+├── test_storage.py                  # ✅ NEW Phase 1
+├── test_transforms.py
+└── test_validators.py
+
+docs/
+├── migration-plan.md                # This document
+├── phase1-implementation.md         # ⚠️ Can be deleted (consolidated here)
+└── limits-and-target-tracking-implemntation.md  # ⚠️ Can be deleted (consolidated here)
 ```
 
 ---
@@ -985,8 +1503,57 @@ python-dotenv = "^1.0.0"  # Already present
 
 This migration plan provides a safe, incremental path from Google Sheets to a modern database-backed system. The three-phase approach minimizes risk by:
 
-1. Building and testing the UI without database complexity
-2. Adding database only after UI is proven
-3. Migrating data as the final step with validation
+1. ✅ **Phase 1 Complete**: Building and testing the UI without database complexity
+2. **Phase 2 Planned**: Adding database only after UI is proven
+3. **Phase 3 Planned**: Migrating data as the final step with validation
 
 Each phase is independently useful and can be stopped at any point if needs change.
+
+### Phase 1 Achievements
+
+**Delivered Features:**
+- ✅ Multi-page Dash application with intuitive navigation
+- ✅ Complete food database CRUD interface
+- ✅ Today-focused daily entry form with auto-save
+- ✅ Historical data viewer
+- ✅ Daily targets/limits system with visual feedback
+- ✅ All 9 nutrients tracked with progress bars
+- ✅ Customizable per-nutrient targets and limits
+- ✅ Smart target fallback (today → yesterday → defaults)
+- ✅ Comprehensive testing (294 tests passing)
+- ✅ Type-safe Pydantic models
+- ✅ Persistent session state management
+- ✅ Pattern-matching callbacks for dynamic UI
+
+**Technical Foundation:**
+- Clean separation of concerns (models, storage, calculator, UI)
+- Ready for database migration (storage layer abstraction)
+- Extensible architecture for future features
+- Production-ready error handling and validation
+
+**User Experience Wins:**
+- No data loss (auto-save on every action)
+- Reduced cognitive load (no explicit save button)
+- Real-time feedback (progress bars update immediately)
+- Cross-page state persistence (session stores)
+- Mobile-responsive Bootstrap layout
+- Clear visual indicators (colors + icons)
+
+### Next Steps
+
+**Phase 2 Prerequisites:**
+- Decide on database: PostgreSQL vs SQLite
+- Set up local database environment (Docker recommended)
+- Create SQLAlchemy models matching Pydantic models
+- Write Alembic migrations
+- Implement DatabaseStorage class
+- Add connection pooling configuration
+
+**Phase 3 Prerequisites:**
+- Backup production Google Sheet
+- Test migration script with sheet copy
+- Validate data quality in source sheet
+- Create rollback procedure
+- Schedule migration window
+
+The file-based Phase 1 system is fully functional and can be used in production while Phase 2 and 3 are planned and executed.
