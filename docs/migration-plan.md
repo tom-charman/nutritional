@@ -826,8 +826,181 @@ Added test file: `tests/test_daily_targets.py` (18 tests)
 
 ---
 
-### Phase 2: PostgreSQL Database Integration
-**Goal**: Replace file storage with robust database
+### Phase 2: PostgreSQL Database Integration 🔄 IN PROGRESS
+**Goal**: Replace file storage with robust database while maintaining Google Sheets for visualization
+**Status**: Planning stage
+**Target**: Q1 2026
+
+**Key Requirements:**
+- ✅ Easy switching between local dev DB and cloud production DB
+- ✅ Local PostgreSQL for development and testing
+- ✅ Dual data sources: Database for entry system, Google Sheets for visualization (until Phase 3)
+- ✅ Test all CRUD operations with local DB
+- ✅ Clean local DB setup for Phase 3 migration
+- ⚠️ Production cloud DB deployment deferred (app not deployed yet)
+
+#### 2.0 Environment Setup & Configuration
+
+**2.0.1 Environment Variables (.env)**
+
+Create `.env` file in project root (gitignored):
+```bash
+# Application Mode
+ENV=development  # development | production
+
+# Database Configuration
+DATABASE_URL=postgresql://nutritional_user:dev_password@localhost:5432/nutritional_db
+
+# Or separate components (alternative)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=nutritional_db
+DB_USER=nutritional_user
+DB_PASSWORD=dev_password
+
+# Data Source Selection (Phase 2 dual-source period)
+ENTRY_DATA_SOURCE=database    # database | file
+VIZ_DATA_SOURCE=google_sheets  # google_sheets | database
+
+# Google Sheets (keep for visualization during Phase 2)
+GOOGLE_SHEETS_CREDENTIALS=credentials/nutritional-479017-22cd3962ee25.json
+GOOGLE_SHEET_ID=your_sheet_id_here
+```
+
+**2.0.2 Production Environment (.env.production)**
+```bash
+# Production configuration (future use)
+ENV=production
+DATABASE_URL=postgresql://user:password@cloud-db-host:5432/nutritional_prod
+# Or use cloud provider connection strings:
+# DATABASE_URL=postgresql://user:pass@db.region.provider.com:5432/nutritional
+```
+
+**2.0.3 Docker Compose for Local Development**
+
+Create `docker-compose.yml` in project root:
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nutritional_db
+    environment:
+      POSTGRES_USER: nutritional_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: nutritional_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutritional_user -d nutritional_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nutritional_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nutritional.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+```
+
+**2.0.4 Database Management Scripts**
+
+Create `scripts/db_management.ps1`:
+```powershell
+# Database management helper script
+
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet('start', 'stop', 'restart', 'reset', 'clean', 'backup', 'restore')]
+    [string]$Command,
+    [string]$BackupFile
+)
+
+switch ($Command) {
+    'start' {
+        Write-Host "Starting PostgreSQL container..."
+        docker-compose up -d postgres
+        Write-Host "Waiting for database to be ready..."
+        Start-Sleep -Seconds 5
+        docker-compose exec postgres pg_isready -U nutritional_user
+    }
+    'stop' {
+        Write-Host "Stopping PostgreSQL container..."
+        docker-compose stop postgres
+    }
+    'restart' {
+        Write-Host "Restarting PostgreSQL container..."
+        docker-compose restart postgres
+    }
+    'reset' {
+        Write-Host "Resetting database (drops and recreates)..."
+        docker-compose exec postgres psql -U nutritional_user -d nutritional_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        Write-Host "Running migrations..."
+        & .venv\Scripts\alembic upgrade head
+    }
+    'clean' {
+        Write-Host "WARNING: This will delete ALL database data and the Docker volume!"
+        $confirmation = Read-Host "Type 'yes' to confirm"
+        if ($confirmation -eq 'yes') {
+            docker-compose down -v
+            Write-Host "Database cleaned. Run 'start' to create fresh database."
+        }
+    }
+    'backup' {
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $backupFile = "backups/nutritional_db_$timestamp.sql"
+        New-Item -ItemType Directory -Force -Path backups | Out-Null
+        Write-Host "Backing up database to $backupFile..."
+        docker-compose exec -T postgres pg_dump -U nutritional_user nutritional_db > $backupFile
+        Write-Host "Backup complete!"
+    }
+    'restore' {
+        if (-not $BackupFile) {
+            Write-Host "ERROR: -BackupFile parameter required for restore"
+            exit 1
+        }
+        Write-Host "Restoring database from $BackupFile..."
+        Get-Content $BackupFile | docker-compose exec -T postgres psql -U nutritional_user -d nutritional_db
+        Write-Host "Restore complete!"
+    }
+}
+```
+
+**Usage:**
+```powershell
+# Start database
+.\scripts\db_management.ps1 -Command start
+
+# Stop database
+.\scripts\db_management.ps1 -Command stop
+
+# Reset database (clean slate for testing)
+.\scripts\db_management.ps1 -Command reset
+
+# Clean everything (delete volume)
+.\scripts\db_management.ps1 -Command clean
+
+# Backup database
+.\scripts\db_management.ps1 -Command backup
+
+# Restore from backup
+.\scripts\db_management.ps1 -Command restore -BackupFile backups\backup.sql
+```
 
 #### 2.1 Database Schema
 
@@ -895,188 +1068,975 @@ CREATE TABLE daily_summaries (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Daily targets (nutritional goals/limits)
+CREATE TABLE daily_targets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date DATE NOT NULL UNIQUE,
+    default_mode VARCHAR(10) NOT NULL DEFAULT 'target' CHECK (default_mode IN ('target', 'limit')),
+    -- Target values
+    energy_kcal DECIMAL(8,2) NOT NULL DEFAULT 2000,
+    protein_g DECIMAL(8,2) NOT NULL DEFAULT 150,
+    carbohydrates_g DECIMAL(8,2) NOT NULL DEFAULT 225,
+    fat_g DECIMAL(8,2) NOT NULL DEFAULT 67,
+    sugar_g DECIMAL(8,2) NOT NULL DEFAULT 90,
+    saturated_fat_g DECIMAL(8,2) NOT NULL DEFAULT 20,
+    fibre_g DECIMAL(8,2) NOT NULL DEFAULT 30,
+    salt_g DECIMAL(8,2) NOT NULL DEFAULT 6,
+    calcium_mg DECIMAL(8,2) NOT NULL DEFAULT 700,
+    -- Per-nutrient mode overrides (NULL = use default_mode)
+    energy_mode VARCHAR(10) CHECK (energy_mode IN ('target', 'limit')),
+    protein_mode VARCHAR(10) CHECK (protein_mode IN ('target', 'limit')),
+    carbohydrates_mode VARCHAR(10) CHECK (carbohydrates_mode IN ('target', 'limit')),
+    fat_mode VARCHAR(10) CHECK (fat_mode IN ('target', 'limit')),
+    sugar_mode VARCHAR(10) CHECK (sugar_mode IN ('target', 'limit')) DEFAULT 'limit',
+    saturated_fat_mode VARCHAR(10) CHECK (saturated_fat_mode IN ('target', 'limit')) DEFAULT 'limit',
+    fibre_mode VARCHAR(10) CHECK (fibre_mode IN ('target', 'limit')),
+    salt_mode VARCHAR(10) CHECK (salt_mode IN ('target', 'limit')) DEFAULT 'limit',
+    calcium_mode VARCHAR(10) CHECK (calcium_mode IN ('target', 'limit')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX idx_food_entries_date ON food_entries(date);
 CREATE INDEX idx_food_entries_food_id ON food_entries(food_id);
 CREATE INDEX idx_daily_summaries_date ON daily_summaries(date);
+CREATE INDEX idx_daily_targets_date ON daily_targets(date);
 CREATE INDEX idx_food_items_name ON food_items(name);
 ```
 
-#### 2.2 Database Module
+#### 2.2 Database Module Implementation
 
-Create `nutritional/database/`:
+Create `nutritional/database/` module:
 
 ```
 nutritional/database/
-├── __init__.py
-├── connection.py          # Database connection pooling
-├── models.py              # SQLAlchemy ORM models
-├── migrations/            # Alembic migrations
-│   └── versions/
-├── repositories.py        # Data access layer
-└── init_db.py            # Database initialization script
+├── __init__.py           # Module exports and get_storage() factory
+├── connection.py         # Database connection pooling
+├── models.py             # SQLAlchemy ORM models
+├── repositories.py       # Data access layer (repository pattern)
+├── storage.py            # DatabaseStorage class (mirrors FileStorage API)
+└── migrations/           # Alembic migrations
+    ├── env.py
+    ├── script.py.mako
+    ├── alembic.ini
+    └── versions/
 ```
 
 **Technology Stack**:
-- **ORM**: SQLAlchemy 2.0
-- **Migrations**: Alembic
-- **Connection Pooling**: psycopg2-binary or asyncpg
+- **ORM**: SQLModel 0.0.14+ (combines SQLAlchemy 2.0 + Pydantic)
+- **Migrations**: Alembic 1.13+ (works with SQLModel)
+- **Driver**: psycopg2-binary (sync) or asyncpg (async - future)
+- **Connection Pooling**: SQLAlchemy's built-in pool
+- **Benefits**: Single model definition for both DB and validation, better type hints
 
-**repositories.py** - Abstraction layer:
+**2.2.1 connection.py - Database Connection Management**
+
 ```python
+"""Database connection and session management."""
+from sqlmodel import create_engine, Session, SQLModel
+from contextlib import contextmanager
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+env_file = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(env_file)
+
+# Database URL from environment
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    # Fallback: construct from separate components
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "nutritional_db")
+    DB_USER = os.getenv("DB_USER", "nutritional_user")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "dev_password")
+    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# Create engine (SQLModel uses SQLAlchemy underneath)
+engine = create_engine(
+    DATABASE_URL,
+    echo=os.getenv("ENV") == "development",  # SQL logging in dev
+    pool_pre_ping=True,  # Verify connections before using
+    pool_size=5,  # Connection pool size
+    max_overflow=10,  # Max connections beyond pool_size
+)
+
+@contextmanager
+def get_db_session():
+    """Context manager for database sessions.
+
+    Usage:
+        with get_db_session() as session:
+            food_items = session.query(FoodItemModel).all()
+            # Or SQLModel style:
+            food_items = session.exec(select(FoodItemModel)).all()
+    """
+    session = Session(engine)
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+def get_engine():
+    """Get the database engine (for testing, migrations)."""
+    return engine
+
+def create_db_and_tables():
+    """Create all tables (for testing/initial setup).
+
+    In production, use Alembic migrations instead.
+    """
+    SQLModel.metadata.create_all(engine)
+```
+
+**2.2.2 models.py - SQLModel ORM Models**
+
+```python
+"""SQLModel database models - combines SQLAlchemy + Pydantic."""
+from sqlmodel import SQLModel, Field, Relationship, CheckConstraint
+from typing import Optional, List
+from datetime import datetime, date
+from uuid import UUID, uuid4
+
+class FoodItemModel(SQLModel, table=True):
+    """Food item with nutritional information.
+
+    SQLModel provides:
+    - Database ORM functionality (via SQLAlchemy)
+    - Pydantic validation (automatic type checking)
+    - Single source of truth (no duplicate Pydantic model needed)
+    """
+    __tablename__ = "food_items"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    name: str = Field(max_length=255, unique=True, index=True)
+    unit_type: str = Field(default="per_100g", max_length=20)
+    serving_size_g: Optional[float] = None
+
+    # Nutrients (all required for creation)
+    energy_kcal: float
+    protein_g: float
+    carbohydrates_g: float
+    fat_g: float
+    sugar_g: float
+    saturated_fat_g: float
+    fibre_g: float
+    salt_g: float
+    calcium_mg: float
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    entries: List["FoodEntryModel"] = Relationship(back_populates="food_item")
+
+    __table_args__ = (
+        CheckConstraint(
+            "unit_type IN ('per_100g', 'per_item')",
+            name="check_unit_type"
+        ),
+        CheckConstraint(
+            "(unit_type = 'per_item' AND serving_size_g IS NOT NULL) OR "
+            "(unit_type = 'per_100g')",
+            name="check_serving_size"
+        ),
+    )
+
+class FoodEntryModel(SQLModel, table=True):
+    """Individual food entry for a specific date/time."""
+    __tablename__ = "food_entries"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    date: date = Field(index=True)
+    timestamp: datetime
+    food_id: UUID = Field(foreign_key="food_items.id")
+
+    # Amount consumed
+    weight_g: Optional[float] = None  # For per_100g items
+    quantity: Optional[float] = None  # For per_item items
+
+    # Calculated nutrients (denormalized for performance)
+    energy_kcal: float
+    protein_g: float
+    carbohydrates_g: float
+    fat_g: float
+    sugar_g: float
+    saturated_fat_g: float
+    fibre_g: float
+    salt_g: float
+    calcium_mg: float
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    food_item: Optional[FoodItemModel] = Relationship(back_populates="entries")
+
+class DailySummaryModel(SQLModel, table=True):
+    """Daily aggregated nutritional totals and measurements."""
+    __tablename__ = "daily_summaries"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    date: date = Field(unique=True, index=True)
+
+    # Nutrient totals (optional - calculated from entries)
+    energy_kcal: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbohydrates_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    sugar_g: Optional[float] = None
+    saturated_fat_g: Optional[float] = None
+    fibre_g: Optional[float] = None
+    salt_g: Optional[float] = None
+    calcium_mg: Optional[float] = None
+
+    # Body measurements
+    morning_weight_kg: Optional[float] = None
+    evening_weight_kg: Optional[float] = None
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DailyTargetsModel(SQLModel, table=True):
+    """Daily nutritional targets and limits."""
+    __tablename__ = "daily_targets"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    date: date = Field(unique=True, index=True)
+    default_mode: str = Field(default="target", max_length=10)
+
+    # Target values
+    energy_kcal: float = 2000
+    protein_g: float = 150
+    carbohydrates_g: float = 225
+    fat_g: float = 67
+    sugar_g: float = 90
+    saturated_fat_g: float = 20
+    fibre_g: float = 30
+    salt_g: float = 6
+    calcium_mg: float = 700
+
+    # Per-nutrient mode overrides (None = use default_mode)
+    energy_mode: Optional[str] = Field(default=None, max_length=10)
+    protein_mode: Optional[str] = Field(default=None, max_length=10)
+    carbohydrates_mode: Optional[str] = Field(default=None, max_length=10)
+    fat_mode: Optional[str] = Field(default=None, max_length=10)
+    sugar_mode: Optional[str] = Field(default="limit", max_length=10)
+    saturated_fat_mode: Optional[str] = Field(default="limit", max_length=10)
+    fibre_mode: Optional[str] = Field(default=None, max_length=10)
+    salt_mode: Optional[str] = Field(default="limit", max_length=10)
+    calcium_mode: Optional[str] = Field(default=None, max_length=10)
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    __table_args__ = (
+        CheckConstraint(
+            "default_mode IN ('target', 'limit')",
+            name="check_default_mode"
+        ),
+    )
+```
+
+**Key Benefits of SQLModel:**
+
+1. **Single Definition**: Models serve as both database tables AND Pydantic models
+2. **Type Safety**: Full IDE autocomplete and type checking
+3. **Validation**: Automatic validation when creating/updating records
+4. **Less Boilerplate**: No need to convert between Pydantic and SQLAlchemy models
+5. **FastAPI Ready**: If we add an API later, these models work directly with FastAPI
+
+**2.2.3 repositories.py - Data Access Layer**
+
+```python
+"""Repository pattern for data access."""
+from typing import Optional, List
+from datetime import date
+from sqlmodel import Session, select
+from uuid import UUID
+
+from nutritional.data_entry.models import (
+    FoodItem, FoodEntry, DailyData, DailyTargets, Nutrients
+)
+from nutritional.database.models import (
+    FoodItemModel, FoodEntryModel, DailySummaryModel, DailyTargetsModel
+)
+
 class FoodRepository:
-    def get_all(self) -> list[FoodItem]: ...
-    def get_by_id(self, id: str) -> FoodItem: ...
-    def create(self, item: FoodItem) -> FoodItem: ...
-    def update(self, item: FoodItem) -> FoodItem: ...
-    def delete(self, id: str): ...
-    def search(self, query: str) -> list[FoodItem]: ...
+    """Repository for food items.
 
-class FoodEntryRepository:
-    def get_by_date(self, date: date) -> list[FoodEntry]: ...
-    def create(self, entry: FoodEntry) -> FoodEntry: ...
-    def bulk_create(self, entries: list[FoodEntry]): ...
+    With SQLModel, conversion is simpler since models have Pydantic validation.
+    """
 
-class DailySummaryRepository:
-    def get_by_date_range(self, start: date, end: date) -> list[DailySummary]: ...
-    def upsert(self, summary: DailySummary): ...
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get_all(self) -> List[FoodItem]:
+        """Get all food items."""
+        statement = select(FoodItemModel)
+        models = self.session.exec(statement).all()
+        return [self._to_pydantic(m) for m in models]
+
+    def get_by_id(self, food_id: UUID) -> Optional[FoodItem]:
+        """Get food item by ID."""
+        model = self.session.get(FoodItemModel, food_id)
+        return self._to_pydantic(model) if model else None
+
+    def create(self, item: FoodItem) -> FoodItem:
+        """Create new food item."""
+        # Convert Pydantic model to SQLModel (simpler than SQLAlchemy)
+        model = FoodItemModel(
+            name=item.name,
+            unit_type=item.unit_type.value,
+            serving_size_g=item.serving_size_g,
+            energy_kcal=item.nutrients.energy_kcal,
+            protein_g=item.nutrients.protein_g,
+            carbohydrates_g=item.nutrients.carbohydrates_g,
+            fat_g=item.nutrients.fat_g,
+            sugar_g=item.nutrients.sugar_g,
+            saturated_fat_g=item.nutrients.saturated_fat_g,
+            fibre_g=item.nutrients.fibre_g,
+            salt_g=item.nutrients.salt_g,
+            calcium_mg=item.nutrients.calcium_mg,
+        )
+        self.session.add(model)
+        self.session.flush()  # Get generated ID
+        return self._to_pydantic(model)
+
+    def update(self, item: FoodItem) -> FoodItem:
+        """Update existing food item."""
+        model = self.session.get(FoodItemModel, item.id)
+        if not model:
+            raise ValueError(f"Food item {item.id} not found")
+
+        # Update fields (SQLModel makes this cleaner)
+        model.name = item.name
+        model.unit_type = item.unit_type.value
+        model.serving_size_g = item.serving_size_g
+        model.energy_kcal = item.nutrients.energy_kcal
+        model.protein_g = item.nutrients.protein_g
+        model.carbohydrates_g = item.nutrients.carbohydrates_g
+        model.fat_g = item.nutrients.fat_g
+        model.sugar_g = item.nutrients.sugar_g
+        model.saturated_fat_g = item.nutrients.saturated_fat_g
+        model.fibre_g = item.nutrients.fibre_g
+        model.salt_g = item.nutrients.salt_g
+        model.calcium_mg = item.nutrients.calcium_mg
+
+        self.session.add(model)
+        self.session.flush()
+        return self._to_pydantic(model)
+
+    def delete(self, food_id: UUID) -> bool:
+        """Delete food item."""
+        model = self.session.get(FoodItemModel, food_id)
+        if model:
+            self.session.delete(model)
+            return True
+        return False
+
+    def search(self, query: str) -> List[FoodItem]:
+        """Search food items by name."""
+        statement = select(FoodItemModel).where(
+            FoodItemModel.name.ilike(f"%{query}%")
+        )
+        models = self.session.exec(statement).all()
+        return [self._to_pydantic(m) for m in models]
+
+    @staticmethod
+    def _to_pydantic(model: FoodItemModel) -> FoodItem:
+        """Convert SQLModel to our Pydantic data_entry model.
+
+        Note: With SQLModel, we could potentially unify these models,
+        but keeping them separate maintains clean architecture.
+        """
+        return FoodItem(
+            id=str(model.id),
+            name=model.name,
+            unit_type=model.unit_type,
+            serving_size_g=model.serving_size_g,
+            nutrients=Nutrients(
+                energy_kcal=model.energy_kcal,
+                protein_g=model.protein_g,
+                carbohydrates_g=model.carbohydrates_g,
+                fat_g=model.fat_g,
+                sugar_g=model.sugar_g,
+                saturated_fat_g=model.saturated_fat_g,
+                fibre_g=model.fibre_g,
+                salt_g=model.salt_g,
+                calcium_mg=model.calcium_mg,
+            )
+        )
+
+# Similar implementations for:
+# - FoodEntryRepository (simpler with SQLModel)
+# - DailySummaryRepository (simpler with SQLModel)
+# - DailyTargetsRepository (simpler with SQLModel)
 ```
 
-#### 2.3 Auto-Aggregation with Database Triggers
+**2.2.4 storage.py - DatabaseStorage Class**
 
-**Option 1: Database Trigger** (Recommended for data consistency)
-```sql
--- Trigger to auto-update daily_summaries when food_entries change
-CREATE OR REPLACE FUNCTION update_daily_summary()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO daily_summaries (date, energy_kcal, fat_g, ...)
-    SELECT
-        date,
-        SUM(energy_kcal),
-        SUM(fat_g),
-        ...
-    FROM food_entries
-    WHERE date = NEW.date
-    GROUP BY date
-    ON CONFLICT (date) DO UPDATE
-    SET energy_kcal = EXCLUDED.energy_kcal,
-        fat_g = EXCLUDED.fat_g,
-        ...
-        updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER food_entry_summary_trigger
-AFTER INSERT OR UPDATE OR DELETE ON food_entries
-FOR EACH ROW EXECUTE FUNCTION update_daily_summary();
-```
-
-**Option 2: Materialized View** (Better for read-heavy workloads)
-```sql
-CREATE MATERIALIZED VIEW daily_summaries AS
-SELECT
-    date,
-    SUM(energy_kcal) as energy_kcal,
-    SUM(fat_g) as fat_g,
-    ...
-FROM food_entries
-GROUP BY date;
-
--- Refresh on save
-REFRESH MATERIALIZED VIEW daily_summaries;
-```
-
-#### 2.4 Update Data Entry Module
-
-**Modify storage layer**:
 ```python
-# nutritional/data_entry/storage.py
-class DatabaseStorage:  # Replaces FileStorage
-    def __init__(self, connection_string: str):
-        self.engine = create_engine(connection_string)
-        self.food_repo = FoodRepository(self.engine)
-        self.entry_repo = FoodEntryRepository(self.engine)
-        self.summary_repo = DailySummaryRepository(self.engine)
+"""Database storage implementation matching FileStorage API."""
+from typing import Optional, List
+from datetime import date, timedelta
 
-    def save_daily_entry(self, date: date, entries: list[FoodEntry], measurements: dict):
-        with self.engine.begin() as conn:
-            # Save food entries
-            self.entry_repo.bulk_create(entries)
+from nutritional.data_entry.models import FoodItem, DailyData, DailyTargets
+from nutritional.database.connection import get_db_session
+from nutritional.database.repositories import (
+    FoodRepository, FoodEntryRepository,
+    DailySummaryRepository, DailyTargetsRepository
+)
 
-            # Update measurements (manual part of daily summary)
-            summary = self.summary_repo.get_by_date(date)
-            summary.morning_weight_kg = measurements.get('morning_weight_kg')
-            summary.evening_weight_kg = measurements.get('evening_weight_kg')
-            self.summary_repo.upsert(summary)
+class DatabaseStorage:
+    """Database storage with same interface as FileStorage."""
+
+    # Food Database Operations
+    def get_all_food_items(self) -> List[FoodItem]:
+        """Get all food items."""
+        with get_db_session() as session:
+            repo = FoodRepository(session)
+            return repo.get_all()
+
+    def get_food_item(self, food_id: str) -> Optional[FoodItem]:
+        """Get single food item."""
+        with get_db_session() as session:
+            repo = FoodRepository(session)
+            return repo.get_by_id(food_id)
+
+    def save_food_item(self, food_item: FoodItem) -> FoodItem:
+        """Save food item (create or update)."""
+        with get_db_session() as session:
+            repo = FoodRepository(session)
+            if food_item.id:
+                return repo.update(food_item)
+            else:
+                return repo.create(food_item)
+
+    def delete_food_item(self, food_id: str) -> bool:
+        """Delete food item."""
+        with get_db_session() as session:
+            repo = FoodRepository(session)
+            return repo.delete(food_id)
+
+    # Daily Entry Operations
+    def load_daily_entry(self, entry_date: date) -> DailyData:
+        """Load daily entry."""
+        with get_db_session() as session:
+            repo = FoodEntryRepository(session)
+            entries = repo.get_by_date(entry_date)
+
+            summary_repo = DailySummaryRepository(session)
+            summary = summary_repo.get_by_date(entry_date)
+
+            return DailyData(
+                date=entry_date,
+                entries=entries,
+                measurements=Measurements(
+                    morning_weight_kg=summary.morning_weight_kg if summary else None,
+                    evening_weight_kg=summary.evening_weight_kg if summary else None,
+                )
+            )
+
+    def save_daily_entry(self, daily_data: DailyData) -> None:
+        """Save daily entry and update summary."""
+        with get_db_session() as session:
+            # Save entries
+            entry_repo = FoodEntryRepository(session)
+            entry_repo.replace_for_date(daily_data.date, daily_data.entries)
+
+            # Update summary
+            summary_repo = DailySummaryRepository(session)
+            summary_repo.upsert_from_daily_data(daily_data)
+
+    # Daily Targets Operations
+    def save_daily_targets(self, targets: DailyTargets) -> None:
+        """Save daily targets."""
+        with get_db_session() as session:
+            repo = DailyTargetsRepository(session)
+            repo.upsert(targets)
+
+    def load_daily_targets(self, target_date: date) -> Optional[DailyTargets]:
+        """Load targets for date."""
+        with get_db_session() as session:
+            repo = DailyTargetsRepository(session)
+            return repo.get_by_date(target_date)
+
+    def get_previous_day_targets(self, target_date: date) -> Optional[DailyTargets]:
+        """Get targets from previous day."""
+        prev_date = target_date - timedelta(days=1)
+        return self.load_daily_targets(prev_date)
+
+    def get_or_create_daily_targets(self, target_date: date) -> DailyTargets:
+        """Smart fallback: today → yesterday → defaults."""
+        targets = self.load_daily_targets(target_date)
+        if targets:
+            return targets
+
+        prev_targets = self.get_previous_day_targets(target_date)
+        if prev_targets:
+            prev_targets.date = target_date
+            return prev_targets
+
+        return DailyTargets.get_default_targets(target_date)
 ```
 
-**Update loaders.py**:
+**2.2.5 __init__.py - Storage Factory**
+
 ```python
-def get_data_source() -> dict:
-    """Load data from configured source"""
-    if os.getenv("DATABASE_URL"):
-        return load_from_database()
-    elif os.getenv("GOOGLE_SHEETS_ID"):
-        return load_from_google_sheets()
-    elif os.getenv("LOCAL_CSV_PATH"):
-        return load_from_csv()
-    elif Path("nutritional_data/daily_summaries.csv").exists():
-        return load_from_csv("nutritional_data/daily_summaries.csv")
+"""Database module exports and storage factory."""
+import os
+from nutritional.data_entry.storage import FileStorage
+from nutritional.database.storage import DatabaseStorage
+
+def get_storage():
+    """Factory function to get appropriate storage based on environment."""
+    data_source = os.getenv("ENTRY_DATA_SOURCE", "file")
+
+    if data_source == "database":
+        return DatabaseStorage()
     else:
-        raise ValueError("No data source configured")
+        return FileStorage()
+
+__all__ = ["get_storage", "DatabaseStorage"]
+
+#### 2.3 Alembic Migrations Setup
+
+**Note:** SQLModel works seamlessly with Alembic since it's built on SQLAlchemy. Alembic can autogenerate migrations from SQLModel models just like it does with SQLAlchemy models.
+
+**2.3.1 Initialize Alembic**
+
+```powershell
+# In project root with venv activated
+alembic init nutritional/database/migrations
 ```
 
-#### 2.5 Database Setup & Configuration
+**2.3.2 Configure alembic.ini**
 
-**Environment variables** (.env):
+Edit `alembic.ini`:
+```ini
+[alembic]
+script_location = nutritional/database/migrations
+prepend_sys_path = .
+version_path_separator = os
+
+# Database URL - read from environment
+# sqlalchemy.url = (set in env.py dynamically)
+
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+```
+
+**2.3.3 Configure env.py**
+
+Edit `nutritional/database/migrations/env.py`:
+```python
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
+from alembic import context
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment
+env_file = Path(__file__).parent.parent.parent.parent / ".env"
+load_dotenv(env_file)
+
+# Import SQLModel base and all models for autogenerate
+from sqlmodel import SQLModel
+from nutritional.database.models import (
+    FoodItemModel, FoodEntryModel, DailySummaryModel, DailyTargetsModel
+)
+
+# Alembic Config object
+config = context.config
+
+# Set SQLAlchemy URL from environment
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+
+# Interpret the config file for Python logging
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = SQLModel.metadata
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+
+**2.3.4 Create Initial Migration**
+
+```powershell
+# Generate migration from models
+alembic revision --autogenerate -m "initial_schema"
+
+# Review the generated migration in nutritional/database/migrations/versions/
+
+# Apply migration
+alembic upgrade head
+
+# Check current version
+alembic current
+
+# View migration history
+alembic history
+```
+
+**Common Alembic Commands:**
+```powershell
+# Create new migration
+alembic revision --autogenerate -m "description"
+
+# Upgrade to latest
+alembic upgrade head
+
+# Downgrade one version
+alembic downgrade -1
+
+# Downgrade to specific version
+alembic downgrade <revision_id>
+
+# Show current version
+alembic current
+
+# Show SQL without executing
+alembic upgrade head --sql
+```
+
+#### 2.4 Dual Data Source Implementation (Phase 2 Transition)
+
+**Goal**: Keep visualization fed from Google Sheets while entry system uses database
+
+**2.4.1 Update settings.py**
+
+```python
+"""Application settings and configuration."""
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment
+env_file = Path(__file__).parent.parent / ".env"
+load_dotenv(env_file)
+
+class Settings:
+    # Environment
+    ENV = os.getenv("ENV", "development")
+
+    # Data source configuration
+    ENTRY_DATA_SOURCE = os.getenv("ENTRY_DATA_SOURCE", "file")  # file | database
+    VIZ_DATA_SOURCE = os.getenv("VIZ_DATA_SOURCE", "google_sheets")  # google_sheets | database
+
+    # Database
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    # Google Sheets
+    GOOGLE_SHEETS_CREDENTIALS = os.getenv(
+        "GOOGLE_SHEETS_CREDENTIALS",
+        "credentials/nutritional-479017-22cd3962ee25.json"
+    )
+    GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+
+    # File storage
+    DATA_DIR = Path(os.getenv("DATA_DIR", "nutritional_data"))
+
+    @property
+    def is_development(self) -> bool:
+        return self.ENV == "development"
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENV == "production"
+
+settings = Settings()
+```
+
+**2.4.2 Update pages to use storage factory**
+
+Modify `nutritional/pages/entry.py`, `foods.py`, `history.py`:
+
+```python
+# OLD: Direct import
+# from nutritional.data_entry.storage import FileStorage
+# storage = FileStorage()
+
+# NEW: Factory pattern
+from nutritional.database import get_storage
+storage = get_storage()  # Returns FileStorage or DatabaseStorage based on ENV
+```
+
+**2.4.3 Keep loaders.py using Google Sheets**
+
+`nutritional/data/loaders.py` remains unchanged during Phase 2:
+```python
+# Still loads from Google Sheets for visualization
+def load_daily_data():
+    """Load data for visualization (from Google Sheets during Phase 2)."""
+    client = GoogleSheetsClient()
+    return client.get_daily_summaries()
+```
+
+**Data Flow During Phase 2:**
+```
+User Entry (/entry, /foods, /history)
+    ↓
+  DatabaseStorage
+    ↓
+  PostgreSQL
+
+Visualization (/home)
+    ↓
+  loaders.py
+    ↓
+  Google Sheets (unchanged)
+```
+
+**Rationale:**
+- Entry system can be fully tested with database
+- Visualization continues working with existing data
+- No data loss risk during development
+- Phase 3 migration can be planned carefully
+- Easy rollback if issues arise
+
+#### 2.5 Testing Workflow
+
+**2.5.1 Setup Test Database**
+
+Create `.env.test`:
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/nutritional_db
-
-# Or separate components
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=nutritional_db
-DB_USER=nutritional_user
-DB_PASSWORD=secure_password
+ENV=test
+DATABASE_URL=postgresql://nutritional_user:dev_password@localhost:5432/nutritional_test
+ENTRY_DATA_SOURCE=database
+VIZ_DATA_SOURCE=google_sheets
 ```
 
-**Docker Compose for local development**:
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: nutritional_db
-      POSTGRES_USER: nutritional_user
-      POSTGRES_PASSWORD: dev_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+**2.5.2 Test Database Fixtures**
 
-volumes:
-  postgres_data:
+Update `tests/conftest.py`:
+```python
+import pytest
+from sqlmodel import create_engine, Session, SQLModel
+from nutritional.database.storage import DatabaseStorage
+import os
+
+@pytest.fixture(scope="session")
+def test_engine():
+    """Create test database engine."""
+    # Use in-memory SQLite for fast tests, or PostgreSQL for integration tests
+    if os.getenv("USE_POSTGRES_TESTS"):
+        engine = create_engine(os.getenv("DATABASE_URL"))
+    else:
+        engine = create_engine("sqlite:///:memory:")
+
+    SQLModel.metadata.create_all(engine)
+    yield engine
+    SQLModel.metadata.drop_all(engine)
+
+@pytest.fixture
+def db_session(test_engine):
+    """Create test database session."""
+    session = Session(test_engine)
+    yield session
+    session.rollback()
+    session.close()
+
+@pytest.fixture
+def db_storage(db_session, monkeypatch):
+    """Create DatabaseStorage for testing."""
+    storage = DatabaseStorage()
+    # Monkey-patch to use test session
+    monkeypatch.setattr(
+        "nutritional.database.storage.get_db_session",
+        lambda: db_session
+    )
+    return storage
+```
+
+**2.5.3 Testing Checklist**
+
+**Unit Tests:**
+- [  ] Test SQLAlchemy model creation and validation
+- [  ] Test repository CRUD operations
+- [  ] Test Pydantic ↔ SQLAlchemy conversions
+- [  ] Test database constraints (unique, foreign keys, checks)
+
+**Integration Tests:**
+- [  ] Test DatabaseStorage matches FileStorage API
+- [  ] Test food item CRUD through UI
+- [  ] Test daily entry save/load
+- [  ] Test daily targets save/load
+- [  ] Test search functionality
+- [  ] Test transaction rollback on errors
+
+**Manual Testing Workflow:**
+```powershell
+# 1. Start clean database
+.\scripts\db_management.ps1 -Command clean
+.\scripts\db_management.ps1 -Command start
+
+# 2. Run migrations
+alembic upgrade head
+
+# 3. Set environment to use database
+# Edit .env: ENTRY_DATA_SOURCE=database
+
+# 4. Start app
+python -m nutritional
+
+# 5. Test food database page (/foods)
+# - Add food items (both per_100g and per_item)
+# - Edit food items
+# - Delete food items
+# - Search food items
+
+# 6. Test daily entry page (/entry)
+# - Add entries with different foods
+# - Remove entries
+# - Edit weights/quantities
+# - Set morning/evening weights
+# - Verify auto-save
+# - Edit daily targets
+
+# 7. Test history page (/history)
+# - View past dates
+# - Verify entries display correctly
+# - Check totals calculation
+
+# 8. Verify database contents
+docker-compose exec postgres psql -U nutritional_user -d nutritional_db
+# Run queries:
+SELECT * FROM food_items;
+SELECT * FROM food_entries WHERE date = '2025-12-29';
+SELECT * FROM daily_summaries ORDER BY date DESC LIMIT 5;
+SELECT * FROM daily_targets ORDER BY date DESC LIMIT 5;
+
+# 9. Test persistence
+# - Stop and restart app
+# - Verify data persists
+
+# 10. Clean for Phase 3
+.\scripts\db_management.ps1 -Command clean
+# This ensures Phase 3 migration starts with clean database
 ```
 
 #### 2.6 Implementation Checklist
 
-- [ ] Set up PostgreSQL (Docker or local)
-- [ ] Create SQLAlchemy models
-- [ ] Set up Alembic migrations
-- [ ] Write database initialization script
-- [ ] Implement repository pattern
-- [ ] Create database triggers/views for aggregation
-- [ ] Update storage layer to use database
-- [ ] Update loaders.py for database support
-- [ ] Add connection pooling configuration
-- [ ] Write database backup scripts
-- [ ] Testing: Database operations
-- [ ] Testing: Trigger/aggregation logic
-- [ ] Performance testing with realistic data volume
+- [  ] Create .env file with database configuration
+- [  ] Create docker-compose.yml for PostgreSQL
+- [  ] Create db_management.ps1 script
+- [  ] Install dependencies (sqlalchemy, alembic, psycopg2-binary)
+- [  ] Update pyproject.toml with new dependencies
+- [  ] Create database/connection.py
+- [  ] Create database/models.py (4 tables)
+- [  ] Initialize Alembic
+- [  ] Configure Alembic env.py
+- [  ] Generate initial migration
+- [  ] Create database/repositories.py (4 repositories)
+- [  ] Create database/storage.py (DatabaseStorage class)
+- [  ] Create database/__init__.py (get_storage factory)
+- [  ] Update settings.py with dual data source config
+- [  ] Update pages to use get_storage() factory
+- [  ] Create test fixtures for database testing
+- [  ] Write unit tests for models and repositories
+- [  ] Write integration tests for DatabaseStorage
+- [  ] Manual testing: Start database
+- [  ] Manual testing: Run migrations
+- [  ] Manual testing: Test food CRUD
+- [  ] Manual testing: Test daily entry CRUD
+- [  ] Manual testing: Test targets CRUD
+- [  ] Manual testing: Test history viewer
+- [  ] Manual testing: Verify data persistence
+- [  ] Manual testing: Test search functionality
+- [  ] Performance testing: Load testing with realistic data volume
+- [  ] Documentation: Update README with database setup
+- [  ] Clean database for Phase 3 (db_management.ps1 clean)
+
+**Success Criteria:**
+- ✅ All tests passing with DatabaseStorage
+- ✅ Entry system works seamlessly with PostgreSQL
+- ✅ Visualization still works with Google Sheets
+- ✅ No data loss during CRUD operations
+- ✅ Database enforces all constraints correctly
+- ✅ Clean database ready for Phase 3 migration
+
+**Phase 2 Deliverables:**
+1. Fully functional database-backed entry system
+2. Comprehensive test suite for database operations
+3. Documentation for database setup and management
+4. Clean local database ready for data migration
+5. Dual data source architecture proven
 
 ---
 
@@ -1308,29 +2268,38 @@ psql nutritional_db < backup_pre_migration.sql
 
 ## Timeline Estimates
 
-### Phase 1: File-Based System
-- **Data models & storage**: 2-3 days
-- **Food database UI**: 2 days
-- **Daily entry UI**: 3-4 days
-- **Integration with viz app**: 1 day
-- **Testing & refinement**: 2-3 days
-- **Total**: ~2 weeks
+### Phase 1: File-Based System ✅ COMPLETE
+- ✅ **Data models & storage**: 2-3 days
+- ✅ **Food database UI**: 2 days
+- ✅ **Daily entry UI**: 3-4 days
+- ✅ **Daily targets/limits system**: 2 days
+- ✅ **Integration with viz app**: 1 day
+- ✅ **Testing & refinement**: 2-3 days
+- ✅ **Total**: ~2 weeks (Completed December 2025)
 
-### Phase 2: Database Integration
-- **Database setup & models**: 1-2 days
-- **Repository layer**: 2 days
-- **Update application code**: 1-2 days
-- **Testing & optimization**: 2 days
-- **Total**: ~1 week
+### Phase 2: Database Integration 🔄 IN PROGRESS
+- **Environment setup (Docker, Alembic)**: 1 day
+- **Database models & connection**: 1-2 days
+- **Repository layer implementation**: 2-3 days
+- **DatabaseStorage class**: 1-2 days
+- **Dual data source configuration**: 1 day
+- **Testing & debugging**: 2-3 days
+- **Manual testing workflow**: 1-2 days
+- **Documentation**: 1 day
+- **Total**: ~2 weeks
 
 ### Phase 3: Migration
-- **Migration script**: 2-3 days
-- **Testing with data copies**: 1 day
-- **Production migration**: 1 day
-- **Validation & monitoring**: 1 week
-- **Total**: ~2 weeks
+- **Migration script development**: 2-3 days
+- **Pre-migration validation**: 1 day
+- **Testing with Google Sheets copy**: 1-2 days
+- **Production migration execution**: 1 day
+- **Post-migration validation**: 1 day
+- **Update loaders.py for database**: 1 day
+- **Monitoring & adjustments**: 1 week
+- **Total**: ~2-3 weeks
 
-**Overall**: 5-6 weeks for complete migration
+**Overall Progress**: Phase 1 Complete | Phase 2 In Progress | Phase 3 Planned
+**Estimated Completion**: Q1 2026 (assuming Phase 2 starts January 2026)
 
 ---
 
@@ -1375,24 +2344,41 @@ psql nutritional_db < backup_pre_migration.sql
 - ✅ `tests/test_storage.py` - Storage operation tests
 - ✅ `tests/test_daily_targets.py` - Daily targets feature tests (18 tests)
 
-### New Files (Phase 2)
-- `nutritional/database/__init__.py`
-- `nutritional/database/connection.py`
-- `nutritional/database/models.py`
-- `nutritional/database/repositories.py`
-- `nutritional/database/init_db.py`
-- `nutritional/database/migrations/` (Alembic)
+### New Files (Phase 2) 📋 PLANNED
+- [  ] `.env` - Environment configuration
+- [  ] `.env.test` - Test environment configuration
+- [  ] `docker-compose.yml` - PostgreSQL container setup
+- [  ] `scripts/db_management.ps1` - Database management helper
+- [  ] `nutritional/database/__init__.py` - Module exports and get_storage() factory
+- [  ] `nutritional/database/connection.py` - Database connection pooling
+- [  ] `nutritional/database/models.py` - SQLAlchemy ORM models (4 tables)
+- [  ] `nutritional/database/repositories.py` - Data access layer (4 repositories)
+- [  ] `nutritional/database/storage.py` - DatabaseStorage class
+- [  ] `nutritional/database/migrations/env.py` - Alembic configuration
+- [  ] `alembic.ini` - Alembic settings
+- [  ] `tests/test_database_models.py` - SQLAlchemy model tests
+- [  ] `tests/test_repositories.py` - Repository tests
+- [  ] `tests/test_database_storage.py` - DatabaseStorage integration tests
 
-### New Files (Phase 3)
-- `scripts/migrate_from_sheets.py`
-- `scripts/validate_migration.py`
-- `scripts/backup_database.sh`
+### New Files (Phase 3) 📋 PLANNED
+- [  ] `scripts/migrate_from_sheets.py` - Google Sheets migration script
+- [  ] `scripts/validate_migration.py` - Migration validation
+- [  ] `scripts/backup_database.ps1` - Database backup helper
 
 ### Files to Modify
-- `nutritional/data/loaders.py` - Add database support
-- `nutritional/settings.py` - Add database config
-- `pyproject.toml` - Add new dependencies (SQLAlchemy, Alembic, psycopg2)
-- `README.md` - Update setup instructions
+
+**Phase 2:**
+- [  ] `nutritional/settings.py` - Add database config and dual data source
+- [  ] `nutritional/pages/entry.py` - Use get_storage() factory
+- [  ] `nutritional/pages/foods.py` - Use get_storage() factory
+- [  ] `nutritional/pages/history.py` - Use get_storage() factory
+- [  ] `pyproject.toml` - Add database dependencies
+- [  ] `tests/conftest.py` - Add database test fixtures
+- [  ] `README.md` - Update with database setup instructions
+
+**Phase 3:**
+- [  ] `nutritional/data/loaders.py` - Switch from Google Sheets to database for visualization
+- [  ] `.env` - Update VIZ_DATA_SOURCE to database
 
 ### Dependencies
 
@@ -1409,9 +2395,14 @@ python-dotenv = ">=1.0.0"  # ✅ Already present
 
 **Phase 2 (Planned):**
 ```toml
-sqlalchemy = "^2.0.0"
-alembic = "^1.13.0"
-psycopg2-binary = "^2.9.0"  # or asyncpg for async
+[project.dependencies]
+sqlmodel = ">=0.0.14"        # SQLAlchemy + Pydantic ORM
+alembic = ">=1.13.0"         # Database migrations (works with SQLModel)
+psycopg2-binary = ">=2.9.0"  # PostgreSQL driver
+python-dotenv = ">=1.0.0"    # ✅ Already present
+
+# Note: sqlmodel includes sqlalchemy and pydantic as dependencies,
+# so no need to explicitly list them
 ```
 
 ---
@@ -1539,15 +2530,35 @@ Each phase is independently useful and can be stopped at any point if needs chan
 - Mobile-responsive Bootstrap layout
 - Clear visual indicators (colors + icons)
 
-### Next Steps
+### Next Steps for Phase 2
 
-**Phase 2 Prerequisites:**
-- Decide on database: PostgreSQL vs SQLite
-- Set up local database environment (Docker recommended)
-- Create SQLAlchemy models matching Pydantic models
-- Write Alembic migrations
-- Implement DatabaseStorage class
-- Add connection pooling configuration
+**Immediate Actions (Database Setup):**
+1. ✅ Create `.env` file with local PostgreSQL configuration
+2. ✅ Create `docker-compose.yml` for PostgreSQL container
+3. ✅ Create `scripts/db_management.ps1` for database management
+4. ✅ Install dependencies: `sqlalchemy`, `alembic`, `psycopg2-binary`
+5. ✅ Start PostgreSQL: `.\scripts\db_management.ps1 -Command start`
+
+**Development Workflow:**
+1. Create SQLAlchemy ORM models (4 tables)
+2. Initialize Alembic and configure migrations
+3. Generate and apply initial migration
+4. Implement repository pattern for data access
+5. Create DatabaseStorage class matching FileStorage API
+6. Add get_storage() factory with environment-based switching
+7. Update settings.py with dual data source configuration
+8. Update UI pages to use get_storage() instead of direct FileStorage
+9. Write comprehensive tests (unit + integration)
+10. Manual testing workflow with local database
+11. Clean database for Phase 3: `.\scripts\db_management.ps1 -Command clean`
+
+**Key Design Decisions Made:**
+- ✅ PostgreSQL chosen for production-grade features
+- ✅ Docker Compose for consistent local development
+- ✅ Dual data source during Phase 2 (database for entry, Google Sheets for viz)
+- ✅ Repository pattern for clean separation
+- ✅ Alembic for version-controlled schema migrations
+- ✅ Environment variables for easy dev/prod switching
 
 **Phase 3 Prerequisites:**
 - Backup production Google Sheet
