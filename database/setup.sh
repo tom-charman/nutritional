@@ -1,9 +1,20 @@
 #!/bin/bash
 # PostgreSQL Setup Script for Debian 12 (Bookworm)
 # Optimized for 1GB RAM (Google Cloud E2-micro)
-# Run as root: sudo ./setup.sh
+# Usage: sudo ./setup.sh <password>
+# Run as root: sudo ./setup.sh "MySecurePassword123!"
 
 set -e  # Exit on error
+
+# Check if password argument is provided
+if [ $# -ne 1 ]; then
+    echo -e "${RED}Error: Password argument required${NC}"
+    echo "Usage: sudo ./setup.sh <password>"
+    echo "Example: sudo ./setup.sh 'MySecurePassword123!'"
+    exit 1
+fi
+
+DB_PASSWORD="$1"
 
 # Colors for output
 RED='\033[0;31m'
@@ -38,17 +49,31 @@ PG_CONF_DIR="/etc/postgresql/$PG_VERSION/main"
 PG_DATA_DIR="/var/lib/postgresql/$PG_VERSION/main"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Check if database already exists
-if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw nutritional_db; then
+# Check if database or user already exists
+DB_EXISTS=$(sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw nutritional_db && echo "yes" || echo "no")
+USER_EXISTS=$(sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='nutritional_user';" | grep -q "1 row" && echo "yes" || echo "no")
+
+if [ "$DB_EXISTS" = "yes" ]; then
     echo -e "${YELLOW}⚠ Database 'nutritional_db' already exists${NC}"
     read -p "Do you want to recreate it? This will DELETE ALL DATA! (yes/no): " -r
     echo
     if [[ $REPLY == "yes" ]]; then
-        echo "Dropping existing database..."
+        echo "Dropping existing database and user..."
         sudo -u postgres psql -c "DROP DATABASE IF EXISTS nutritional_db;"
         sudo -u postgres psql -c "DROP USER IF EXISTS nutritional_user;"
     else
         echo "Keeping existing database. Skipping database creation."
+        SKIP_DB_CREATE=1
+    fi
+elif [ "$USER_EXISTS" = "yes" ]; then
+    echo -e "${YELLOW}⚠ User 'nutritional_user' exists but database 'nutritional_db' does not${NC}"
+    read -p "Do you want to recreate the user and database? (yes/no): " -r
+    echo
+    if [[ $REPLY == "yes" ]]; then
+        echo "Dropping existing user..."
+        sudo -u postgres psql -c "DROP USER IF EXISTS nutritional_user;"
+    else
+        echo "Keeping existing user. Skipping database creation."
         SKIP_DB_CREATE=1
     fi
 fi
@@ -58,21 +83,11 @@ if [ -z "$SKIP_DB_CREATE" ]; then
     echo ""
     echo -e "${GREEN}Step 1: Creating database and user${NC}"
     echo -e "${BLUE}=========================================${NC}"
-    echo -e "${YELLOW}⚠ SECURITY: You must set a secure password!${NC}"
-    echo ""
-    echo "Generate a secure password with:"
-    echo "  openssl rand -base64 32"
-    echo ""
-    echo "Or use this generated one:"
-    DB_PASSWORD=$(openssl rand -base64 32)
-    echo -e "${BLUE}$DB_PASSWORD${NC}"
-    echo ""
-    echo -e "${YELLOW}SAVE THIS PASSWORD! You'll need it for .env${NC}"
-    echo ""
-    read -p "Press Enter to continue with this password, or Ctrl+C to cancel and run manually..."
+    echo -e "${GREEN}Using provided password${NC}"
     echo ""
 
-    # Create user and database with the generated password
+    # Create user and database with the provided password
+    echo "Creating user and database..."
     sudo -u postgres psql <<EOF
 -- Create user with secure password
 CREATE USER nutritional_user WITH PASSWORD '$DB_PASSWORD';
@@ -82,16 +97,22 @@ CREATE DATABASE nutritional_db
     WITH
     OWNER = nutritional_user
     ENCODING = 'UTF8'
-    LC_COLLATE = 'en_US.UTF-8'
-    LC_CTYPE = 'en_US.UTF-8'
+    LC_COLLATE = 'C.UTF-8'
+    LC_CTYPE = 'C.UTF-8'
     TEMPLATE = template0;
 
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE nutritional_db TO nutritional_user;
+EOF
 
--- Connect to the database to set up extensions
-\\c nutritional_db
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ Failed to create user or database${NC}"
+        exit 1
+    fi
 
+    # Connect to the database to set up extensions
+    echo "Setting up database extensions..."
+    sudo -u postgres psql -d nutritional_db <<EOF
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -100,7 +121,10 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 GRANT ALL ON SCHEMA public TO nutritional_user;
 EOF
 
-    echo -e "${GREEN}✓ Database and user created${NC}"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ Failed to set up database extensions${NC}"
+        exit 1
+    fi
 
     # Save password to a secure file
     echo "$DB_PASSWORD" > "$SCRIPT_DIR/.db_password"
@@ -109,6 +133,8 @@ EOF
     echo -e "${YELLOW}Password saved to: $SCRIPT_DIR/.db_password${NC}"
     echo -e "${YELLOW}Add to your .env file, then DELETE this file!${NC}"
 fi
+
+    echo -e "${GREEN}✓ Database and user created${NC}"
 
 # Create tables
 echo ""
@@ -216,7 +242,7 @@ if [ -f "$SCRIPT_DIR/.db_password" ]; then
 fi
 echo ""
 echo -e "${YELLOW}⚠ SECURITY CONFIGURATION APPLIED:${NC}"
-echo "  ✓ Generated secure random password"
+echo "  ✓ Using provided password"
 echo "  ✓ PostgreSQL listens on localhost ONLY"
 echo "  ✓ Remote connections BLOCKED"
 echo "  ✓ Only same-server access allowed"
