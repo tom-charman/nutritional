@@ -1,9 +1,12 @@
-"""Data loading functions for CSV and future Google Sheets integration."""
+"""Data loading functions for CSV, PostgreSQL, and Google Sheets integration."""
 
 import os
+from datetime import datetime as dt
 from pathlib import Path
 
 import numpy as np
+
+from nutritional.data.db import get_db_cursor
 
 
 def load_from_csv(filepath: str) -> dict:
@@ -256,9 +259,12 @@ def get_data_source(csv_path: str | None = None) -> dict:
     """
     Load data from the first available source.
 
-    Priority logic:
-    - If LOCAL_CSV_PATH is set: Try CSV sources first, then Google Sheets as fallback
-    - If LOCAL_CSV_PATH is NOT set: Try Google Sheets first, then default CSV paths
+    Priority logic for VISUALIZATION data (Phase 2):
+    - Google Sheets (if configured)
+    - CSV files as fallback
+
+    Note: During Phase 2, data entry uses PostgreSQL directly via storage_factory.
+    This loader is ONLY for visualization which continues using Google Sheets.
 
     CSV sources tried (in order):
     1. Specified csv_path parameter
@@ -409,3 +415,91 @@ def filter_by_date_range(
         filtered_data["filepath"] = data["filepath"]
 
     return filtered_data
+
+
+def load_from_postgres() -> dict:
+    """
+    Load nutritional data from PostgreSQL database.
+
+    Returns:
+        dict with keys:
+            - 'dates': np.array of datetime64 objects
+            - 'data': dict of {column_name: np.array}
+            - 'columns': list of column names
+            - 'source': 'PostgreSQL'
+            - 'last_updated': str timestamp
+
+    Raises:
+        ValueError: If no data found in database
+    """
+    try:
+        with get_db_cursor() as cur:
+            # Get daily summaries
+            cur.execute("""
+                SELECT date, energy_kcal, fat_g, saturated_fat_g, carbohydrates_g,
+                       sugar_g, protein_g, fibre_g, salt_g, calcium_mg,
+                       morning_weight_kg, evening_weight_kg
+                FROM daily_summaries
+                ORDER BY date
+            """)
+            rows = cur.fetchall()
+
+            if not rows:
+                raise ValueError("No data found in PostgreSQL database")
+
+            # Parse data into lists
+            dates_list = []
+            data_lists = {
+                "Energy kcal": [],
+                "Fat g": [],
+                "Saturated Fat g": [],
+                "Carbohydrates g": [],
+                "Sugar g": [],
+                "Protein g": [],
+                "Fibre g": [],
+                "Salt g": [],
+                "Calcium mg": [],
+                "Morning Weight kg": [],
+                "Evening Weight kg": [],
+            }
+
+            for row in rows:
+                dates_list.append(np.datetime64(row["date"]))
+                data_lists["Energy kcal"].append(float(row["energy_kcal"]))
+                data_lists["Fat g"].append(float(row["fat_g"]))
+                data_lists["Saturated Fat g"].append(float(row["saturated_fat_g"]))
+                data_lists["Carbohydrates g"].append(float(row["carbohydrates_g"]))
+                data_lists["Sugar g"].append(float(row["sugar_g"]))
+                data_lists["Protein g"].append(float(row["protein_g"]))
+                data_lists["Fibre g"].append(float(row["fibre_g"]))
+                data_lists["Salt g"].append(float(row["salt_g"]))
+                data_lists["Calcium mg"].append(float(row["calcium_mg"]))
+                data_lists["Morning Weight kg"].append(
+                    float(row["morning_weight_kg"])
+                    if row["morning_weight_kg"] is not None
+                    else np.nan
+                )
+                data_lists["Evening Weight kg"].append(
+                    float(row["evening_weight_kg"])
+                    if row["evening_weight_kg"] is not None
+                    else np.nan
+                )
+
+            # Convert to numpy arrays
+            dates_array = np.array(dates_list)
+            data_dict = {col: np.array(vals) for col, vals in data_lists.items()}
+
+            print("Data loaded successfully from PostgreSQL")
+            print(f"Date range: {dates_array[0]} to {dates_array[-1]}")
+            print(f"Number of records: {len(dates_array)}")
+
+            return {
+                "dates": dates_array,
+                "data": data_dict,
+                "columns": list(data_lists.keys()),
+                "source": "PostgreSQL",
+                "last_updated": dt.now().isoformat(),
+            }
+
+    except Exception as e:
+        raise ValueError(f"Error loading from PostgreSQL: {e}")

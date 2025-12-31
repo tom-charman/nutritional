@@ -14,12 +14,17 @@ if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 
 # --- ENVIRONMENT VARIABLES ---
-# Google Sheets Configuration
+# Database Configuration (for data entry - Phase 2)
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://nutritional_user:dev_password@127.0.0.1:5432/nutritional_db"
+)
+
+# Google Sheets Configuration (for visualization until Phase 3)
 GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID")
 GOOGLE_SHEETS_RANGE = os.getenv("GOOGLE_SHEETS_RANGE", "A:Z")  # Default to all columns
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH")
 
-# Local CSV Configuration
+# Local CSV Configuration (fallback for visualization)
 LOCAL_CSV_PATH = os.getenv("LOCAL_CSV_PATH")
 
 # App Configuration

@@ -4,11 +4,11 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, callback, dcc, html
 
-from nutritional.data_entry.storage import FileStorage
+from nutritional.data_entry.storage_factory import get_storage
 
 dash.register_page(__name__, path="/history", title="History")
 
-storage = FileStorage()
+storage = get_storage()
 
 layout = dbc.Container(
     [

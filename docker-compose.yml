@@ -1,0 +1,34 @@
+# Docker Compose for Local Development
+# For production deployment on Debian/Ubuntu servers, see database/DEPLOYMENT.md
+# For automated setup on servers, use: sudo database/setup.sh
+#
+# WARNING: This docker-compose uses a default password for convenience in local dev.
+# NEVER use this configuration in production!
+# Production setup automatically generates secure passwords.
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: nutritional_db
+    environment:
+      POSTGRES_DB: nutritional_db
+      POSTGRES_USER: nutritional_user
+      POSTGRES_PASSWORD: dev_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutritional_user -d nutritional_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: nutritional_postgres_data

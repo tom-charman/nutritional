@@ -16,11 +16,11 @@ from nutritional.data_entry.models import (
     TargetMode,
     UnitType,
 )
-from nutritional.data_entry.storage import FileStorage
+from nutritional.data_entry.storage_factory import get_storage
 
 dash.register_page(__name__, path="/entry", title="Daily Entry")
 
-storage = FileStorage()
+storage = get_storage()
 
 layout = dbc.Container(
     [

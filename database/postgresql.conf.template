@@ -1,0 +1,149 @@
+# PostgreSQL Configuration Optimized for 1GB RAM
+# Suitable for Google Cloud E2-micro instance
+# Place in: /etc/postgresql/15/main/conf.d/nutritional.conf
+
+# ==============================================
+# MEMORY SETTINGS (Optimized for 1GB RAM)
+# ==============================================
+
+# Primary shared memory cache
+# Set to ~12.5% of RAM (128MB for 1GB system)
+shared_buffers = 128MB
+
+# Memory for sorts, hash joins, and temporary operations per connection
+# Keep low to prevent RAM exhaustion with multiple connections
+work_mem = 4MB
+
+# Memory for maintenance operations (VACUUM, CREATE INDEX, etc.)
+# Set to ~3% of RAM
+maintenance_work_mem = 32MB
+
+# Query planner estimate of kernel disk cache
+# Set to ~50% of RAM
+effective_cache_size = 512MB
+
+# ==============================================
+# CONNECTION SETTINGS
+# ==============================================
+
+# SECURITY: Only listen on localhost (set by setup.sh in main config)
+# listen_addresses = 'localhost'
+
+# Maximum number of client connections
+# Each connection uses ~10MB RAM, so 20 connections = ~200MB
+max_connections = 20
+
+# Prepared transaction slots (usually not needed for web apps)
+max_prepared_transactions = 0
+
+# ==============================================
+# WRITE AHEAD LOG (WAL)
+# ==============================================
+
+# Minimum size of WAL
+min_wal_size = 80MB
+
+# Maximum size of WAL
+max_wal_size = 1GB
+
+# ==============================================
+# QUERY TUNING
+# ==============================================
+
+# Random page cost (lower for SSD)
+random_page_cost = 1.1
+
+# Sequential page cost
+seq_page_cost = 1.0
+
+# Planner's cost estimate for starting up worker processes
+parallel_setup_cost = 1000.0
+
+# Planner's cost estimate for parallel operations
+parallel_tuple_cost = 0.1
+
+# ==============================================
+# BACKGROUND PROCESSES
+# ==============================================
+
+# Maximum number of background worker processes
+max_worker_processes = 2
+
+# Maximum parallel workers per query
+max_parallel_workers_per_gather = 1
+
+# Maximum parallel maintenance workers
+max_parallel_maintenance_workers = 1
+
+# Maximum parallel workers total
+max_parallel_workers = 2
+
+# ==============================================
+# AUTOVACUUM SETTINGS
+# ==============================================
+
+# Enable autovacuum (recommended)
+autovacuum = on
+
+# Maximum number of autovacuum workers
+autovacuum_max_workers = 2
+
+# ==============================================
+# LOGGING
+# ==============================================
+
+# Log slow queries (adjust threshold as needed)
+log_min_duration_statement = 1000  # 1 second
+
+# Log connections
+log_connections = off
+
+# Log disconnections
+log_disconnections = off
+
+# Log line prefix format
+log_line_prefix = '%m [%p] %u@%d '
+
+# ==============================================
+# LOCALE AND FORMATTING
+# ==============================================
+
+# Timezone
+timezone = 'UTC'
+
+# Date style
+datestyle = 'iso, mdy'
+
+# Locale for messages
+lc_messages = 'en_US.UTF-8'
+
+# Locale for monetary formatting
+lc_monetary = 'en_US.UTF-8'
+
+# Locale for number formatting
+lc_numeric = 'en_US.UTF-8'
+
+# Locale for time formatting
+lc_time = 'en_US.UTF-8'
+
+# Default text search configuration
+default_text_search_config = 'pg_catalog.english'
+
+# ==============================================
+# NOTES
+# ==============================================
+
+# These settings are optimized for:
+# - 1GB RAM (Google Cloud E2-micro)
+# - Small web application workload
+# - ~20 concurrent connections maximum
+# - Single application server
+#
+# To verify settings are loaded:
+# sudo -u postgres psql -d nutritional_db -c "SHOW shared_buffers;"
+#
+# To reload configuration without restart:
+# sudo systemctl reload postgresql
+#
+# Monitor memory usage:
+# ps aux | grep postgres | awk '{sum+=$6} END {print "PostgreSQL RAM: " sum/1024 " MB"}'

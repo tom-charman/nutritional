@@ -79,6 +79,37 @@ cp .env.example .env
 
 The `.env` file is automatically loaded when the app starts.
 
+### Option 3: Using PostgreSQL (Production - Phase 2)
+
+For persistent data storage with a database:
+
+**Local Development (Docker):**
+```bash
+# Start PostgreSQL container
+docker-compose up -d
+
+# Test connection
+uv run python test_sqlmodel_connection.py
+
+# Run app
+uv run -m nutritional
+```
+
+**Production Server (Debian/Ubuntu):**
+```bash
+# Run automated setup
+cd database
+sudo ./setup.sh
+
+# See database/README.md for full documentation
+# See database/DEPLOYMENT.md for Google Cloud deployment
+```
+
+**Architecture (Phase 2):**
+- Data entry (food database, daily entries) → PostgreSQL
+- Visualization (charts, analytics) → Google Sheets
+- Phase 3 will migrate visualization to PostgreSQL
+
 **Data Source Priority:**
 - If `LOCAL_CSV_PATH` is NOT set: Google Sheets is tried first, then default CSV paths
 - If `LOCAL_CSV_PATH` IS set: CSV sources are tried first, Google Sheets as fallback
@@ -107,7 +138,12 @@ nutritional/
 │   ├── data_entry/        # Food database and entry system
 │   │   ├── models.py      # Pydantic data models
 │   │   ├── calculator.py  # Nutritional calculations
-│   │   └── storage.py     # JSON/JSONL persistence
+│   │   ├── storage.py     # File-based storage
+│   │   ├── sqlmodel_storage.py  # PostgreSQL storage (SQLModel ORM)
+│   │   └── storage_factory.py   # Storage backend selection
+│   ├── database/          # PostgreSQL ORM and migrations
+│   │   ├── models.py      # SQLModel database models
+│   │   └── connection.py  # Connection management
 │   ├── plotting/          # Plotly visualization
 │   │   ├── transforms.py  # Plot data preparation
 │   │   ├── calories_weight.py  # Calories vs weight figure
@@ -123,6 +159,14 @@ nutritional/
 │   ├── layout.py         # UI layout definition
 │   ├── callbacks.py      # Interactive callbacks
 │   └── settings.py       # Configuration and constants
+├── database/             # PostgreSQL setup and deployment
+│   ├── init.sql          # Database schema
+│   ├── create_db.sql     # Database creation script
+│   ├── setup.sh          # Automated setup for Debian
+│   ├── db.sh             # Database management script
+│   ├── postgresql.conf.template  # Optimized config (1GB RAM)
+│   ├── README.md         # Setup documentation
+│   └── DEPLOYMENT.md     # Production deployment guide
 ├── tests/                # Test suite
 ├── nutritional_data/     # Data storage directory
 │   ├── food_database.json    # Food items
@@ -130,7 +174,7 @@ nutritional/
 │   ├── daily_summaries.csv   # Aggregated data
 │   └── daily_entries/        # Daily entry files
 └── docs/                 # Documentation
-
+    └── migration-plan.md     # Database migration plan
 ```
 
 ### Running Tests

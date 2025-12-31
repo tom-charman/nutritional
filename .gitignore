@@ -2,6 +2,17 @@ local_data
 plots
 plots_interactive
 
+# Database backups and exports
+database/backups/
+database/.db_password
+*.sql
+*.sql.gz
+*.dump
+
+# EXCEPT: Keep schema and setup files (not backups)
+!database/init.sql
+!database/create_db.sql
+
 # Google Sheets Credentials & Secrets
 credentials/
 *.json

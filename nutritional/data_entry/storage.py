@@ -347,6 +347,5 @@ class FileStorage:
             return targets
 
         # Fall back to defaults
-        targets = DailyTargets.get_default_targets()
-        targets.date = target_date
+        targets = DailyTargets.get_default_targets(target_date)
         return targets

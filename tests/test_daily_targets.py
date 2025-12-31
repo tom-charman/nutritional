@@ -45,7 +45,9 @@ class TestDailyTargetsModel:
 
     def test_create_targets_with_defaults(self):
         """Test creating targets with default values."""
-        targets = DailyTargets.get_default_targets()
+        from datetime import date
+
+        targets = DailyTargets.get_default_targets(date.today())
 
         assert targets.energy_kcal == 2000
         assert targets.protein_g == 150
@@ -103,7 +105,9 @@ class TestDailyTargetsModel:
 
     def test_default_modes_are_sensible(self):
         """Test that default targets have sensible modes."""
-        targets = DailyTargets.get_default_targets()
+        from datetime import date
+
+        targets = DailyTargets.get_default_targets(date.today())
 
         # Targets
         assert targets.get_nutrient_mode("energy") == TargetMode.TARGET

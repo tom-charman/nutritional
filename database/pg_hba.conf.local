@@ -1,0 +1,43 @@
+# PostgreSQL Host-Based Authentication Configuration
+# Local-only configuration for production security
+# Place in: /etc/postgresql/15/main/pg_hba.conf
+
+# SECURITY: This configuration only allows local connections
+# No remote access is permitted - app and database must be on same server
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# Local connections only (Unix socket)
+local   all             postgres                                peer
+local   all             all                                     peer
+
+# IPv4 local connections (127.0.0.1 only)
+host    nutritional_db  nutritional_user  127.0.0.1/32         scram-sha-256
+host    all             postgres          127.0.0.1/32         scram-sha-256
+
+# IPv6 local connections (::1 only)
+host    nutritional_db  nutritional_user  ::1/128              scram-sha-256
+host    all             postgres          ::1/128              scram-sha-256
+
+# DENY all remote connections explicitly
+# This blocks any external access attempts
+host    all             all               0.0.0.0/0            reject
+host    all             all               ::/0                 reject
+
+# ==============================================
+# NOTES
+# ==============================================
+#
+# 1. Only localhost (127.0.0.1 / ::1) can connect
+# 2. Application must run on the same server as PostgreSQL
+# 3. No remote database administration possible
+# 4. For remote admin, use SSH tunnel:
+#    ssh -L 5432:localhost:5432 user@server
+#    Then connect to localhost:5432 from your machine
+#
+# 5. To apply changes:
+#    sudo systemctl reload postgresql
+#
+# 6. To verify configuration:
+#    sudo -u postgres psql -c "SHOW hba_file;"
+#    cat /etc/postgresql/15/main/pg_hba.conf

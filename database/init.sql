@@ -1,0 +1,126 @@
+-- Nutritional Tracker Database Schema
+-- PostgreSQL 15+
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Food items reference table
+CREATE TABLE food_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    unit_type VARCHAR(20) NOT NULL DEFAULT 'per_100g' CHECK (unit_type IN ('per_100g', 'per_item')),
+    serving_size_g DECIMAL(8,2),  -- Required when unit_type = 'per_item', represents weight of one item
+    energy_kcal DECIMAL(8,2) NOT NULL,
+    fat_g DECIMAL(8,2) NOT NULL,
+    saturated_fat_g DECIMAL(8,2) NOT NULL,
+    carbohydrates_g DECIMAL(8,2) NOT NULL,
+    sugar_g DECIMAL(8,2) NOT NULL,
+    protein_g DECIMAL(8,2) NOT NULL,
+    fibre_g DECIMAL(8,2) NOT NULL,
+    salt_g DECIMAL(8,2) NOT NULL,
+    calcium_mg DECIMAL(8,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_serving_size CHECK (
+        (unit_type = 'per_item' AND serving_size_g IS NOT NULL) OR
+        (unit_type = 'per_100g' AND serving_size_g IS NULL)
+    )
+);
+
+-- Individual food entries (history)
+CREATE TABLE food_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date DATE NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    food_id UUID REFERENCES food_items(id),
+    weight_g DECIMAL(8,2),  -- For per_100g items
+    quantity DECIMAL(8,2),  -- For per_item items (e.g., 1.5 bananas)
+    energy_kcal DECIMAL(8,2) NOT NULL,
+    fat_g DECIMAL(8,2) NOT NULL,
+    saturated_fat_g DECIMAL(8,2) NOT NULL,
+    carbohydrates_g DECIMAL(8,2) NOT NULL,
+    sugar_g DECIMAL(8,2) NOT NULL,
+    protein_g DECIMAL(8,2) NOT NULL,
+    fibre_g DECIMAL(8,2) NOT NULL,
+    salt_g DECIMAL(8,2) NOT NULL,
+    calcium_mg DECIMAL(8,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Daily summaries (main app data source)
+CREATE TABLE daily_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date DATE NOT NULL UNIQUE,
+    energy_kcal DECIMAL(8,2),
+    fat_g DECIMAL(8,2),
+    saturated_fat_g DECIMAL(8,2),
+    carbohydrates_g DECIMAL(8,2),
+    sugar_g DECIMAL(8,2),
+    protein_g DECIMAL(8,2),
+    fibre_g DECIMAL(8,2),
+    salt_g DECIMAL(8,2),
+    calcium_mg DECIMAL(8,2),
+    morning_weight_kg DECIMAL(5,2),
+    evening_weight_kg DECIMAL(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Daily targets (nutritional goals/limits)
+CREATE TABLE daily_targets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date DATE NOT NULL UNIQUE,
+    default_mode VARCHAR(10) NOT NULL DEFAULT 'target' CHECK (default_mode IN ('target', 'limit')),
+    -- Target values
+    energy_kcal DECIMAL(8,2) NOT NULL DEFAULT 2000,
+    protein_g DECIMAL(8,2) NOT NULL DEFAULT 150,
+    carbohydrates_g DECIMAL(8,2) NOT NULL DEFAULT 225,
+    fat_g DECIMAL(8,2) NOT NULL DEFAULT 67,
+    sugar_g DECIMAL(8,2) NOT NULL DEFAULT 90,
+    saturated_fat_g DECIMAL(8,2) NOT NULL DEFAULT 20,
+    fibre_g DECIMAL(8,2) NOT NULL DEFAULT 30,
+    salt_g DECIMAL(8,2) NOT NULL DEFAULT 6,
+    calcium_mg DECIMAL(8,2) NOT NULL DEFAULT 700,
+    -- Per-nutrient mode overrides (NULL = use default_mode)
+    energy_mode VARCHAR(10) CHECK (energy_mode IN ('target', 'limit')),
+    protein_mode VARCHAR(10) CHECK (protein_mode IN ('target', 'limit')),
+    carbohydrates_mode VARCHAR(10) CHECK (carbohydrates_mode IN ('target', 'limit')),
+    fat_mode VARCHAR(10) CHECK (fat_mode IN ('target', 'limit')),
+    sugar_mode VARCHAR(10) CHECK (sugar_mode IN ('target', 'limit')) DEFAULT 'limit',
+    saturated_fat_mode VARCHAR(10) CHECK (saturated_fat_mode IN ('target', 'limit')) DEFAULT 'limit',
+    fibre_mode VARCHAR(10) CHECK (fibre_mode IN ('target', 'limit')),
+    salt_mode VARCHAR(10) CHECK (salt_mode IN ('target', 'limit')) DEFAULT 'limit',
+    calcium_mode VARCHAR(10) CHECK (calcium_mode IN ('target', 'limit')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX idx_food_entries_date ON food_entries(date);
+CREATE INDEX idx_food_entries_food_id ON food_entries(food_id);
+CREATE INDEX idx_daily_summaries_date ON daily_summaries(date);
+CREATE INDEX idx_daily_targets_date ON daily_targets(date);
+CREATE INDEX idx_food_items_name ON food_items(name);
+
+-- Updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply updated_at triggers to all tables
+CREATE TRIGGER update_food_items_updated_at BEFORE UPDATE ON food_items
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_food_entries_updated_at BEFORE UPDATE ON food_entries
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_daily_summaries_updated_at BEFORE UPDATE ON daily_summaries
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_daily_targets_updated_at BEFORE UPDATE ON daily_targets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

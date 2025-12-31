@@ -146,12 +146,10 @@ class DailyTargets(BaseModel):
         return specific_mode if specific_mode is not None else self.mode
 
     @classmethod
-    def get_default_targets(cls) -> "DailyTargets":
+    def get_default_targets(cls, target_date: date) -> "DailyTargets":
         """Get default targets with sensible defaults."""
-        from datetime import date
-
         return cls(
-            date=date.today(),
+            date=target_date,
             energy_kcal=2000,
             protein_g=150,
             carbohydrates_g=225,

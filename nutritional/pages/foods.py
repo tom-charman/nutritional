@@ -6,11 +6,11 @@ from dash import Input, Output, State, callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
 from nutritional.data_entry.models import FoodItem, UnitType
-from nutritional.data_entry.storage import FileStorage
+from nutritional.data_entry.storage_factory import get_storage
 
 dash.register_page(__name__, path="/foods", title="Food Database")
 
-storage = FileStorage()
+storage = get_storage()
 
 layout = dbc.Container(
     [
