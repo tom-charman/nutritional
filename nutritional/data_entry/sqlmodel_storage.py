@@ -155,7 +155,7 @@ class SQLModelStorage:
             # Get food entries for the date
             statement = (
                 select(FoodEntryModel)
-                .where(FoodEntryModel.date == entry_date)
+                .where(FoodEntryModel.entry_date == entry_date)
                 .order_by(FoodEntryModel.timestamp)
             )
             db_entries = session.exec(statement).all()
@@ -167,7 +167,7 @@ class SQLModelStorage:
 
             # Get daily summary for measurements
             summary_statement = select(DailySummaryModel).where(
-                DailySummaryModel.date == entry_date
+                DailySummaryModel.summary_date == entry_date
             )
             summary = session.exec(summary_statement).first()
 
@@ -196,7 +196,8 @@ class SQLModelStorage:
 
         with get_db_session() as session:
             # Delete existing entries for this date (will be replaced)
-            delete_statement = select(FoodEntryModel).where(FoodEntryModel.date == daily_data.date)
+            condition = FoodEntryModel.entry_date == daily_data.date
+            delete_statement = select(FoodEntryModel).where(condition)
             existing_entries = session.exec(delete_statement).all()
             for entry in existing_entries:
                 session.delete(entry)
@@ -224,7 +225,7 @@ class SQLModelStorage:
 
             # Upsert daily summary
             summary_statement = select(DailySummaryModel).where(
-                DailySummaryModel.date == daily_data.date
+                DailySummaryModel.summary_date == daily_data.date
             )
             summary = session.exec(summary_statement).first()
 
@@ -272,7 +273,8 @@ class SQLModelStorage:
         with get_db_session() as session:
             from sqlalchemy import desc
 
-            statement = select(FoodEntryModel.date).distinct().order_by(desc(FoodEntryModel.date))
+            field = FoodEntryModel.entry_date
+            statement = select(field).distinct().order_by(desc(field))
             results = session.exec(statement).all()
             return results
 
@@ -286,7 +288,8 @@ class SQLModelStorage:
         """
         with get_db_session() as session:
             # Check if targets exist for this date
-            statement = select(DailyTargetsModel).where(DailyTargetsModel.date == targets.date)
+            condition = DailyTargetsModel.target_date == targets.date
+            statement = select(DailyTargetsModel).where(condition)
             existing = session.exec(statement).first()
 
             if existing:
@@ -356,7 +359,8 @@ class SQLModelStorage:
             DailyTargets if found, None otherwise
         """
         with get_db_session() as session:
-            statement = select(DailyTargetsModel).where(DailyTargetsModel.date == target_date)
+            condition = DailyTargetsModel.target_date == target_date
+            statement = select(DailyTargetsModel).where(condition)
             db_targets = session.exec(statement).first()
 
             if not db_targets:
@@ -378,8 +382,8 @@ class SQLModelStorage:
 
             statement = (
                 select(DailyTargetsModel)
-                .where(DailyTargetsModel.date < target_date)
-                .order_by(desc(DailyTargetsModel.date))
+                .where(DailyTargetsModel.target_date < target_date)
+                .order_by(desc(DailyTargetsModel.target_date))
                 .limit(1)
             )
             db_targets = session.exec(statement).first()
@@ -492,7 +496,7 @@ class SQLModelStorage:
         from nutritional.data_entry.models import TargetMode
 
         return DailyTargets(
-            date=db_targets.date,
+            date=db_targets.target_date,
             mode=TargetMode(db_targets.default_mode),
             energy_kcal=db_targets.energy_kcal,
             protein_g=db_targets.protein_g,

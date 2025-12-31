@@ -30,7 +30,7 @@ CREATE TABLE food_items (
 -- Individual food entries (history)
 CREATE TABLE food_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    date DATE NOT NULL,
+    entry_date DATE NOT NULL,
     timestamp TIMESTAMP NOT NULL,
     food_id UUID REFERENCES food_items(id),
     weight_g DECIMAL(8,2),  -- For per_100g items
@@ -51,7 +51,7 @@ CREATE TABLE food_entries (
 -- Daily summaries (main app data source)
 CREATE TABLE daily_summaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    date DATE NOT NULL UNIQUE,
+    summary_date DATE NOT NULL UNIQUE,
     energy_kcal DECIMAL(8,2),
     fat_g DECIMAL(8,2),
     saturated_fat_g DECIMAL(8,2),
@@ -70,7 +70,7 @@ CREATE TABLE daily_summaries (
 -- Daily targets (nutritional goals/limits)
 CREATE TABLE daily_targets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    date DATE NOT NULL UNIQUE,
+    target_date DATE NOT NULL UNIQUE,
     default_mode VARCHAR(10) NOT NULL DEFAULT 'target' CHECK (default_mode IN ('target', 'limit')),
     -- Target values
     energy_kcal DECIMAL(8,2) NOT NULL DEFAULT 2000,
@@ -97,10 +97,10 @@ CREATE TABLE daily_targets (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_food_entries_date ON food_entries(date);
+CREATE INDEX idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX idx_food_entries_food_id ON food_entries(food_id);
-CREATE INDEX idx_daily_summaries_date ON daily_summaries(date);
-CREATE INDEX idx_daily_targets_date ON daily_targets(date);
+CREATE INDEX idx_daily_summaries_summary_date ON daily_summaries(summary_date);
+CREATE INDEX idx_daily_targets_target_date ON daily_targets(target_date);
 CREATE INDEX idx_food_items_name ON food_items(name);
 
 -- Updated_at trigger function

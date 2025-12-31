@@ -58,7 +58,7 @@ class FoodEntryModel(SQLModel, table=True):
     __tablename__ = "food_entries"
 
     id: UUID | None = Field(default_factory=uuid4, primary_key=True)
-    date: date = Field(index=True)
+    entry_date: date = Field(index=True)
     timestamp: datetime = Field(default_factory=now_utc)
     food_id: UUID = Field(foreign_key="food_items.id")
 
@@ -88,7 +88,7 @@ class DailySummaryModel(SQLModel, table=True):
     __tablename__ = "daily_summaries"
 
     id: UUID | None = Field(default_factory=uuid4, primary_key=True)
-    date: date = Field(unique=True, index=True)
+    summary_date: date = Field(unique=True, index=True)
 
     # Nutritional totals
     energy_kcal: float
@@ -116,7 +116,7 @@ class DailyTargetsModel(SQLModel, table=True):
     __tablename__ = "daily_targets"
 
     id: UUID | None = Field(default_factory=uuid4, primary_key=True)
-    date: date = Field(unique=True, index=True)
+    target_date: date = Field(unique=True, index=True)
     default_mode: str = Field(default="target", max_length=10)
 
     # Target values
