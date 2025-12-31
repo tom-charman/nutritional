@@ -6,6 +6,11 @@ from uuid import UUID, uuid4
 from sqlmodel import CheckConstraint, Field, SQLModel
 
 
+def now_utc():
+    """Return current datetime in UTC."""
+    return datetime.now(UTC)
+
+
 class FoodItemModel(SQLModel, table=True):
     """Food item with nutritional information.
 
@@ -34,8 +39,8 @@ class FoodItemModel(SQLModel, table=True):
     calcium_mg: float
 
     # Timestamps
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
 
     __table_args__ = (
         CheckConstraint("unit_type IN ('per_100g', 'per_item')", name="check_unit_type"),
@@ -54,7 +59,7 @@ class FoodEntryModel(SQLModel, table=True):
 
     id: UUID | None = Field(default_factory=uuid4, primary_key=True)
     date: date = Field(index=True)
-    timestamp: datetime
+    timestamp: datetime = Field(default_factory=now_utc)
     food_id: UUID = Field(foreign_key="food_items.id")
 
     # Quantity consumed (one of these should be set)
@@ -73,8 +78,8 @@ class FoodEntryModel(SQLModel, table=True):
     calcium_mg: float
 
     # Timestamps
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
 
 
 class DailySummaryModel(SQLModel, table=True):
@@ -101,8 +106,8 @@ class DailySummaryModel(SQLModel, table=True):
     evening_weight_kg: float | None = None
 
     # Timestamps
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
 
 
 class DailyTargetsModel(SQLModel, table=True):
@@ -137,8 +142,8 @@ class DailyTargetsModel(SQLModel, table=True):
     calcium_mode: str | None = Field(default=None, max_length=10)
 
     # Timestamps
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
 
     __table_args__ = (
         CheckConstraint("default_mode IN ('target', 'limit')", name="check_default_mode"),
