@@ -206,7 +206,7 @@ class SQLModelStorage:
             for entry in daily_data.entries:
                 db_entry = FoodEntryModel(
                     id=UUID(entry.entry_id),
-                    date=daily_data.date,
+                    entry_date=daily_data.date,
                     timestamp=entry.timestamp,
                     food_id=UUID(entry.food_id),
                     weight_g=entry.weight_g,
@@ -249,7 +249,7 @@ class SQLModelStorage:
             else:
                 # Create new
                 summary = DailySummaryModel(
-                    date=daily_data.date,
+                    summary_date=daily_data.date,
                     energy_kcal=totals.energy_kcal,
                     fat_g=totals.fat_g,
                     saturated_fat_g=totals.saturated_fat_g,
