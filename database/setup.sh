@@ -1,20 +1,28 @@
 #!/bin/bash
 # PostgreSQL Setup Script for Debian 12 (Bookworm)
 # Optimized for 1GB RAM (Google Cloud E2-micro)
-# Usage: sudo ./setup.sh <password>
+# Usage: sudo ./setup.sh <password> [--force]
 # Run as root: sudo ./setup.sh "MySecurePassword123!"
+# Force recreate: sudo ./setup.sh "MySecurePassword123!" --force
 
 set -e  # Exit on error
 
 # Check if password argument is provided
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     echo -e "${RED}Error: Password argument required${NC}"
-    echo "Usage: sudo ./setup.sh <password>"
+    echo "Usage: sudo ./setup.sh <password> [--force]"
     echo "Example: sudo ./setup.sh 'MySecurePassword123!'"
+    echo "Force recreate: sudo ./setup.sh 'MySecurePassword123!' --force"
     exit 1
 fi
 
 DB_PASSWORD="$1"
+FORCE_RECREATE="no"
+
+# Check for --force flag
+if [ "$2" = "--force" ]; then
+    FORCE_RECREATE="yes"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -55,8 +63,13 @@ USER_EXISTS=$(sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='nu
 
 if [ "$DB_EXISTS" = "yes" ]; then
     echo -e "${YELLOW}⚠ Database 'nutritional_db' already exists${NC}"
-    read -p "Do you want to recreate it? This will DELETE ALL DATA! (yes/no): " -r
-    echo
+    if [ "$FORCE_RECREATE" = "yes" ]; then
+        echo "Force flag detected. Recreating database..."
+        REPLY="yes"
+    else
+        read -p "Do you want to recreate it? This will DELETE ALL DATA! (yes/no): " -r
+        echo
+    fi
     if [[ $REPLY == "yes" ]]; then
         echo "Dropping existing database and user..."
         sudo -u postgres psql -c "DROP DATABASE IF EXISTS nutritional_db;"
@@ -67,8 +80,13 @@ if [ "$DB_EXISTS" = "yes" ]; then
     fi
 elif [ "$USER_EXISTS" = "yes" ]; then
     echo -e "${YELLOW}⚠ User 'nutritional_user' exists but database 'nutritional_db' does not${NC}"
-    read -p "Do you want to recreate the user and database? (yes/no): " -r
-    echo
+    if [ "$FORCE_RECREATE" = "yes" ]; then
+        echo "Force flag detected. Recreating user..."
+        REPLY="yes"
+    else
+        read -p "Do you want to recreate the user and database? (yes/no): " -r
+        echo
+    fi
     if [[ $REPLY == "yes" ]]; then
         echo "Dropping existing user..."
         sudo -u postgres psql -c "DROP USER IF EXISTS nutritional_user;"
