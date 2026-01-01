@@ -11,6 +11,7 @@ from pathlib import Path  # pragma: no cover
 import dash  # pragma: no cover
 import dash_bootstrap_components as dbc  # pragma: no cover
 from dash import dcc, page_container  # pragma: no cover
+from dash_auth import OIDCAuth  # pragma: no cover
 from dotenv import load_dotenv  # pragma: no cover
 
 # Load environment variables from .env file
@@ -41,6 +42,23 @@ app = dash.Dash(  # pragma: no cover
 
 # Server reference for deployment (e.g., Gunicorn)
 server = app.server  # pragma: no cover
+
+# Add OIDC Authentication with Google
+auth = OIDCAuth(  # pragma: no cover
+    app,
+    secret_key=os.getenv("SECRET_KEY", "dev-secret-key-change-in-production"),
+)
+auth.register_provider(  # pragma: no cover
+    "google",
+    token_endpoint_auth_method="client_secret_post",
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    # Use manual configuration instead of discovery
+    authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
+    token_url="https://oauth2.googleapis.com/token",
+    userinfo_url="https://openidconnect.googleapis.com/v1/userinfo",
+    client_kwargs={"scope": "openid email profile"},
+)  # pragma: no cover
 
 
 # Create navigation bar
