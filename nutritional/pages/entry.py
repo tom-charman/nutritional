@@ -34,6 +34,26 @@ def get_entry_layout():
         [
             # Hidden trigger to reload data when page is visited
             html.Div(id="page-load-trigger", className="hidden"),
+            # Store for selected date
+            dcc.Store(id="selected-date-store", data=date.today().isoformat()),
+            # Date selector
+            html.Div(
+                [
+                    html.Label("Date:", style={"marginRight": "10px", "fontWeight": "bold"}),
+                    dcc.DatePickerSingle(
+                        id="entry-date-picker",
+                        date=date.today(),
+                        display_format="YYYY-MM-DD",
+                        max_date_allowed=date.today(),
+                        style={"marginBottom": "15px"},
+                    ),
+                    html.Span(
+                        " (Edit historical entries by selecting a past date)",
+                        style={"marginLeft": "10px", "fontStyle": "italic", "color": "#666"},
+                    ),
+                ],
+                style={"marginBottom": "20px", "display": "flex", "alignItems": "center"},
+            ),
             # Unified Daily Log Header
             html.Div(
                 [
@@ -517,28 +537,50 @@ def layout():
 
 # Display current date in header format
 @callback(
-    Output("current-date-display", "children"),
-    Input("page-load-trigger", "children"),
+    Output("selected-date-store", "data"),
+    Input("entry-date-picker", "date"),
 )
-def display_current_date(_):
-    """Display the current date in header format."""
-    return date.today().strftime("%A, %B %d")
+def update_selected_date(selected_date):
+    """Update selected date store when date picker changes."""
+    if selected_date is None:
+        return date.today().isoformat()
+    return selected_date
 
 
-# Load today's entries from file on page load
+@callback(
+    Output("current-date-display", "children"),
+    Input("selected-date-store", "data"),
+)
+def display_current_date(selected_date_str):
+    """Display selected date in header format."""
+    if selected_date_str is None:
+        selected_date = date.today()
+    else:
+        selected_date = date.fromisoformat(selected_date_str)
+    return selected_date.strftime("%A, %B %d")
+
+
+# Load entries from file for selected date
 @callback(
     [
         Output("persistent-entries", "data", allow_duplicate=True),
         Output("persistent-morning-weight", "data", allow_duplicate=True),
         Output("persistent-evening-weight", "data", allow_duplicate=True),
     ],
-    Input("page-load-trigger", "children"),
+    [
+        Input("page-load-trigger", "children"),
+        Input("selected-date-store", "data"),
+    ],
     prevent_initial_call=True,
 )
-def load_todays_entries(_):
-    """Load entries for today's date from file."""
-    today = date.today()
-    daily_data = storage.load_daily_entry(today)
+def load_todays_entries(_, selected_date_str):
+    """Load entries for selected date from file."""
+    if selected_date_str is None:
+        selected_date = date.today()
+    else:
+        selected_date = date.fromisoformat(selected_date_str)
+
+    daily_data = storage.load_daily_entry(selected_date)
 
     if daily_data:
         return (
@@ -715,13 +757,28 @@ def calculate_and_display_nutrients(food_id, amount_list):
         State("persistent-entries", "data"),
         State("persistent-morning-weight", "data"),
         State("persistent-evening-weight", "data"),
+        State("selected-date-store", "data"),
     ],
     prevent_initial_call=True,
 )
-def add_food_entry(n_clicks, food_id, amount_list, current_entries, morning_weight, evening_weight):
-    """Add a food entry to the current day and save immediately."""
+def add_food_entry(
+    n_clicks,
+    food_id,
+    amount_list,
+    current_entries,
+    morning_weight,
+    evening_weight,
+    selected_date_str,
+):
+    """Add a food entry to the selected day and save immediately."""
     if not n_clicks or not food_id:
         raise PreventUpdate
+
+    # Parse selected date
+    if selected_date_str is None:
+        entry_date = date.today()
+    else:
+        entry_date = date.fromisoformat(selected_date_str)
 
     # Extract amount from list (it will be empty if input doesn't exist)
     amount = amount_list[0] if amount_list and len(amount_list) > 0 else None
@@ -769,10 +826,10 @@ def add_food_entry(n_clicks, food_id, amount_list, current_entries, morning_weig
         # Add to current entries
         current_entries.append(entry.model_dump(mode="json"))
 
-        # Save immediately to today's file
+        # Save immediately to selected day
         food_entries = [FoodEntry(**e) for e in current_entries]
         daily_data = DailyData(
-            date=date.today(),
+            date=entry_date,
             entries=food_entries,
             measurements=Measurements(
                 morning_weight_kg=morning_weight,
@@ -888,10 +945,11 @@ def update_entries_list(entries, _):
         State("persistent-entries", "data"),
         State("persistent-morning-weight", "data"),
         State("persistent-evening-weight", "data"),
+        State("selected-date-store", "data"),
     ],
     prevent_initial_call=True,
 )
-def remove_entry(n_clicks, entries, morning_weight, evening_weight):
+def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_date_str):
     """Remove an entry from the list and save immediately."""
     if not any(n_clicks):
         raise PreventUpdate
@@ -907,10 +965,16 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight):
     # Remove the entry
     entries.pop(index)
 
-    # Save immediately to today's file
+    # Parse selected date
+    if selected_date_str is None:
+        entry_date = date.today()
+    else:
+        entry_date = date.fromisoformat(selected_date_str)
+
+    # Save immediately to selected day
     food_entries = [FoodEntry(**e) for e in entries]
     daily_data = DailyData(
-        date=date.today(),
+        date=entry_date,
         entries=food_entries,
         measurements=Measurements(
             morning_weight_kg=morning_weight,
@@ -925,12 +989,19 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight):
 @callback(
     [Output("daily-summary-compact", "children"), Output("daily-totals-inline", "children")],
     [Input("persistent-entries", "data"), Input("page-load-trigger", "children")],
+    State("selected-date-store", "data"),
     prevent_initial_call=False,
 )
-def update_daily_totals(entries, _):
+def update_daily_totals(entries, _, selected_date_str):
     """Calculate and display daily totals in both compact header and inline footer."""
-    # Load targets for today
-    targets = storage.get_or_create_daily_targets(date.today())
+    # Parse selected date
+    if selected_date_str is None:
+        current_date = date.today()
+    else:
+        current_date = date.fromisoformat(selected_date_str)
+
+    # Load targets for selected day
+    targets = storage.get_or_create_daily_targets(current_date)
 
     if not entries:
         compact_summary = html.Span(f"0 / {targets.energy_kcal:.0f} kcal", className="text-muted")
@@ -1178,24 +1249,31 @@ def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
         Output("mode-calcium", "value"),
     ],
     [Input("open-targets-modal", "n_clicks"), Input("copy-previous-targets", "n_clicks")],
+    State("selected-date-store", "data"),
     prevent_initial_call=True,
 )
-def load_targets_into_modal(open_clicks, copy_clicks):
+def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
     """Load current or previous day's targets into the modal."""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
 
+    # Parse selected date
+    if selected_date_str is None:
+        current_date = date.today()
+    else:
+        current_date = date.fromisoformat(selected_date_str)
+
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if trigger_id == "copy-previous-targets":
         # Get previous day's targets
-        targets = storage.get_previous_day_targets(date.today())
+        targets = storage.get_previous_day_targets(current_date)
         if not targets:
-            targets = storage.get_or_create_daily_targets(date.today())
+            targets = storage.get_or_create_daily_targets(current_date)
     else:
-        # Load today's targets
-        targets = storage.get_or_create_daily_targets(date.today())
+        # Load selected day's targets
+        targets = storage.get_or_create_daily_targets(current_date)
 
     return (
         targets.energy_kcal,
@@ -1241,6 +1319,7 @@ def load_targets_into_modal(open_clicks, copy_clicks):
         State("mode-fibre", "value"),
         State("mode-salt", "value"),
         State("mode-calcium", "value"),
+        State("selected-date-store", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -1264,14 +1343,21 @@ def save_targets_to_storage(
     mode_fibre,
     mode_salt,
     mode_calcium,
+    selected_date_str,
 ):
     """Save targets to storage and refresh display."""
     if not n_clicks:
         raise PreventUpdate
 
+    # Parse selected date
+    if selected_date_str is None:
+        target_date = date.today()
+    else:
+        target_date = date.fromisoformat(selected_date_str)
+
     # Create and save targets
     targets = DailyTargets(
-        date=date.today(),
+        date=target_date,
         energy_kcal=float(energy),
         protein_g=float(protein),
         carbohydrates_g=float(carbs),
