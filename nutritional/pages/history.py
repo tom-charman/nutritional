@@ -4,40 +4,56 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, callback, dcc, html
 
+from nutritional.auth_utils import (
+    get_access_denied_layout,
+    get_current_user_email,
+    is_authorized,
+)
 from nutritional.data_entry.storage_factory import get_storage
 
 dash.register_page(__name__, path="/history", title="History")
 
 storage = get_storage()
 
-layout = dbc.Container(
-    [
-        # Integrated Toolbar with Date Selector
-        html.Div(
-            [
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id="history-date-selector",
-                            placeholder="Select a date...",
-                            className="history-date-dropdown",
-                        ),
-                    ],
-                    className="toolbar-left",
-                ),
-                html.Div(
-                    id="history-summary-bar",
-                    className="toolbar-right",
-                ),
-            ],
-            className="toolbar",
-        ),
-        # Main Content
-        html.Div(id="history-content"),
-    ],
-    fluid=True,
-    className="page-content",
-)
+
+def get_history_layout():
+    """Return the history viewer layout."""
+    return dbc.Container(
+        [
+            # Integrated Toolbar with Date Selector
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            dcc.Dropdown(
+                                id="history-date-selector",
+                                placeholder="Select a date...",
+                                className="history-date-dropdown",
+                            ),
+                        ],
+                        className="toolbar-left",
+                    ),
+                    html.Div(
+                        id="history-summary-bar",
+                        className="toolbar-right",
+                    ),
+                ],
+                className="toolbar",
+            ),
+            # Main Content
+            html.Div(id="history-content"),
+        ],
+        fluid=True,
+        className="page-content",
+    )
+
+
+# Set layout based on authorization
+def layout():
+    """Return layout based on user authorization."""
+    if is_authorized():
+        return get_history_layout()
+    return get_access_denied_layout(get_current_user_email())
 
 
 @callback(
