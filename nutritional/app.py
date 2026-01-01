@@ -43,6 +43,8 @@ app = dash.Dash(  # pragma: no cover
 # Server reference for deployment (e.g., Gunicorn)
 server = app.server  # pragma: no cover
 
+force_https = os.getenv("OAUTHLIB_INSECURE_TRANSPORT", "1") == "0"  # pragma: no cover
+
 # Add OIDC Authentication with Google
 secret_key = os.getenv("OIDC_SECRET_KEY")  # pragma: no cover
 if not secret_key:  # pragma: no cover
@@ -51,7 +53,7 @@ if not secret_key:  # pragma: no cover
         "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
     )
 
-auth = OIDCAuth(app, secret_key=secret_key)  # pragma: no cover
+auth = OIDCAuth(app, secret_key=secret_key, force_https_callback=force_https)  # pragma: no cover
 auth.register_provider(  # pragma: no cover
     "google",
     token_endpoint_auth_method="client_secret_post",
