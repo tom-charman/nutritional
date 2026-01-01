@@ -1,17 +1,130 @@
-"""Data loading functions for CSV, PostgreSQL, and Google Sheets integration."""
+"""Data loading functions for PostgreSQL database.
 
-import os
+Phase 3: All data now loaded from PostgreSQL.
+CSV and Google Sheets functions are deprecated.
+"""
+
+import warnings
 from datetime import datetime as dt
 from pathlib import Path
 
 import numpy as np
+from sqlmodel import select
 
-from nutritional.data.db import get_db_cursor
+from nutritional.database.connection import get_db_session
+from nutritional.database.models import DailySummaryModel
 
 
+def load_data() -> dict:
+    """Load nutritional data from PostgreSQL database.
+
+    Returns:
+        dict with keys:
+            - 'dates': np.array of datetime64 objects
+            - 'data': dict of {column_name: np.array}
+            - 'columns': list of column names
+            - 'source': 'PostgreSQL'
+            - 'last_updated': str timestamp
+
+    Raises:
+        ValueError: If no data found in database
+    """
+    try:
+        with get_db_session() as session:
+            # Get daily summaries ordered by date
+            statement = select(DailySummaryModel).order_by(DailySummaryModel.summary_date)
+            summaries = session.exec(statement).all()
+
+            if not summaries:
+                raise ValueError("No data found in PostgreSQL database")
+
+            # Parse data into lists
+            dates_list = []
+            data_lists = {
+                "Energy kcal": [],
+                "Fat g": [],
+                "Saturated Fat g": [],
+                "Carbohydrates g": [],
+                "Sugar g": [],
+                "Protein g": [],
+                "Fibre g": [],
+                "Salt g": [],
+                "Calcium mg": [],
+                "Weight Kg (Morning)": [],
+                "Weight Kg (Evening)": [],
+            }
+
+            for summary in summaries:
+                dates_list.append(np.datetime64(summary.summary_date))
+                data_lists["Energy kcal"].append(
+                    float(summary.energy_kcal) if summary.energy_kcal is not None else np.nan
+                )
+                data_lists["Fat g"].append(
+                    float(summary.fat_g) if summary.fat_g is not None else np.nan
+                )
+                data_lists["Saturated Fat g"].append(
+                    float(summary.saturated_fat_g)
+                    if summary.saturated_fat_g is not None
+                    else np.nan
+                )
+                data_lists["Carbohydrates g"].append(
+                    float(summary.carbohydrates_g)
+                    if summary.carbohydrates_g is not None
+                    else np.nan
+                )
+                data_lists["Sugar g"].append(
+                    float(summary.sugar_g) if summary.sugar_g is not None else np.nan
+                )
+                data_lists["Protein g"].append(
+                    float(summary.protein_g) if summary.protein_g is not None else np.nan
+                )
+                data_lists["Fibre g"].append(
+                    float(summary.fibre_g) if summary.fibre_g is not None else np.nan
+                )
+                data_lists["Salt g"].append(
+                    float(summary.salt_g) if summary.salt_g is not None else np.nan
+                )
+                data_lists["Calcium mg"].append(
+                    float(summary.calcium_mg) if summary.calcium_mg is not None else np.nan
+                )
+                data_lists["Weight Kg (Morning)"].append(
+                    float(summary.morning_weight_kg)
+                    if summary.morning_weight_kg is not None
+                    else np.nan
+                )
+                data_lists["Weight Kg (Evening)"].append(
+                    float(summary.evening_weight_kg)
+                    if summary.evening_weight_kg is not None
+                    else np.nan
+                )
+
+            # Convert to numpy arrays
+            dates_array = np.array(dates_list)
+            data_dict = {col: np.array(vals) for col, vals in data_lists.items()}
+
+            print("Data loaded successfully from PostgreSQL")
+            print(f"Date range: {dates_array[0]} to {dates_array[-1]}")
+            print(f"Number of records: {len(dates_array)}")
+
+            return {
+                "dates": dates_array,
+                "data": data_dict,
+                "columns": list(data_lists.keys()),
+                "source": "PostgreSQL",
+                "last_updated": dt.now().isoformat(),
+            }
+
+    except Exception as e:
+        raise ValueError(f"Error loading from PostgreSQL: {e}")
+
+
+# Deprecated functions - kept for backwards compatibility
 def load_from_csv(filepath: str) -> dict:
     """
-    Load nutritional data from CSV file using NumPy.
+    DEPRECATED: Load nutritional data from CSV file.
+
+    Phase 3: This function is deprecated. Use load_data() instead.
+    All data should now be loaded from PostgreSQL database.
 
     Args:
         filepath: Path to the CSV file
@@ -28,6 +141,12 @@ def load_from_csv(filepath: str) -> dict:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the file format is invalid
     """
+    warnings.warn(
+        "load_from_csv is deprecated. All data now loaded from PostgreSQL via load_data().",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     file_path = Path(filepath)
 
     if not file_path.exists():
@@ -144,7 +263,10 @@ def load_from_google_sheets(
     credentials_path: str | None = None,
 ) -> dict:
     """
-    Load nutritional data from Google Sheets.
+    DEPRECATED: Load nutritional data from Google Sheets.
+
+    Phase 3: This function is deprecated. Use load_data() instead.
+    All data should now be loaded from PostgreSQL database.
 
     Args:
         spreadsheet_id: Google Sheets ID from URL
@@ -165,6 +287,13 @@ def load_from_google_sheets(
         ValueError: If no data found or Date column missing
         HttpError: If sheet access fails
     """
+    warnings.warn(
+        "load_from_google_sheets is deprecated. "
+        "All data now loaded from PostgreSQL via load_data().",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     from .google_sheets import GoogleSheetsClient  # pragma: no cover
 
     # Initialize client
@@ -257,118 +386,22 @@ def load_from_google_sheets(
 
 def get_data_source(csv_path: str | None = None) -> dict:
     """
-    Load data from the first available source.
+    Load data from PostgreSQL database.
 
-    Priority logic for VISUALIZATION data (Phase 2):
-    - Google Sheets (if configured)
-    - CSV files as fallback
-
-    Note: During Phase 2, data entry uses PostgreSQL directly via storage_factory.
-    This loader is ONLY for visualization which continues using Google Sheets.
-
-    CSV sources tried (in order):
-    1. Specified csv_path parameter
-    2. LOCAL_CSV_PATH environment variable
-    3. Default path: local_data/Food - Daily.csv
-    4. Alternate default (for different working directories)
+    Phase 3: All data is now in PostgreSQL.
+    This function is maintained for backwards compatibility.
 
     Args:
-        csv_path: Optional explicit path to CSV file
+        csv_path: Deprecated parameter (ignored)
 
     Returns:
-        Standardized data dictionary from load_from_csv or load_from_google_sheets
+        Standardized data dictionary from PostgreSQL
 
     Raises:
-        FileNotFoundError: If no data source is available
+        ValueError: If no data found in database
     """
-    import logging
-
-    from .. import settings
-
-    logger = logging.getLogger(__name__)
-
-    # Check if LOCAL_CSV_PATH is set
-    local_csv_preference = settings.LOCAL_CSV_PATH is not None
-
-    # If LOCAL_CSV_PATH is NOT set, try Google Sheets first
-    if not local_csv_preference:
-        if settings.GOOGLE_SHEETS_ID and settings.GOOGLE_CREDENTIALS_PATH:  # pragma: no cover
-            try:  # pragma: no cover
-                logger.info(f"Loading data from Google Sheets: {settings.GOOGLE_SHEETS_ID}")
-                print(f"Loading data from Google Sheets: {settings.GOOGLE_SHEETS_ID}")
-                return load_from_google_sheets(
-                    settings.GOOGLE_SHEETS_ID,
-                    range_name=settings.GOOGLE_SHEETS_RANGE,
-                    credentials_path=settings.GOOGLE_CREDENTIALS_PATH,
-                )  # pragma: no cover
-            except Exception as e:  # pragma: no cover
-                logger.warning(f"Failed to load from Google Sheets: {e}")
-                print(f"Warning: Failed to load from Google Sheets: {e}")
-                print("Attempting to fall back to local CSV...")
-
-    # Try specified CSV path
-    if csv_path and os.path.exists(csv_path):
-        logger.info(f"Loading data from specified CSV path: {csv_path}")
-        return load_from_csv(csv_path)
-
-    # Try environment variable
-    if settings.LOCAL_CSV_PATH and os.path.exists(settings.LOCAL_CSV_PATH):
-        logger.info(f"Loading data from LOCAL_CSV_PATH: {settings.LOCAL_CSV_PATH}")
-        return load_from_csv(settings.LOCAL_CSV_PATH)
-
-    # Try default path
-    default_path = Path("local_data") / "Food - Daily.csv"
-    if default_path.exists():
-        logger.info(f"Loading data from default path: {default_path}")
-        return load_from_csv(str(default_path))
-
-    # Try alternate default path (for running from different directories)
-    alt_default_path = Path(__file__).parent.parent.parent / "local_data" / "Food - Daily.csv"
-    if alt_default_path.exists():
-        logger.info(f"Loading data from alternate default path: {alt_default_path}")
-        return load_from_csv(str(alt_default_path))
-
-    # If LOCAL_CSV_PATH IS set but we're here, try Google Sheets as last resort
-    if local_csv_preference:
-        if settings.GOOGLE_SHEETS_ID and settings.GOOGLE_CREDENTIALS_PATH:  # pragma: no cover
-            try:  # pragma: no cover
-                logger.info(f"CSV paths failed, trying Google Sheets: {settings.GOOGLE_SHEETS_ID}")
-                print(f"Local CSV not found, trying Google Sheets: {settings.GOOGLE_SHEETS_ID}")
-                return load_from_google_sheets(
-                    settings.GOOGLE_SHEETS_ID,
-                    range_name=settings.GOOGLE_SHEETS_RANGE,
-                    credentials_path=settings.GOOGLE_CREDENTIALS_PATH,
-                )  # pragma: no cover
-            except Exception as e:  # pragma: no cover
-                logger.error(f"Failed to load from Google Sheets: {e}")
-                print(f"Error: Failed to load from Google Sheets: {e}")
-
-    # No data source available - provide helpful error message
-    error_msg = (
-        "\n" + "=" * 80 + "\n"
-        "ERROR: No data source available!\n"
-        "\n"
-        "To fix this, you need to configure at least one data source:\n"
-        "\n"
-        "Option 1 - Local CSV File:\n"
-        "  Set LOCAL_CSV_PATH in your .env file, for example:\n"
-        "    LOCAL_CSV_PATH=local_data/Food - Daily.csv\n"
-        "  Or place a CSV file at: local_data/Food - Daily.csv\n"
-        "\n"
-        "Option 2 - Google Sheets:\n"
-        "  1. Set GOOGLE_SHEETS_ID in your .env file\n"
-        "  2. Set GOOGLE_SHEETS_RANGE (e.g., 'Sheet1!A:Z')\n"
-        "  3. Set GOOGLE_CREDENTIALS_PATH to your service account JSON\n"
-        "  4. See docs/google-sheets-setup.md for detailed instructions\n"
-        "\n"
-        "Current configuration:\n"
-        f"  LOCAL_CSV_PATH: {'Set' if settings.LOCAL_CSV_PATH else 'Not set'}\n"
-        f"  GOOGLE_SHEETS_ID: {'Set' if settings.GOOGLE_SHEETS_ID else 'Not set'}\n"
-        f"  GOOGLE_CREDENTIALS_PATH: {'Set' if settings.GOOGLE_CREDENTIALS_PATH else 'Not set'}\n"
-        "=" * 80
-    )
-    logger.error(error_msg)
-    raise FileNotFoundError(error_msg)  # pragma: no cover
+    # Phase 3: Load directly from PostgreSQL
+    return load_data()
 
 
 def filter_by_date_range(
@@ -417,89 +450,5 @@ def filter_by_date_range(
     return filtered_data
 
 
-def load_from_postgres() -> dict:
-    """
-    Load nutritional data from PostgreSQL database.
-
-    Returns:
-        dict with keys:
-            - 'dates': np.array of datetime64 objects
-            - 'data': dict of {column_name: np.array}
-            - 'columns': list of column names
-            - 'source': 'PostgreSQL'
-            - 'last_updated': str timestamp
-
-    Raises:
-        ValueError: If no data found in database
-    """
-    try:
-        with get_db_cursor() as cur:
-            # Get daily summaries
-            cur.execute("""
-                SELECT date, energy_kcal, fat_g, saturated_fat_g, carbohydrates_g,
-                       sugar_g, protein_g, fibre_g, salt_g, calcium_mg,
-                       morning_weight_kg, evening_weight_kg
-                FROM daily_summaries
-                ORDER BY date
-            """)
-            rows = cur.fetchall()
-
-            if not rows:
-                raise ValueError("No data found in PostgreSQL database")
-
-            # Parse data into lists
-            dates_list = []
-            data_lists = {
-                "Energy kcal": [],
-                "Fat g": [],
-                "Saturated Fat g": [],
-                "Carbohydrates g": [],
-                "Sugar g": [],
-                "Protein g": [],
-                "Fibre g": [],
-                "Salt g": [],
-                "Calcium mg": [],
-                "Morning Weight kg": [],
-                "Evening Weight kg": [],
-            }
-
-            for row in rows:
-                dates_list.append(np.datetime64(row["date"]))
-                data_lists["Energy kcal"].append(float(row["energy_kcal"]))
-                data_lists["Fat g"].append(float(row["fat_g"]))
-                data_lists["Saturated Fat g"].append(float(row["saturated_fat_g"]))
-                data_lists["Carbohydrates g"].append(float(row["carbohydrates_g"]))
-                data_lists["Sugar g"].append(float(row["sugar_g"]))
-                data_lists["Protein g"].append(float(row["protein_g"]))
-                data_lists["Fibre g"].append(float(row["fibre_g"]))
-                data_lists["Salt g"].append(float(row["salt_g"]))
-                data_lists["Calcium mg"].append(float(row["calcium_mg"]))
-                data_lists["Morning Weight kg"].append(
-                    float(row["morning_weight_kg"])
-                    if row["morning_weight_kg"] is not None
-                    else np.nan
-                )
-                data_lists["Evening Weight kg"].append(
-                    float(row["evening_weight_kg"])
-                    if row["evening_weight_kg"] is not None
-                    else np.nan
-                )
-
-            # Convert to numpy arrays
-            dates_array = np.array(dates_list)
-            data_dict = {col: np.array(vals) for col, vals in data_lists.items()}
-
-            print("Data loaded successfully from PostgreSQL")
-            print(f"Date range: {dates_array[0]} to {dates_array[-1]}")
-            print(f"Number of records: {len(dates_array)}")
-
-            return {
-                "dates": dates_array,
-                "data": data_dict,
-                "columns": list(data_lists.keys()),
-                "source": "PostgreSQL",
-                "last_updated": dt.now().isoformat(),
-            }
-
-    except Exception as e:
-        raise ValueError(f"Error loading from PostgreSQL: {e}")
+# Alias for backwards compatibility
+load_from_postgres = load_data

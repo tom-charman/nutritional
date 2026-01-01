@@ -65,7 +65,12 @@ def is_authorized():  # pragma: no cover
             print(f"🔍 Debug - Profile keys: {list(user_profile.keys())}")
         return False
 
-    return email in AUTHORIZED_USERS
+    # Normalize email for comparison (lowercase, strip whitespace)
+    email = email.strip().lower()
+    # Normalize authorized users list
+    normalized_authorized = {user.strip().lower() for user in AUTHORIZED_USERS}
+
+    return email in normalized_authorized
 
 
 def get_current_user_email():  # pragma: no cover

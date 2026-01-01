@@ -90,16 +90,16 @@ class DailySummaryModel(SQLModel, table=True):
     id: UUID | None = Field(default_factory=uuid4, primary_key=True)
     summary_date: date = Field(unique=True, index=True)
 
-    # Nutritional totals
-    energy_kcal: float
-    fat_g: float
-    saturated_fat_g: float
-    carbohydrates_g: float
-    sugar_g: float
-    protein_g: float
-    fibre_g: float
-    salt_g: float
-    calcium_mg: float
+    # Nutritional totals (optional to allow days with no data)
+    energy_kcal: float | None = None
+    fat_g: float | None = None
+    saturated_fat_g: float | None = None
+    carbohydrates_g: float | None = None
+    sugar_g: float | None = None
+    protein_g: float | None = None
+    fibre_g: float | None = None
+    salt_g: float | None = None
+    calcium_mg: float | None = None
 
     # Body measurements
     morning_weight_kg: float | None = None

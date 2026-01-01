@@ -1,6 +1,6 @@
 """Data handling submodule for nutritional data processing."""
 
-from .loaders import filter_by_date_range, get_data_source, load_from_csv
+from .loaders import filter_by_date_range, get_data_source, load_data, load_from_csv
 from .preprocessing import (
     calculate_macro_calories,
     create_date_range,
@@ -19,8 +19,9 @@ from .validators import (
 
 __all__ = [
     # Loaders
-    "load_from_csv",
-    "get_data_source",
+    "load_data",  # Primary loader from PostgreSQL
+    "load_from_csv",  # Deprecated
+    "get_data_source",  # Alias for load_data
     "filter_by_date_range",
     # Preprocessing
     "interpolate_daily",
