@@ -322,7 +322,7 @@ class SQLModelStorage:
             else:
                 # Create new
                 db_targets = DailyTargetsModel(
-                    date=targets.date,
+                    target_date=targets.date,
                     default_mode=targets.mode.value,
                     energy_kcal=targets.energy_kcal,
                     protein_g=targets.protein_g,
