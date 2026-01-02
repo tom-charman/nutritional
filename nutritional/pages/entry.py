@@ -36,6 +36,8 @@ def get_entry_layout():
             html.Div(id="page-load-trigger", className="hidden"),
             # Store for selected date
             dcc.Store(id="selected-date-store", data=date.today().isoformat()),
+            # Store to trigger refresh when targets are updated
+            dcc.Store(id="targets-updated-trigger", data=0),
             # Date selector
             html.Div(
                 [
@@ -605,20 +607,20 @@ def trigger_on_page_load(pathname):
 
 @callback(
     Output("morning-weight", "value"),
-    [Input("persistent-morning-weight", "data"), Input("page-load-trigger", "children")],
+    Input("persistent-morning-weight", "data"),
     prevent_initial_call=False,
 )
-def load_morning_weight(weight, _):
+def load_morning_weight(weight):
     """Load morning weight from persistent store."""
     return weight
 
 
 @callback(
     Output("evening-weight", "value"),
-    [Input("persistent-evening-weight", "data"), Input("page-load-trigger", "children")],
+    Input("persistent-evening-weight", "data"),
     prevent_initial_call=False,
 )
-def load_evening_weight(weight, _):
+def load_evening_weight(weight):
     """Load evening weight from persistent store."""
     return weight
 
@@ -988,11 +990,15 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
 
 @callback(
     [Output("daily-summary-compact", "children"), Output("daily-totals-inline", "children")],
-    [Input("persistent-entries", "data"), Input("page-load-trigger", "children")],
+    [
+        Input("persistent-entries", "data"),
+        Input("page-load-trigger", "children"),
+        Input("targets-updated-trigger", "data"),
+    ],
     State("selected-date-store", "data"),
     prevent_initial_call=False,
 )
-def update_daily_totals(entries, _, selected_date_str):
+def update_daily_totals(entries, _, __, selected_date_str):
     """Calculate and display daily totals in both compact header and inline footer."""
     # Parse selected date
     if selected_date_str is None:
@@ -1298,7 +1304,7 @@ def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
 
 
 @callback(
-    Output("daily-totals-inline", "children", allow_duplicate=True),
+    Output("targets-updated-trigger", "data"),
     Input("save-targets", "n_clicks"),
     [
         State("target-energy", "value"),
@@ -1380,5 +1386,72 @@ def save_targets_to_storage(
 
     storage.save_daily_targets(targets)
 
-    # Trigger a refresh by returning no_update (the other callback will handle the display)
+    # Trigger a refresh by incrementing the trigger counter
+    # This will cause update_daily_totals to re-run with the new targets
+    return (n_clicks or 0) + 1
+
+
+@callback(
+    Output("morning-weight", "id"),
+    Input("morning-weight", "value"),
+    [
+        State("persistent-entries", "data"),
+        State("persistent-evening-weight", "data"),
+        State("selected-date-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def save_morning_weight(morning_weight, entries, evening_weight, selected_date_str):
+    """Save morning weight to database when it changes."""
+    # Parse selected date
+    if selected_date_str is None:
+        entry_date = date.today()
+    else:
+        entry_date = date.fromisoformat(selected_date_str)
+
+    # Save to database
+    food_entries = [FoodEntry(**e) for e in entries]
+    daily_data = DailyData(
+        date=entry_date,
+        entries=food_entries,
+        measurements=Measurements(
+            morning_weight_kg=morning_weight,
+            evening_weight_kg=evening_weight,
+        ),
+    )
+    storage.save_daily_entry(daily_data)
+
+    return no_update
+
+
+@callback(
+    Output("evening-weight", "id"),
+    Input("evening-weight", "value"),
+    [
+        State("persistent-entries", "data"),
+        State("persistent-morning-weight", "data"),
+        State("selected-date-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def save_evening_weight(evening_weight, entries, morning_weight, selected_date_str):
+    """Save evening weight to database when it changes."""
+    # Parse selected date
+    if selected_date_str is None:
+        entry_date = date.today()
+    else:
+        entry_date = date.fromisoformat(selected_date_str)
+
+    # Save to database
+    food_entries = [FoodEntry(**e) for e in entries]
+    daily_data = DailyData(
+        date=entry_date,
+        entries=food_entries,
+        measurements=Measurements(
+            morning_weight_kg=morning_weight,
+            evening_weight_kg=evening_weight,
+        ),
+    )
+    storage.save_daily_entry(daily_data)
+
     return no_update
