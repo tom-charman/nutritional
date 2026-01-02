@@ -22,10 +22,7 @@ if env_path.exists():  # pragma: no cover
 else:  # pragma: no cover
     # Try loading from current directory
     load_dotenv()  # pragma: no cover
-    if os.getenv("GOOGLE_SHEETS_ID") or os.getenv("LOCAL_CSV_PATH"):  # pragma: no cover
-        print("✓ Loaded environment variables from .env")  # pragma: no cover
-    else:  # pragma: no cover
-        print("ℹ No .env file found, using default configuration")  # pragma: no cover
+    print("✓ Loaded environment variables from .env")  # pragma: no cover
 
 # Initialize Dash app with Bootstrap theme and multi-page support
 app = dash.Dash(  # pragma: no cover

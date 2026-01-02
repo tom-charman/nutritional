@@ -8,7 +8,6 @@ from nutritional.data_entry.models import (
     Nutrients,
     UnitType,
 )
-from nutritional.data_entry.storage import FileStorage
 
 __all__ = [
     "FoodItem",
@@ -18,5 +17,4 @@ __all__ = [
     "Nutrients",
     "calculate_nutrients",
     "calculate_daily_totals",
-    "FileStorage",
 ]

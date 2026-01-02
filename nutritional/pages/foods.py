@@ -11,11 +11,11 @@ from nutritional.auth_utils import (
     is_authorized,
 )
 from nutritional.data_entry.models import FoodItem, UnitType
-from nutritional.data_entry.storage_factory import get_storage
+from nutritional.data_entry.sqlmodel_storage import SQLModelStorage
 
 dash.register_page(__name__, path="/foods", title="Food Database")
 
-storage = get_storage()
+storage = SQLModelStorage()
 
 
 def get_foods_layout():

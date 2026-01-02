@@ -60,9 +60,7 @@ from nutritional.database.connection import test_connection
 print("✓ Connected" if test_connection() else "✗ Failed")
 
 # Use storage
-from nutritional.data_entry.storage_factory import get_storage
-storage = get_storage()
-items = storage.load_food_database()
+SQLModelStorage
 ```
 
 ## Configuration Files
