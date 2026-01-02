@@ -120,15 +120,15 @@ class DailyTargetsModel(SQLModel, table=True):
     default_mode: str = Field(default="target", max_length=10)
 
     # Target values
-    energy_kcal: float = Field(default=2000)
+    energy_kcal: float = Field(default=3000)
     protein_g: float = Field(default=150)
     carbohydrates_g: float = Field(default=225)
     fat_g: float = Field(default=67)
-    sugar_g: float = Field(default=90)
-    saturated_fat_g: float = Field(default=20)
+    sugar_g: float = Field(default=70)
+    saturated_fat_g: float = Field(default=30)
     fibre_g: float = Field(default=30)
     salt_g: float = Field(default=6)
-    calcium_mg: float = Field(default=700)
+    calcium_mg: float = Field(default=1000)
 
     # Per-nutrient mode overrides (None = use default_mode)
     energy_mode: str | None = Field(default=None, max_length=10)
