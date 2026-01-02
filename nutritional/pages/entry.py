@@ -21,11 +21,11 @@ from nutritional.data_entry.models import (
     TargetMode,
     UnitType,
 )
-from nutritional.data_entry.storage_factory import get_storage
+from nutritional.data_entry.sqlmodel_storage import SQLModelStorage
 
 dash.register_page(__name__, path="/entry", title="Daily Entry")
 
-storage = get_storage()
+storage = SQLModelStorage()
 
 
 def get_entry_layout():

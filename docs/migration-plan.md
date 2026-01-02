@@ -38,7 +38,7 @@ The system currently operates in a **hybrid mode**:
 - **Connection:** `connection.py` handles engine creation and session management.
 
 #### Application Layer (`nutritional/`)
-- **Storage Factory:** `storage_factory.py` configured to use `SQLModelStorage`.
+- **Storage Factory:** `storage_factory.py` deleted, use`SQLModelStorage`.
 - **Authentication:** `auth_utils.py` manages access control based on email allowlist.
 - **UI:** Multi-page Dash application (`pages/`) with:
   - **Dashboard:** Overview of progress (currently reading legacy data).

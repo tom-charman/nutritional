@@ -217,5 +217,3 @@ def color_palette():
         "warning": "#ff9896",
         "info": "#9467bd",
     }
-
-

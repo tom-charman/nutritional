@@ -116,8 +116,6 @@ def load_data() -> dict:
         raise ValueError(f"Error loading from PostgreSQL: {e}")
 
 
-
-
 def get_data_source(csv_path: str | None = None) -> dict:
     """
     Load data from PostgreSQL database.

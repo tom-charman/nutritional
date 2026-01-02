@@ -9,11 +9,11 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
-from nutritional.data_entry.storage_factory import get_storage
+from nutritional.data_entry.sqlmodel_storage import SQLModelStorage
 
 dash.register_page(__name__, path="/history", title="History")
 
-storage = get_storage()
+storage = SQLModelStorage()
 
 
 def get_history_layout():

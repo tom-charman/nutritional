@@ -202,11 +202,8 @@ class GoogleSheetsClient:
             raise
 
 
-
-
 # Add parent directory to path to import nutritional modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
 
 
 def migrate_food_items(client: GoogleSheetsClient, spreadsheet_id: str):
