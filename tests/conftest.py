@@ -23,9 +23,6 @@ def mock_settings(monkeypatch):
     from nutritional import settings
 
     # Mock all environment-based settings to None by default
-    monkeypatch.setattr(settings, "GOOGLE_SHEETS_ID", None)
-    monkeypatch.setattr(settings, "GOOGLE_SHEETS_RANGE", "A:Z")
-    monkeypatch.setattr(settings, "GOOGLE_CREDENTIALS_PATH", None)
     monkeypatch.setattr(settings, "LOCAL_CSV_PATH", None)
     monkeypatch.setattr(settings, "DASH_DEBUG", True)
     monkeypatch.setattr(settings, "DASH_HOST", "0.0.0.0")
@@ -220,3 +217,5 @@ def color_palette():
         "warning": "#ff9896",
         "info": "#9467bd",
     }
+
+

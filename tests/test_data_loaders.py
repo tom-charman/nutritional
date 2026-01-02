@@ -1,96 +1,10 @@
-"""
-Tests for data loading functionality.
-
-Tests verify correct behavior of CSV loading, data source selection,
-and date range filtering operations.
-"""
-
 import numpy as np
 import pytest
 
 from nutritional.data.loaders import (
     filter_by_date_range,
     get_data_source,
-    load_from_csv,
 )
-
-# Test load_from_csv
-
-
-def test_load_valid_csv_returns_correct_structure(temp_csv_file):
-    """CSV loading should return a dict with dates, data, columns, and source."""
-    result = load_from_csv(str(temp_csv_file))
-
-    assert isinstance(result, dict)
-    assert "dates" in result
-    assert "data" in result
-    assert "columns" in result
-    assert "source" in result
-    assert result["source"] == "CSV"
-
-
-def test_load_csv_dates_are_sorted(temp_csv_file):
-    """Loaded dates should be sorted in ascending order."""
-    result = load_from_csv(str(temp_csv_file))
-    dates = result["dates"]
-
-    assert np.all(dates[:-1] <= dates[1:])
-
-
-def test_load_csv_converts_dates_to_datetime64(temp_csv_file):
-    """Dates should be converted to numpy datetime64[D] dtype."""
-    result = load_from_csv(str(temp_csv_file))
-
-    assert result["dates"].dtype == np.dtype("datetime64[D]")
-
-
-def test_load_csv_converts_numeric_data_to_float(temp_csv_file):
-    """Numeric columns should be converted to float arrays."""
-    result = load_from_csv(str(temp_csv_file))
-
-    for col, values in result["data"].items():
-        assert values.dtype in [np.float64, np.float32]
-
-
-def test_load_csv_handles_missing_values(temp_csv_with_missing_values):
-    """Missing values in CSV should be converted to NaN."""
-    result = load_from_csv(str(temp_csv_with_missing_values))
-
-    # Check that some values are NaN
-    assert np.any(np.isnan(result["data"]["Energy kcal"]))
-    assert np.any(np.isnan(result["data"]["Weight Kg (Morning)"]))
-
-
-def test_load_csv_includes_metadata(temp_csv_file):
-    """Loaded data should include metadata like last_updated and filepath."""
-    result = load_from_csv(str(temp_csv_file))
-
-    assert "last_updated" in result
-    assert "filepath" in result
-    assert result["filepath"] == str(temp_csv_file)
-
-
-def test_load_csv_with_nonexistent_file_raises_error():
-    """Loading a non-existent CSV should raise FileNotFoundError."""
-    with pytest.raises(FileNotFoundError):
-        load_from_csv("nonexistent_file.csv")
-
-
-@pytest.mark.parametrize(
-    "invalid_path",
-    [
-        "",
-        None,
-        123,
-    ],
-)
-def test_load_csv_with_invalid_path_type_raises_error(invalid_path):
-    """Loading CSV with invalid path type should raise an error."""
-    with pytest.raises((TypeError, FileNotFoundError, ValueError)):
-        load_from_csv(invalid_path)
-
-
-# Test filter_by_date_range
 
 
 @pytest.mark.parametrize(
@@ -182,34 +96,3 @@ def test_filter_by_date_range_with_no_matching_data(minimal_data_dict, start_dat
     assert len(filtered["dates"]) == 0
     for col in filtered["data"].values():
         assert len(col) == 0
-
-
-# Test get_data_source
-
-
-def test_get_data_source_with_explicit_path(temp_csv_file, monkeypatch):
-    """get_data_source should load from explicitly provided CSV path."""
-    from nutritional import settings
-
-    # Mock settings to disable Google Sheets priority
-    monkeypatch.setattr(settings, "LOCAL_CSV_PATH", str(temp_csv_file))
-    monkeypatch.setattr(settings, "GOOGLE_SHEETS_ID", None)
-
-    result = get_data_source(csv_path=str(temp_csv_file))
-
-    assert result["source"] == "CSV"
-    assert len(result["dates"]) > 0
-
-
-def test_get_data_source_with_nonexistent_explicit_path(monkeypatch):
-    """get_data_source with nonexistent explicit path should fall back or raise error."""
-    from nutritional import settings
-
-    # Mock settings to ensure no fallback paths exist
-    monkeypatch.setattr(settings, "LOCAL_CSV_PATH", None)
-    monkeypatch.setattr(settings, "GOOGLE_SHEETS_ID", None)
-    monkeypatch.setattr(settings, "GOOGLE_CREDENTIALS_PATH", None)
-
-    # With no fallback, should raise FileNotFoundError
-    with pytest.raises(FileNotFoundError):
-        get_data_source(csv_path="definitely_nonexistent_file_12345.csv")

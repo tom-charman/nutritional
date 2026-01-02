@@ -4,9 +4,12 @@ Loads environment variables and exposes configuration constants.
 """
 
 import os
+from logging import getLogger
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+logger = getLogger(__name__)
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent / ".env"
@@ -18,11 +21,6 @@ if env_path.exists():
 DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql://nutritional_user:dev_password@127.0.0.1:5432/nutritional_db"
 )
-
-# Google Sheets Configuration (for visualization until Phase 3)
-GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID")
-GOOGLE_SHEETS_RANGE = os.getenv("GOOGLE_SHEETS_RANGE", "A:Z")  # Default to all columns
-GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH")
 
 # Local CSV Configuration (fallback for visualization)
 LOCAL_CSV_PATH = os.getenv("LOCAL_CSV_PATH")
@@ -57,3 +55,20 @@ COLOR_PALETTE = {
     "warm_yellow": "#ffd166",  # Quaternary: Sugar, Carbs
     "rich_purple": "#6a4c93",  # Quinary: Calcium, Other Fat
 }
+
+# Database URL from environment
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    # Fallback: construct from separate components
+    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "nutritional_db")
+    DB_USER = os.getenv("DB_USER", "nutritional_user")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+    if not DB_PASSWORD:
+        logger.warning("DB_PASSWORD not set in environment; using empty password.")
+        DB_PASSWORD = ""
+
+    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
