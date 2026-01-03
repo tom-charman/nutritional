@@ -67,7 +67,6 @@ def create_navbar():
             dbc.NavItem(dbc.NavLink("Dashboard", href="/")),
             dbc.NavItem(dbc.NavLink("Daily Entry", href="/entry")),
             dbc.NavItem(dbc.NavLink("Food Database", href="/foods")),
-            dbc.NavItem(dbc.NavLink("History", href="/history")),
         ],
         brand="Nutritional Tracker",
         brand_href="/",
