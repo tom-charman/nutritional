@@ -7,7 +7,7 @@ def apply_common_layout(
     fig: go.Figure, title: str | None = None, date_range: tuple | None = None, height: int = 600
 ) -> go.Figure:
     """
-    Apply consistent styling to all figures.
+    Apply consistent styling to all figures - Brand theme (Artisan).
 
     Args:
         fig: Plotly figure to style
@@ -27,20 +27,25 @@ def apply_common_layout(
     fig.update_layout(
         height=height,
         template="plotly_white",
-        font=dict(family="sans-serif", size=12),
+        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
         hovermode="x unified",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+        plot_bgcolor="#F2F0EB",
+        paper_bgcolor="#FEFDFB",
+        title_font=dict(family="'Crimson Text', serif", size=14, color="#2B2B2B"),
     )
 
     fig.update_xaxes(
-        gridcolor="lightgray",
+        gridcolor="#A6A6A6",
+        gridwidth=0.5,
         showgrid=True,
+        zeroline=False,
     )
 
     fig.update_yaxes(
-        gridcolor="lightgray",
+        gridcolor="#A6A6A6",
+        gridwidth=0.5,
         showgrid=True,
+        zeroline=False,
     )
 
     return fig
@@ -75,8 +80,8 @@ def add_date_range_selector(fig: go.Figure) -> go.Figure:
     fig.update_xaxes(
         rangeselector=dict(
             buttons=create_date_selector_buttons(),
-            bgcolor="lightgray",
-            activecolor="gray",
+            bgcolor="#F2F0EB",
+            activecolor="#BFA67D",
         ),
         rangeslider=dict(visible=False),
     )

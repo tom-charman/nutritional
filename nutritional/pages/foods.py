@@ -29,7 +29,7 @@ def get_foods_layout():
                         [
                             dbc.Input(
                                 id="search-food",
-                                placeholder="🔍 Search foods...",
+                                placeholder="Search foods...",
                                 type="text",
                                 className="search-input-rounded",
                                 size="sm",
@@ -768,7 +768,7 @@ def delete_food_item(n_clicks):
                         [
                             html.I(
                                 className="icon-button",
-                                children="✏️",
+                                children="✎",
                                 id={"type": "edit-food", "index": item.id},
                                 n_clicks=0,
                                 title="Edit",
@@ -776,11 +776,12 @@ def delete_food_item(n_clicks):
                                     "cursor": "pointer",
                                     "fontSize": "18px",
                                     "padding": "8px",
+                                    "fontFamily": "Georgia, serif",
                                 },
                             ),
                             html.I(
                                 className="icon-button danger",
-                                children="🗑️",
+                                children="✕",
                                 id={"type": "delete-food", "index": item.id},
                                 n_clicks=0,
                                 title="Delete",
@@ -788,6 +789,8 @@ def delete_food_item(n_clicks):
                                     "cursor": "pointer",
                                     "fontSize": "18px",
                                     "padding": "8px",
+                                    "fontFamily": "Georgia, serif",
+                                    "fontWeight": "bold",
                                 },
                             ),
                         ],

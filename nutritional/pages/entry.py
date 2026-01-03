@@ -66,7 +66,21 @@ def get_entry_layout():
                         className="daily-header-left",
                     ),
                     html.Div(
-                        id="daily-summary-compact",
+                        [
+                            html.Div(
+                                id="daily-summary-compact",
+                                className="daily-summary-bar",
+                                style={"flex": "1"},
+                            ),
+                            dbc.Button(
+                                "Edit Targets",
+                                id="open-targets-modal",
+                                color="secondary",
+                                size="sm",
+                                className="ms-3",
+                            ),
+                        ],
+                        style={"display": "flex", "alignItems": "center", "gap": "12px"},
                         className="daily-summary-bar",
                     ),
                 ],
@@ -83,7 +97,7 @@ def get_entry_layout():
                                 [
                                     dcc.Dropdown(
                                         id="food-selector",
-                                        placeholder="🔍 Search foods...",
+                                        placeholder="Search foods...",
                                         searchable=True,
                                         className="food-selector-full-width",
                                     ),
@@ -94,21 +108,8 @@ def get_entry_layout():
                             html.Div(id="food-input-container"),
                             # Calculated nutrients preview
                             html.Div(id="calculated-nutrients", className="mt-2"),
-                            # Add button and message
-                            html.Div(
-                                [
-                                    dbc.Button(
-                                        "Add Entry",
-                                        id="add-entry-btn",
-                                        color="primary",
-                                        size="sm",
-                                        className="mt-2",
-                                    ),
-                                    html.Div(id="entry-message", className="mt-2"),
-                                ],
-                                id="add-controls-container",
-                                className="hidden",
-                            ),
+                            # Entry message
+                            html.Div(id="entry-message", className="mt-2"),
                             # Receipt-style List
                             html.Div(
                                 id="entries-list",
@@ -117,23 +118,7 @@ def get_entry_layout():
                             # Inline Totals (thin footer style)
                             html.Div(
                                 [
-                                    html.Div(
-                                        [
-                                            html.Div(id="daily-totals-inline"),
-                                            html.Div(
-                                                [
-                                                    dbc.Button(
-                                                        "Edit Targets",
-                                                        id="open-targets-modal",
-                                                        color="link",
-                                                        size="sm",
-                                                        className="mt-2",
-                                                    ),
-                                                ],
-                                                style={"textAlign": "center"},
-                                            ),
-                                        ],
-                                    ),
+                                    html.Div(id="daily-totals-inline"),
                                 ],
                                 className="mt-3",
                             ),
@@ -654,28 +639,38 @@ def update_food_options(search_value):
 
 
 @callback(
-    [Output("food-input-container", "children"), Output("add-controls-container", "style")],
+    Output("food-input-container", "children"),
     Input("food-selector", "value"),
 )
 def update_input_fields(food_id):
     """Update input fields based on selected food item and show add controls."""
     if not food_id:
-        return [], {"display": "none"}
+        return []
 
     item = storage.get_food_item(food_id)
     if not item:
-        return [], {"display": "none"}
+        return []
 
     if item.unit_type == UnitType.PER_100G:
         input_fields = html.Div(
             [
-                dbc.Input(
-                    id={"type": "food-amount", "index": 0},
-                    type="number",
-                    min=0,
-                    step=0.1,
-                    placeholder="Enter weight in grams",
-                    size="sm",
+                dbc.InputGroup(
+                    [
+                        dbc.Input(
+                            id={"type": "food-amount", "index": 0},
+                            type="number",
+                            min=0,
+                            step=0.1,
+                            placeholder="Enter weight in grams",
+                            size="sm",
+                        ),
+                        dbc.Button(
+                            "Add Entry",
+                            id="add-entry-btn",
+                            color="primary",
+                            size="sm",
+                        ),
+                    ],
                     style={"marginTop": "8px"},
                 ),
             ],
@@ -683,19 +678,29 @@ def update_input_fields(food_id):
     else:  # PER_ITEM
         input_fields = html.Div(
             [
-                dbc.Input(
-                    id={"type": "food-amount", "index": 0},
-                    type="number",
-                    min=0,
-                    step=0.1,
-                    placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
-                    size="sm",
+                dbc.InputGroup(
+                    [
+                        dbc.Input(
+                            id={"type": "food-amount", "index": 0},
+                            type="number",
+                            min=0,
+                            step=0.1,
+                            placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
+                            size="sm",
+                        ),
+                        dbc.Button(
+                            "Add Entry",
+                            id="add-entry-btn",
+                            color="primary",
+                            size="sm",
+                        ),
+                    ],
                     style={"marginTop": "8px"},
                 ),
             ],
         )
 
-    return input_fields, {"display": "block"}
+    return input_fields
 
 
 @callback(
@@ -1054,7 +1059,7 @@ def update_daily_totals(entries, _, __, selected_date_str):
                 f"{totals['fat_g']:.1f} g Fat",
                 className="summary-item",
             ),
-        ]
+        ],
     )
 
     def create_thin_progress_bar(label, value, target, css_class, mode="target", unit="g"):
@@ -1077,9 +1082,9 @@ def update_daily_totals(entries, _, __, selected_date_str):
         if mode == "limit":
             # Limit mode - show warnings when exceeding
             if value > target * 1.1:
-                indicator = html.Span("⚠️", className="target-exceeded", title="Limit exceeded")
+                indicator = html.Span("⚠", className="target-exceeded", title="Limit exceeded")
             elif value > target:
-                indicator = html.Span("⚠️", className="target-warning", title="Near limit")
+                indicator = html.Span("⚠", className="target-warning", title="Near limit")
         else:
             # Target mode - show checkmark when met
             if value >= target:
@@ -1229,8 +1234,21 @@ def update_daily_totals(entries, _, __, selected_date_str):
     prevent_initial_call=True,
 )
 def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
-    """Toggle the targets editor modal."""
-    return not is_open
+    """Toggle the targets editor modal based on which button was clicked."""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return is_open
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Only open if open button was clicked
+    if trigger_id == "open-targets-modal":
+        return True
+    # Close if close or save buttons were clicked
+    elif trigger_id in ["close-targets-modal", "save-targets"]:
+        return False
+
+    return is_open
 
 
 @callback(

@@ -47,13 +47,16 @@ RDI_GUIDELINES = {
     "Calcium mg": 1000,  # Target 1000mg (Osteoporsis)
 }
 
-# Custom Modern Palette (for consistent identity)
+# Custom Artisan Palette - Brand pigments (2026)
 COLOR_PALETTE = {
-    "deep_blue": "#0077b6",  # Primary: Salt, Calories
-    "vibrant_pink": "#ef476f",  # Secondary: Saturated Fat, Evening Weight
-    "mint_green": "#06d6a0",  # Tertiary: Fibre, Protein
-    "warm_yellow": "#ffd166",  # Quaternary: Sugar, Carbs
-    "rich_purple": "#6a4c93",  # Quinary: Calcium, Other Fat
+    "protein": "#BFA67D",  # Oxidized Brass - Protein
+    "carbs": "#8A9A85",  # Matcha Stone - Carbohydrates
+    "fat": "#C47E68",  # Baked Terracotta - Fats
+    "calories": "#2B2B2B",  # Sumi Iron - Calories (neutral)
+    "fibre": "#5B8C6A",  # Matcha Stone darker - Fibre
+    "sugar": "#C47E68",  # Baked Terracotta - Sugar (warning)
+    "salt": "#BFA67D",  # Oxidized Brass - Salt (accent)
+    "calcium": "#8A9A85",  # Matcha Stone - Calcium
 }
 
 # Database URL from environment

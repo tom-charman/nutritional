@@ -1,44 +1,45 @@
-/* Nutritional Tracker - Modern Design System */
+/* Nutritional Tracker - Artisan Design System (2026) */
+/* Brand: Kaolin Paper, Sumi Iron Ink, Oxidized Brass, Matcha Stone, Baked Terracotta */
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Import Brand Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* ==================== CSS Variables (Design Tokens) ==================== */
 :root {
-    /* Foundation Colors */
-    --background: #F8FAFC;           /* Cool Light Grey - subtle, not stark */
-    --surface: #FFFFFF;              /* Pure White - cards and panels */
-    --border: #E2E8F0;               /* Slate 200 - subtle separation */
-    --border-hover: #CBD5E1;         /* Slate 300 - interactive states */
+    /* Foundation Colors - Brand Palette */
+    --background: #F2F0EB;           /* Kaolin White - paper base */
+    --surface: #FEFDFB;              /* Off-white paper - cards and panels */
+    --border: #A6A6A6;               /* Graphite - edges and dividers */
+    --border-hover: #7A7A7A;         /* Graphite darker - interactive states */
 
-    /* Brand & Actions */
-    --primary: #2563EB;              /* Royal Blue - primary actions */
-    --primary-hover: #1D4ED8;        /* Blue 700 - hover states */
-    --primary-light: #DBEAFE;        /* Blue 100 - subtle backgrounds */
+    /* Brand & Actions - Pigments */
+    --primary: #BFA67D;              /* Oxidized Brass - primary actions */
+    --primary-hover: #9D8866;        /* Brass darker - hover states */
+    --primary-light: #EFE8DC;        /* Brass tinted - subtle backgrounds */
 
-    /* Text Hierarchy */
-    --text-main: #0F172A;            /* Slate 900 - headings, critical data */
-    --text-body: #475569;            /* Slate 600 - body text */
-    --text-muted: #64748B;           /* Slate 500 - labels, helper text */
-    --text-disabled: #94A3B8;        /* Slate 400 - disabled states */
+    /* Text Hierarchy - Ink */
+    --text-main: #2B2B2B;            /* Sumi Iron - headings, critical data */
+    --text-body: #3F3F3F;            /* Sumi Iron lighter - body text */
+    --text-muted: #6B6B6B;           /* Graphite - labels, helper text */
+    --text-disabled: #A0A0A0;        /* Graphite lighter - disabled states */
 
-    /* Semantic Colors (Minimal Use) */
-    --success: #059669;              /* Emerald 600 - success states */
-    --success-bg: #D1FAE5;           /* Emerald 100 - success backgrounds */
-    --danger: #DC2626;               /* Red 600 - destructive actions */
-    --danger-bg: #FEE2E2;            /* Red 100 - error backgrounds */
-    --warning: #D97706;              /* Amber 600 - warnings */
-    --warning-bg: #FEF3C7;           /* Amber 100 - warning backgrounds */
+    /* Semantic Colors - Brand pigments */
+    --success: #5B8C6A;              /* Matcha Stone - success states */
+    --success-bg: #E5EFE9;           /* Matcha tinted - success backgrounds */
+    --danger: #C47E68;               /* Baked Terracotta - destructive actions */
+    --danger-bg: #F4E5E0;            /* Terracotta tinted - error backgrounds */
+    --warning: #D4A574;              /* Brass accent - warnings */
+    --warning-bg: #F0E8DC;           /* Brass light - warning backgrounds */
 
-    /* Macro Nutrient Colors (Subtle Tint Method) */
-    --protein-text: #0369A1;         /* Sky 700 */
-    --protein-bg: #E0F2FE;           /* Sky 100 */
-    --carbs-text: #B45309;           /* Amber 700 */
-    --carbs-bg: #FFFBEB;             /* Amber 50 */
-    --fat-text: #BE185D;             /* Pink 700 */
-    --fat-bg: #FDF2F8;               /* Pink 50 */
-    --calories-text: #1D4ED8;        /* Blue 700 */
-    --calories-bg: #EFF6FF;          /* Blue 50 */
+    /* Macro Nutrient Colors - Brand pigment remapping */
+    --protein-text: #BFA67D;         /* Oxidized Brass - protein */
+    --protein-bg: #EFE8DC;           /* Brass tinted bg */
+    --carbs-text: #8A9A85;           /* Matcha Stone - carbs */
+    --carbs-bg: #EBF0E8;             /* Matcha tinted bg */
+    --fat-text: #C47E68;             /* Baked Terracotta - fat */
+    --fat-bg: #F4E5E0;               /* Terracotta tinted bg */
+    --calories-text: #2B2B2B;        /* Sumi Iron - calories (neutral) */
+    --calories-bg: #F2F0EB;          /* Kaolin - calories bg */
 
     /* Spacing Scale (Tighter) */
     --space-xs: 4px;
@@ -53,17 +54,19 @@
     --radius-md: 8px;                /* Inputs, cards */
     --radius-lg: 12px;               /* Modals, large panels */
 
-    /* Shadows (Subtle) */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    /* Shadows - Flatter, more subtle (inking on paper, not drop shadows) */
+    --shadow-sm: 0 0.5px 1px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+    --shadow-lg: inset 0 1px 3px rgba(0, 0, 0, 0.08);
 
-    /* Typography */
-    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Typography - Brand fonts */
+    --font-display: 'Crimson Text', serif;                    /* Editorial serif */
+    --font-mono: 'IBM Plex Mono', monospace;                  /* Technical mono */
+    --font-primary: 'Crimson Text', 'Georgia', serif;         /* Default serif */
     --font-size-tiny: 11px;
     --font-size-xs: 12px;
     --font-size-sm: 13px;
-    --font-size-base: 15px;          /* Reduced from 16px for information density */
+    --font-size-base: 15px;          /* Body text */
     --font-size-md: 16px;
     --font-size-lg: 18px;
     --font-size-xl: 24px;
@@ -84,10 +87,30 @@
 /* ==================== Global Styles ==================== */
 body {
     background-color: var(--background) !important;
+    background-image: url('/assets/textures/kaolin-paper.png');
+    background-size: 120px;
+    background-attachment: fixed;
     font-family: var(--font-primary) !important;
     color: var(--text-body) !important;
     font-size: var(--font-size-base);
     line-height: 1.5;
+    position: relative;
+}
+
+/* Paper grain overlay using CSS */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/assets/textures/kaolin-paper.png');
+    background-size: 120px;
+    background-attachment: fixed;
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: -1;
 }
 
 /* Container with max-width constraint for better UX on wide screens */
@@ -121,18 +144,22 @@ body {
     align-items: center;
     margin-bottom: 24px;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .toolbar-left {
     display: flex;
     gap: 16px;
     align-items: center;
+    flex: 1;
+    min-width: 200px;
 }
 
 .toolbar-right {
     text-align: right;
     font-size: var(--font-size-sm);
     color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 /* ==================== Typography ==================== */
@@ -140,6 +167,8 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-main);
     font-weight: var(--font-weight-semibold);
     margin-bottom: 1rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
 }
 
 h1 {
@@ -183,10 +212,11 @@ p {
 }
 
 .navbar-brand {
-    font-size: var(--font-size-md) !important;
+    font-family: var(--font-display);
+    font-size: var(--font-size-lg) !important;
     font-weight: var(--font-weight-semibold) !important;
     color: var(--text-main) !important;
-    letter-spacing: 0;
+    letter-spacing: 0.05em;
 }
 
 .navbar .nav-link {
@@ -214,8 +244,8 @@ p {
 .card {
     background-color: var(--surface) !important;
     border-radius: var(--radius-md) !important;
-    box-shadow: var(--shadow-sm) !important;
-    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    border: 0.5px solid var(--border) !important;
     margin-bottom: var(--space-xl);
     transition: border-color 0.2s ease;
 }
@@ -226,7 +256,7 @@ p {
 
 .card-header {
     background-color: transparent !important;
-    border-bottom: 1px solid var(--border) !important;
+    border-bottom: 0.5px solid var(--border) !important;
     padding: var(--space-lg) var(--space-xl) !important;
     font-weight: var(--font-weight-medium);
 }
@@ -245,7 +275,7 @@ p {
 /* Summary Statistics Cards */
 .summary-card {
     background-color: var(--surface);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-radius: var(--radius-md);
     padding: var(--space-lg);
     transition: border-color 0.2s ease;
@@ -262,6 +292,7 @@ p {
     margin-bottom: var(--space-sm);
     color: var(--text-main);
     line-height: 1;
+    font-family: var(--font-mono);
 }
 
 .summary-card p {
@@ -298,63 +329,64 @@ button, .btn {
     justify-content: center;
 }
 
-/* Primary Button */
+/* Primary Button - Brass Coin style */
 .btn-primary, button.btn-primary {
     background-color: var(--primary) !important;
-    border: none !important;
-    box-shadow: var(--shadow-sm) !important;
+    border: 0.5px solid var(--primary-hover) !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3) !important;
     color: white !important;
 }
 
 .btn-primary:hover, button.btn-primary:hover {
     background-color: var(--primary-hover) !important;
-    box-shadow: var(--shadow-sm) !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-primary:active, button.btn-primary:active {
     transform: translateY(1px) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Warning Button */
 .btn-warning {
     background-color: var(--warning) !important;
-    border: none !important;
+    border: 0.5px solid var(--border) !important;
     color: white !important;
-    box-shadow: var(--shadow-sm) !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-warning:hover {
-    background-color: #B45309 !important;
+    background-color: #C49468 !important;
 }
 
 /* Success Button */
 .btn-success {
     background-color: var(--success) !important;
-    border: none !important;
-    box-shadow: var(--shadow-sm) !important;
+    border: 0.5px solid var(--border) !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-success:hover {
-    background-color: #047857 !important;
+    background-color: #4F7A5C !important;
 }
 
 /* Danger Button */
 .btn-danger {
     background-color: var(--danger) !important;
-    border: none !important;
-    box-shadow: var(--shadow-sm) !important;
+    border: 0.5px solid var(--border) !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-danger:hover {
-    background-color: #B91C1C !important;
+    background-color: #B56F59 !important;
 }
 
 /* Secondary/Ghost Button */
 .btn-secondary, .btn-outline-primary, .btn-ghost {
-    background-color: transparent !important;
-    border: 1px solid var(--border) !important;
+    background-color: var(--surface) !important;
+    border: 0.5px solid var(--border) !important;
     color: var(--text-body) !important;
-    box-shadow: none !important;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3) !important;
 }
 
 .btn-secondary:hover, .btn-outline-primary:hover, .btn-ghost:hover {
@@ -378,7 +410,7 @@ button, .btn {
     font-size: var(--font-size-sm);
 }
 
-/* Modern input style - white background with border */
+/* Modern input style - debossed logbook lines */
 input[type="text"],
 input[type="number"],
 input[type="email"],
@@ -388,12 +420,13 @@ textarea,
 .form-select {
     height: 36px;
     background-color: var(--surface) !important;
-    border: 1px solid var(--border) !important;
+    border: 0.5px solid var(--border) !important;
     border-radius: var(--radius-sm) !important;
     padding: 8px 12px !important;
     font-size: var(--font-size-sm) !important;
     color: var(--text-body) !important;
     transition: all 0.15s ease !important;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05) !important;
 }
 
 textarea {
@@ -406,8 +439,8 @@ textarea:focus,
 .form-control:focus,
 .form-select:focus {
     background-color: var(--surface) !important;
-    border-color: var(--primary) !important;
-    box-shadow: 0 0 0 3px var(--primary-light) !important;
+    border-color: var(--border-hover) !important;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(191, 166, 125, 0.3) !important;
     outline: none !important;
 }
 
@@ -421,6 +454,7 @@ input:disabled,
     background-color: var(--background) !important;
     color: var(--text-muted) !important;
     cursor: not-allowed;
+    opacity: 0.6;
 }
 
 /* Form row layout for inline inputs */
@@ -450,9 +484,10 @@ input:disabled,
 .Select-control,
 .dash-dropdown .Select-control {
     background-color: var(--surface) !important;
-    border: 1px solid var(--border) !important;
+    border: 0.5px solid var(--border) !important;
     border-radius: var(--radius-sm) !important;
     min-height: 36px !important;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05) !important;
 }
 
 .Select-control:hover,
@@ -463,8 +498,8 @@ input:disabled,
 .is-focused .Select-control,
 .is-focused.dash-dropdown .Select-control {
     background-color: var(--surface) !important;
-    border-color: var(--primary) !important;
-    box-shadow: 0 0 0 3px var(--primary-light) !important;
+    border-color: var(--border-hover) !important;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(191, 166, 125, 0.3) !important;
 }
 
 .Select-placeholder,
@@ -474,8 +509,8 @@ input:disabled,
 
 .Select-menu-outer {
     border-radius: var(--radius-sm) !important;
-    box-shadow: var(--shadow-md) !important;
-    border: 1px solid var(--border) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    border: 0.5px solid var(--border) !important;
     margin-top: 4px !important;
 }
 
@@ -525,7 +560,7 @@ input:disabled,
 /* ==================== Plotly Graph Containers ==================== */
 .graph-container {
     background-color: var(--surface);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-radius: var(--radius-md);
     padding: var(--space-xl);
     margin-bottom: var(--space-xl);
@@ -541,7 +576,7 @@ input:disabled,
 /* Data list container */
 .data-list {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-radius: var(--radius-md);
     overflow: hidden;
 }
@@ -552,7 +587,7 @@ input:disabled,
     align-items: center;
     justify-content: space-between;
     padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
     background: var(--surface);
     transition: background 0.1s ease;
 }
@@ -598,7 +633,7 @@ input:disabled,
 .list-group-item {
     background-color: var(--surface) !important;
     border: none !important;
-    border-bottom: 1px solid var(--border) !important;
+    border-bottom: 0.5px solid var(--border) !important;
     padding: var(--space-md) var(--space-lg) !important;
     margin-bottom: 0 !important;
     border-radius: 0 !important;
@@ -627,7 +662,7 @@ input:disabled,
     justify-content: space-between;
     padding: var(--space-md) var(--space-lg);
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
     transition: background 0.1s ease;
 }
 
@@ -635,7 +670,7 @@ input:disabled,
     background: var(--background);
 }
 
-/* Macro Badges - Subtle Tint Method */
+/* Macro Badges - Brand pigments */
 .macro-badge {
     display: inline-flex;
     align-items: center;
@@ -645,6 +680,7 @@ input:disabled,
     font-weight: var(--font-weight-semibold);
     margin: 0 4px;
     white-space: nowrap;
+    font-family: var(--font-mono);
 }
 
 .badge-protein {
@@ -689,13 +725,14 @@ input:disabled,
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
     color: var(--text-main);
+    font-family: var(--font-mono);
 }
 
 .progress {
     height: 8px !important;
     border-radius: 4px !important;
     background-color: var(--border) !important;
-    box-shadow: none;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05) !important;
 }
 
 .progress-bar {
@@ -705,7 +742,7 @@ input:disabled,
     transition: width 0.3s ease;
 }
 
-/* Nutrient-specific progress bars - solid colors, no gradients */
+/* Nutrient-specific progress bars - brand pigments */
 .progress-protein .progress-bar {
     background: var(--protein-text) !important;
 }
@@ -719,65 +756,46 @@ input:disabled,
 }
 
 .progress-calories .progress-bar {
-    background: var(--primary) !important;
+    background: var(--text-main) !important;
 }
 
 .progress-fibre .progress-bar {
-    background: #059669 !important; /* Emerald 600 */
+    background: var(--success) !important;
 }
 
 .progress-sugar .progress-bar {
-    background: #DC2626 !important; /* Red 600 */
+    background: var(--danger) !important;
 }
 
 .progress-saturated-fat .progress-bar {
-    background: #EA580C !important; /* Orange 600 */
+    background: var(--danger) !important;
 }
 
 .progress-salt .progress-bar {
-    background: #7C3AED !important; /* Violet 600 */
+    background: var(--primary) !important;
 }
 
 .progress-calcium .progress-bar {
-    background: #0891B2 !important; /* Cyan 600 */
+    background: var(--carbs-text) !important;
 }
 
-/* Target/Limit Indicators */
+/* Target/Limit Indicators - brand colors */
 .target-met {
-    color: #059669;
+    color: var(--success);
     font-size: 14px;
     font-weight: 600;
 }
 
 .target-warning {
-    color: #D97706;
+    color: var(--warning);
     font-size: 14px;
     font-weight: 600;
 }
 
 .target-exceeded {
-    color: #DC2626;
+    color: var(--danger);
     font-size: 14px;
     font-weight: 600;
-}
-
-.progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 6px;
-}
-
-.progress-label {
-    font-size: 13px;
-    font-weight: var(--font-weight-medium);
-    color: var(--text-body);
-}
-
-.progress-value {
-    font-size: 12px;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-main);
 }
 
 /* ==================== Alerts & Messages ==================== */
@@ -798,8 +816,10 @@ input:disabled,
 .daily-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 32px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .daily-header-left h1 {
@@ -815,6 +835,7 @@ input:disabled,
     font-size: var(--font-size-sm);
     color: var(--text-muted);
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .daily-summary-bar .summary-item {
@@ -829,7 +850,7 @@ input:disabled,
 .action-row .Select-control,
 .action-row input[type="text"] {
     border-radius: 20px;
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     padding-left: 16px;
 }
 
@@ -837,7 +858,7 @@ input:disabled,
 .receipt-list {
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     overflow: hidden;
 }
 
@@ -846,7 +867,7 @@ input:disabled,
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
     transition: background 0.1s ease;
 }
 
@@ -865,9 +886,11 @@ input:disabled,
 .delete-icon {
     color: var(--text-disabled);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
+    font-family: 'Georgia', serif;
     padding: 4px;
     transition: color 0.2s ease;
+    font-weight: bold;
 }
 
 /* ==================== Master-Detail Layout ==================== */
@@ -888,7 +911,7 @@ input:disabled,
     width: 60%;
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     padding: 24px;
     overflow-y: auto;
 }
@@ -898,7 +921,7 @@ input:disabled,
     flex: 1;
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     overflow-y: auto;
 }
 
@@ -907,7 +930,7 @@ input:disabled,
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
     cursor: pointer;
     transition: background 0.1s ease;
 }
@@ -937,6 +960,7 @@ input:disabled,
     padding: 2px 8px;
     background: var(--background);
     border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
 }
 
 /* Detail Editor Grid */
@@ -961,7 +985,7 @@ input:disabled,
     gap: 8px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--border);
+    border-top: 0.5px solid var(--border);
 }
 
 /* ==================== Compact Inputs ==================== */
@@ -983,19 +1007,21 @@ input:disabled,
 }
 
 .search-input-wrapper::before {
-    content: '🔍';
+    content: 'Search';
     position: absolute;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 14px;
-    opacity: 0.5;
+    font-size: 11px;
+    opacity: 0.4;
+    font-weight: 500;
+    color: var(--text-muted);
 }
 
 .search-input-wrapper input {
     padding-left: 36px;
     border-radius: 20px;
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
 }
 
 /* ==================== Responsive Adjustments ==================== */
@@ -1051,7 +1077,7 @@ input:disabled,
 .DateRangePickerInput {
     background-color: var(--surface) !important;
     border-radius: var(--radius-sm) !important;
-    border: 1px solid var(--border) !important;
+    border: 0.5px solid var(--border) !important;
 }
 
 .DateRangePickerInput:hover {
@@ -1085,7 +1111,7 @@ input:disabled,
 .control-bar,
 .bg-light.rounded {
     background-color: var(--surface) !important;
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-radius: var(--radius-md) !important;
     padding: var(--space-md) var(--space-lg);
     margin-bottom: var(--space-xl);
@@ -1256,7 +1282,7 @@ input:disabled,
     background: var(--surface);
     border-radius: 8px;
     padding: 16px;
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
 }
 
 .graph-height {
@@ -1433,7 +1459,7 @@ input:disabled,
 }
 
 .card-border {
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
 }
 
 .margin-bottom-0 {

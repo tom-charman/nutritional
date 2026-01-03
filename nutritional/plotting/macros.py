@@ -41,9 +41,9 @@ def create_macro_breakdown_figure(
             y=carbs_cal,
             name="Carbohydrates",
             mode="lines",
-            line=dict(width=0, color="#B45309"),
+            line=dict(width=0, color="#8A9A85"),
             stackgroup="one",
-            fillcolor="#B45309",
+            fillcolor="#8A9A85",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Carbs:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -56,9 +56,9 @@ def create_macro_breakdown_figure(
             y=protein_cal,
             name="Protein",
             mode="lines",
-            line=dict(width=0, color="#0369A1"),
+            line=dict(width=0, color="#BFA67D"),
             stackgroup="one",
-            fillcolor="#0369A1",
+            fillcolor="#BFA67D",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Protein:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -71,9 +71,9 @@ def create_macro_breakdown_figure(
             y=other_fat_cal,
             name="Other Fat",
             mode="lines",
-            line=dict(width=0, color="#BE185D"),
+            line=dict(width=0, color="#C47E68"),
             stackgroup="one",
-            fillcolor="#BE185D",
+            fillcolor="#C47E68",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Other Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -86,43 +86,44 @@ def create_macro_breakdown_figure(
             y=saturated_fat_cal,
             name="Saturated Fat",
             mode="lines",
-            line=dict(width=0, color="#DC2626"),
+            line=dict(width=0, color="#C47E68"),
             stackgroup="one",
-            fillcolor="#DC2626",
+            fillcolor="rgba(196, 126, 104, 0.7)",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Saturated Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
         )
     )
 
-    # Update layout with premium styling
+    # Update layout with brand styling (Artisan) - no title
     fig.update_layout(
-        title=f"Macronutrient Calorie Breakdown ({rolling_window}-day avg)",
         xaxis_title="Date",
         yaxis_title="Total Calories (kcal)",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=600,
         template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", size=13, color="#475569"),
+        paper_bgcolor="#FEFDFB",
+        plot_bgcolor="#F2F0EB",
+        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
+        title_font=dict(family="'Crimson Text', serif", size=13),
+        showlegend=True,
     )
 
-    # Update axes with premium styling
+    # Update axes with brand styling
     fig.update_xaxes(
         showgrid=False,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#A6A6A6",
+        tickfont=dict(size=11, color="#6B6B6B"),
     )
     fig.update_yaxes(
         rangemode="tozero",
-        gridcolor="#F1F5F9",
-        gridwidth=1,
+        gridcolor="#A6A6A6",
+        gridwidth=0.5,
         showgrid=True,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#A6A6A6",
+        tickfont=dict(size=11, color="#6B6B6B"),
     )
 
     return fig
