@@ -1410,16 +1410,15 @@ def save_targets_to_storage(
 
 
 @callback(
-    Output("morning-weight", "id"),
-    Input("morning-weight", "value"),
     [
-        State("persistent-entries", "data"),
-        State("persistent-evening-weight", "data"),
-        State("selected-date-store", "data"),
+        Output("morning-weight", "id"),
+        Output("persistent-morning-weight", "data", allow_duplicate=True),
     ],
+    Input("morning-weight", "value"),
+    State("selected-date-store", "data"),
     prevent_initial_call=True,
 )
-def save_morning_weight(morning_weight, entries, evening_weight, selected_date_str):
+def save_morning_weight(morning_weight, selected_date_str):
     """Save morning weight to database when it changes."""
     # Parse selected date
     if selected_date_str is None:
@@ -1427,32 +1426,23 @@ def save_morning_weight(morning_weight, entries, evening_weight, selected_date_s
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
-    # Save to database
-    food_entries = [FoodEntry(**e) for e in entries]
-    daily_data = DailyData(
-        date=entry_date,
-        entries=food_entries,
-        measurements=Measurements(
-            morning_weight_kg=morning_weight,
-            evening_weight_kg=evening_weight,
-        ),
-    )
-    storage.save_daily_entry(daily_data)
+    # Update only measurements without touching entries
+    storage.update_measurements(entry_date, morning_weight_kg=morning_weight)
 
-    return no_update
+    # Update persistent store to keep in sync
+    return no_update, morning_weight
 
 
 @callback(
-    Output("evening-weight", "id"),
-    Input("evening-weight", "value"),
     [
-        State("persistent-entries", "data"),
-        State("persistent-morning-weight", "data"),
-        State("selected-date-store", "data"),
+        Output("evening-weight", "id"),
+        Output("persistent-evening-weight", "data", allow_duplicate=True),
     ],
+    Input("evening-weight", "value"),
+    State("selected-date-store", "data"),
     prevent_initial_call=True,
 )
-def save_evening_weight(evening_weight, entries, morning_weight, selected_date_str):
+def save_evening_weight(evening_weight, selected_date_str):
     """Save evening weight to database when it changes."""
     # Parse selected date
     if selected_date_str is None:
@@ -1460,16 +1450,8 @@ def save_evening_weight(evening_weight, entries, morning_weight, selected_date_s
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
-    # Save to database
-    food_entries = [FoodEntry(**e) for e in entries]
-    daily_data = DailyData(
-        date=entry_date,
-        entries=food_entries,
-        measurements=Measurements(
-            morning_weight_kg=morning_weight,
-            evening_weight_kg=evening_weight,
-        ),
-    )
-    storage.save_daily_entry(daily_data)
+    # Update only measurements without touching entries
+    storage.update_measurements(entry_date, evening_weight_kg=evening_weight)
 
-    return no_update
+    # Update persistent store to keep in sync
+    return no_update, evening_weight
