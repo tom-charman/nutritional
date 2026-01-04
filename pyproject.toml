@@ -49,6 +49,10 @@ ignore = []
 "nutritional/pages/*.py" = ["E402"]  # Page imports after dash.register_page
 "tests/**/*.py" = ["F401", "F811"]  # Allow unused imports in tests
 
+[tool.setuptools.packages.find]
+
+include = ["nutritional*"]
+
 [tool.ty]
 # Configure ty type checker to use the project's virtual environment
 environment = { python = ".venv" }
