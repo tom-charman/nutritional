@@ -41,7 +41,7 @@ CAL_FAT = 9
 # Recommended Daily Intake (RDI) Guidelines (Based on standard adult recommendations)
 RDI_GUIDELINES = {
     "Saturated Fat g": 30,  # Max 20g (often 10% of 2000 kcal)
-    "Sugar g": 70,  # Total sugars, not tracking free sugars
+    "Sugar g": 90,  # Total sugars, not tracking free sugars
     "Fibre g": 30,  # Target 30g (European guidelines)
     "Salt g": 6,  # Max 5g (NHS recommendation)
     "Calcium mg": 1000,  # Target 1000mg (Osteoporsis)
@@ -49,14 +49,14 @@ RDI_GUIDELINES = {
 
 # Custom Artisan Palette - Brand pigments (2026) with Nihonga colors
 COLOR_PALETTE = {
-    "protein": "#E87722",  # Persimmon - Protein
-    "carbs": "#789440",  # Wakatake Bamboo - Carbohydrates
-    "fat": "#A04000",  # Bengara Rust - Fats
+    "protein": "#2C4C5B",  # Iron Blue - Protein (Structural Anchor)
+    "carbs": "#C8963E",  # Antique Gold - Carbohydrates (Primary Fuel Base)
+    "fat": "#BF6B59",  # Baked Clay - Fats (Secondary Fuel Base)
     "calories": "#2B2B2B",  # Sumi Iron - Calories (neutral)
-    "fibre": "#789440",  # Wakatake Bamboo - Fibre
-    "sugar": "#A04000",  # Bengara Rust - Sugar (warning)
-    "salt": "#E87722",  # Persimmon - Salt (accent)
-    "calcium": "#4A9B8E",  # Teal - Calcium
+    "fibre": "#4F6D46",  # Aged Pine - Fibre (Vegetal / Plant)
+    "sugar": "#EBC374",  # Pale Amber - Sugar (Primary Fuel Highlight)
+    "salt": "#7C6A88",  # Oxidized Ube - Salt (Mineral Alert)
+    "calcium": "#6B7F82",  # Stone Grey - Calcium (Mineral Structure)
 }
 
 # Database URL from environment

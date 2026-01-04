@@ -30,11 +30,11 @@ def create_normalized_nutrients_figure(
 
     # Define nutrient mapping with brand palette - Nihonga colors for distinction
     nutrient_config = {
-        "saturated_fat_pct": ("Saturated Fat", "#A04000"),  # Bengara Rust
-        "sugar_pct": ("Sugar", "#E87722"),  # Persimmon
-        "fibre_pct": ("Fibre", "#789440"),  # Wakatake Bamboo
-        "salt_pct": ("Salt", "#2C3E50"),  # Aizome Indigo
-        "calcium_pct": ("Calcium", "#4A9B8E"),  # Teal
+        "saturated_fat_pct": ("Saturated Fat", "#E09F91"),  # Dusty Salmon
+        "sugar_pct": ("Sugar", "#EBC374"),  # Pale Amber
+        "fibre_pct": ("Fibre", "#4F6D46"),  # Aged Pine
+        "salt_pct": ("Salt", "#7C6A88"),  # Oxidized Ube
+        "calcium_pct": ("Calcium", "#6B7F82"),  # Stone Grey
     }
 
     # Add a trace for each nutrient

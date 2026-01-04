@@ -132,10 +132,6 @@ def get_entry_layout():
                             # Macronutrient Visualization
                             html.Div(
                                 [
-                                    html.Div(
-                                        "Macronutrient Breakdown",
-                                        className="macros-visualization-title",
-                                    ),
                                     html.Div(id="daily-macros-display", className="macros-bars"),
                                 ],
                                 className="macros-visualization",
@@ -250,17 +246,46 @@ def get_entry_layout():
                                                     ),
                                                     html.Div(
                                                         [
-                                                            html.Label("Protein (g)"),
+                                                            html.Label("Fat (g)"),
                                                             dbc.InputGroup(
                                                                 [
                                                                     dbc.Input(
-                                                                        id="target-protein",
+                                                                        id="target-fat",
                                                                         type="number",
                                                                         min=0,
                                                                         step=1,
                                                                     ),
                                                                     dbc.Select(
-                                                                        id="mode-protein",
+                                                                        id="mode-fat",
+                                                                        options=[
+                                                                            {
+                                                                                "label": "Target",
+                                                                                "value": "target",
+                                                                            },
+                                                                            {
+                                                                                "label": "Limit",
+                                                                                "value": "limit",
+                                                                            },
+                                                                        ],
+                                                                    ),
+                                                                ],
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    html.Div(
+                                                        [
+                                                            html.Label("Saturated Fat (g)"),
+                                                            dbc.InputGroup(
+                                                                [
+                                                                    dbc.Input(
+                                                                        id="target-saturated-fat",
+                                                                        type="number",
+                                                                        min=0,
+                                                                        step=1,
+                                                                    ),
+                                                                    dbc.Select(
+                                                                        id="mode-saturated-fat",
                                                                         options=[
                                                                             {
                                                                                 "label": "Target",
@@ -308,17 +333,52 @@ def get_entry_layout():
                                                     ),
                                                     html.Div(
                                                         [
-                                                            html.Label("Fat (g)"),
+                                                            html.Label("Sugar (g)"),
                                                             dbc.InputGroup(
                                                                 [
                                                                     dbc.Input(
-                                                                        id="target-fat",
+                                                                        id="target-sugar",
                                                                         type="number",
                                                                         min=0,
                                                                         step=1,
                                                                     ),
                                                                     dbc.Select(
-                                                                        id="mode-fat",
+                                                                        id="mode-sugar",
+                                                                        options=[
+                                                                            {
+                                                                                "label": "Target",
+                                                                                "value": "target",
+                                                                            },
+                                                                            {
+                                                                                "label": "Limit",
+                                                                                "value": "limit",
+                                                                            },
+                                                                        ],
+                                                                    ),
+                                                                ],
+                                                                className="mb-3",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                ],
+                                                md=6,
+                                            ),
+                                            # Right column
+                                            dbc.Col(
+                                                [
+                                                    html.Div(
+                                                        [
+                                                            html.Label("Protein (g)"),
+                                                            dbc.InputGroup(
+                                                                [
+                                                                    dbc.Input(
+                                                                        id="target-protein",
+                                                                        type="number",
+                                                                        min=0,
+                                                                        step=1,
+                                                                    ),
+                                                                    dbc.Select(
+                                                                        id="mode-protein",
                                                                         options=[
                                                                             {
                                                                                 "label": "Target",
@@ -348,70 +408,6 @@ def get_entry_layout():
                                                                     ),
                                                                     dbc.Select(
                                                                         id="mode-fibre",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                ],
-                                                md=6,
-                                            ),
-                                            # Right column
-                                            dbc.Col(
-                                                [
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Sugar (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-sugar",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-sugar",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Saturated Fat (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-saturated-fat",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-saturated-fat",
                                                                         options=[
                                                                             {
                                                                                 "label": "Target",
@@ -732,24 +728,62 @@ def calculate_and_display_nutrients(food_id, amount_list):
         else:
             nutrients = calculate_nutrients(item, quantity=float(amount))
 
-        return dbc.Alert(
-            [
-                html.H5("Calculated Nutrients:", className="alert-heading"),
-                html.P(
-                    f"Energy: {nutrients.energy_kcal:.1f} kcal | "
-                    f"Protein: {nutrients.protein_g:.1f} g | "
-                    f"Carbs: {nutrients.carbohydrates_g:.1f} g | "
-                    f"Fat: {nutrients.fat_g:.1f} g"
-                ),
-                html.Small(
-                    f"Fibre: {nutrients.fibre_g:.1f} g | "
-                    f"Sugar: {nutrients.sugar_g:.1f} g | "
-                    f"Sat Fat: {nutrients.saturated_fat_g:.1f} g | "
-                    f"Salt: {nutrients.salt_g:.1f} g | "
-                    f"Calcium: {nutrients.calcium_mg:.1f} mg"
-                ),
-            ],
-            color="info",
+        # Create styled nutrient display
+        nutrient_data = [
+            ("Energy", f"{nutrients.energy_kcal:.1f}", "kcal", "#2B2B2B"),
+            ("Fat", f"{nutrients.fat_g:.1f}", "g", "#BF6B59"),
+            ("Saturated Fat", f"{nutrients.saturated_fat_g:.1f}", "g", "#E09F91"),
+            ("Carbohydrates", f"{nutrients.carbohydrates_g:.1f}", "g", "#C8963E"),
+            ("Sugar", f"{nutrients.sugar_g:.1f}", "g", "#EBC374"),
+            ("Protein", f"{nutrients.protein_g:.1f}", "g", "#2C4C5B"),
+            ("Fibre", f"{nutrients.fibre_g:.1f}", "g", "#4F6D46"),
+            ("Salt", f"{nutrients.salt_g:.1f}", "g", "#7C6A88"),
+            ("Calcium", f"{nutrients.calcium_mg:.1f}", "mg", "#6B7F82"),
+        ]
+
+        nutrient_items = []
+        for name, value, unit, color in nutrient_data:
+            nutrient_items.append(
+                html.Div(
+                    [
+                        html.Span(
+                            "",
+                            style={
+                                "display": "inline-block",
+                                "width": "12px",
+                                "height": "12px",
+                                "borderRadius": "50%",
+                                "backgroundColor": color,
+                                "marginRight": "8px",
+                                "flexShrink": "0",
+                            },
+                        ),
+                        html.Span(
+                            f"{name}: {value} {unit}",
+                            style={
+                                "color": "var(--text-main)",
+                                "fontFamily": "var(--font-mono)",
+                                "fontWeight": "500",
+                            },
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "marginBottom": "6px",
+                    },
+                )
+            )
+
+        return html.Div(
+            nutrient_items,
+            style={
+                "backgroundColor": "var(--surface)",
+                "border": "1px solid var(--border)",
+                "borderRadius": "var(--radius-md)",
+                "padding": "16px",
+                "boxShadow": "var(--shadow-sm)",
+            },
         )
     except Exception:
         return []
@@ -1132,20 +1166,6 @@ def update_daily_macros(entries, _, __, selected_date_str):
     # Build list of nutrients to display (macros first, then micros)
     macro_bars = [
         create_macro_bar(
-            "Carbohydrates",
-            totals["carbohydrates_g"],
-            targets.carbohydrates_g,
-            "carbs",
-            mode=targets.get_nutrient_mode("carbohydrates").value,
-        ),
-        create_macro_bar(
-            "Protein",
-            totals["protein_g"],
-            targets.protein_g,
-            "protein",
-            mode=targets.get_nutrient_mode("protein").value,
-        ),
-        create_macro_bar(
             "Fat",
             totals["fat_g"],
             targets.fat_g,
@@ -1153,11 +1173,18 @@ def update_daily_macros(entries, _, __, selected_date_str):
             mode=targets.get_nutrient_mode("fat").value,
         ),
         create_macro_bar(
-            "Fibre",
-            totals["fibre_g"],
-            targets.fibre_g,
-            "fibre",
-            mode=targets.get_nutrient_mode("fibre").value,
+            "Saturated Fat",
+            totals["saturated_fat_g"],
+            targets.saturated_fat_g,
+            "saturated-fat",
+            mode=targets.get_nutrient_mode("saturated_fat").value,
+        ),
+        create_macro_bar(
+            "Carbohydrates",
+            totals["carbohydrates_g"],
+            targets.carbohydrates_g,
+            "carbs",
+            mode=targets.get_nutrient_mode("carbohydrates").value,
         ),
         create_macro_bar(
             "Sugar",
@@ -1167,11 +1194,18 @@ def update_daily_macros(entries, _, __, selected_date_str):
             mode=targets.get_nutrient_mode("sugar").value,
         ),
         create_macro_bar(
-            "Saturated Fat",
-            totals["saturated_fat_g"],
-            targets.saturated_fat_g,
-            "saturated-fat",
-            mode=targets.get_nutrient_mode("saturated_fat").value,
+            "Protein",
+            totals["protein_g"],
+            targets.protein_g,
+            "protein",
+            mode=targets.get_nutrient_mode("protein").value,
+        ),
+        create_macro_bar(
+            "Fibre",
+            totals["fibre_g"],
+            targets.fibre_g,
+            "fibre",
+            mode=targets.get_nutrient_mode("fibre").value,
         ),
         create_macro_bar(
             "Salt",
@@ -1240,7 +1274,7 @@ def update_daily_totals(entries, _, __, selected_date_str):
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
             html.Span(
-                f"{totals['protein_g']:.1f} g Protein",
+                f"{totals['fat_g']:.1f} g Fat",
                 className="summary-item",
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
@@ -1250,7 +1284,7 @@ def update_daily_totals(entries, _, __, selected_date_str):
             ),
             html.Span(" | ", style={"color": "var(--text-disabled)"}),
             html.Span(
-                f"{totals['fat_g']:.1f} g Fat",
+                f"{totals['protein_g']:.1f} g Protein",
                 className="summary-item",
             ),
         ],
