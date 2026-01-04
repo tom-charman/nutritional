@@ -160,16 +160,17 @@ class SQLModelStorage:
             )
             db_entries = session.exec(statement).all()
 
-            if not db_entries:
-                return None
-
-            entries = [self._db_food_entry_to_pydantic(entry) for entry in db_entries]
-
             # Get daily summary for measurements
             summary_statement = select(DailySummaryModel).where(
                 DailySummaryModel.summary_date == entry_date
             )
             summary = session.exec(summary_statement).first()
+
+            # Return None only if there are no entries AND no measurements
+            if not db_entries and not summary:
+                return None
+
+            entries = [self._db_food_entry_to_pydantic(entry) for entry in db_entries]
 
             measurements = Measurements(
                 morning_weight_kg=summary.morning_weight_kg if summary else None,
@@ -261,6 +262,52 @@ class SQLModelStorage:
                     calcium_mg=totals.calcium_mg,
                     morning_weight_kg=daily_data.measurements.morning_weight_kg,
                     evening_weight_kg=daily_data.measurements.evening_weight_kg,
+                )
+                session.add(summary)
+
+    def update_measurements(
+        self,
+        entry_date: date,
+        morning_weight_kg: float | None = None,
+        evening_weight_kg: float | None = None,
+    ) -> None:
+        """Update only weight measurements without touching food entries.
+
+        Args:
+            entry_date: Date to update
+            morning_weight_kg: Morning weight (or None to keep existing)
+            evening_weight_kg: Evening weight (or None to keep existing)
+        """
+        with get_db_session() as session:
+            # Get or create summary
+            summary_statement = select(DailySummaryModel).where(
+                DailySummaryModel.summary_date == entry_date
+            )
+            summary = session.exec(summary_statement).first()
+
+            if summary:
+                # Update existing
+                if morning_weight_kg is not None:
+                    summary.morning_weight_kg = morning_weight_kg
+                if evening_weight_kg is not None:
+                    summary.evening_weight_kg = evening_weight_kg
+                summary.updated_at = datetime.now(UTC)
+                session.add(summary)
+            else:
+                # Create new with just measurements (zero nutrients)
+                summary = DailySummaryModel(
+                    summary_date=entry_date,
+                    energy_kcal=0,
+                    fat_g=0,
+                    saturated_fat_g=0,
+                    carbohydrates_g=0,
+                    sugar_g=0,
+                    protein_g=0,
+                    fibre_g=0,
+                    salt_g=0,
+                    calcium_mg=0,
+                    morning_weight_kg=morning_weight_kg,
+                    evening_weight_kg=evening_weight_kg,
                 )
                 session.add(summary)
 

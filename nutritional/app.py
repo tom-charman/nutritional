@@ -6,11 +6,12 @@ the multi-page structure with navigation.
 """
 
 import os  # pragma: no cover
+from datetime import date  # pragma: no cover
 from pathlib import Path  # pragma: no cover
 
 import dash  # pragma: no cover
 import dash_bootstrap_components as dbc  # pragma: no cover
-from dash import dcc, page_container  # pragma: no cover
+from dash import dcc, html, page_container  # pragma: no cover
 from dash_auth import OIDCAuth  # pragma: no cover  # type: ignore[attr-defined]
 from dotenv import load_dotenv  # pragma: no cover
 
@@ -29,7 +30,6 @@ app = dash.Dash(  # pragma: no cover
     __name__,
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
-        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
     ],
     suppress_callback_exceptions=True,
     title="Nutritional Tracker",
@@ -68,13 +68,12 @@ def create_navbar():
             dbc.NavItem(dbc.NavLink("Dashboard", href="/")),
             dbc.NavItem(dbc.NavLink("Daily Entry", href="/entry")),
             dbc.NavItem(dbc.NavLink("Food Database", href="/foods")),
-            dbc.NavItem(dbc.NavLink("History", href="/history")),
         ],
         brand="Nutritional Tracker",
         brand_href="/",
         color="primary",
         dark=True,
-        className="mb-3",
+        className="",
     )
 
 
@@ -84,11 +83,13 @@ app.layout = dbc.Container(  # pragma: no cover
         dcc.Location(id="url", refresh=False),
         # Persistent stores for daily entry state (survives page navigation)
         dcc.Store(id="persistent-entries", storage_type="session", data=[]),
+        # Selected date used by Entry page callbacks (must exist on all pages)
+        dcc.Store(id="selected-date-store", storage_type="session", data=date.today().isoformat()),
         dcc.Store(id="persistent-entry-date", storage_type="session"),
         dcc.Store(id="persistent-morning-weight", storage_type="session"),
         dcc.Store(id="persistent-evening-weight", storage_type="session"),
         create_navbar(),
-        page_container,
+        html.Div(page_container, className="app-page-container"),
     ],
     fluid=True,
 )

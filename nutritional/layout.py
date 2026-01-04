@@ -72,7 +72,7 @@ def get_layout():
                                                     dcc.Graph(
                                                         id="calories-weight-plot",
                                                         config={
-                                                            "displayModeBar": True,
+                                                            "displayModeBar": False,
                                                             "displaylogo": False,
                                                         },
                                                         className="graph-height",
@@ -91,7 +91,7 @@ def get_layout():
                                                     dcc.Graph(
                                                         id="macro-breakdown-plot",
                                                         config={
-                                                            "displayModeBar": True,
+                                                            "displayModeBar": False,
                                                             "displaylogo": False,
                                                         },
                                                         className="graph-height",
@@ -110,7 +110,7 @@ def get_layout():
                                                     dcc.Graph(
                                                         id="nutrients-rdi-plot",
                                                         config={
-                                                            "displayModeBar": True,
+                                                            "displayModeBar": False,
                                                             "displaylogo": False,
                                                         },
                                                         className="graph-height",

@@ -28,13 +28,13 @@ def create_normalized_nutrients_figure(
     # Create figure
     fig = go.Figure()
 
-    # Define nutrient mapping with premium color palette
+    # Define nutrient mapping with brand palette - Nihonga colors for distinction
     nutrient_config = {
-        "saturated_fat_pct": ("Saturated Fat", "#DC2626"),
-        "sugar_pct": ("Sugar", "#D97706"),
-        "fibre_pct": ("Fibre", "#059669"),
-        "salt_pct": ("Salt", "#2563EB"),
-        "calcium_pct": ("Calcium", "#7C3AED"),
+        "saturated_fat_pct": ("Saturated Fat", "#A04000"),  # Bengara Rust
+        "sugar_pct": ("Sugar", "#E87722"),  # Persimmon
+        "fibre_pct": ("Fibre", "#789440"),  # Wakatake Bamboo
+        "salt_pct": ("Salt", "#2C3E50"),  # Aizome Indigo
+        "calcium_pct": ("Calcium", "#4A9B8E"),  # Teal
     }
 
     # Add a trace for each nutrient
@@ -46,8 +46,8 @@ def create_normalized_nutrients_figure(
                     y=plot_data[key],
                     name=display_name,
                     mode="lines+markers",
-                    line=dict(color=color, width=3, shape="spline"),
-                    marker=dict(size=5, color=color, line=dict(width=1, color="white")),
+                    line=dict(color=color, width=1.5, shape="spline"),
+                    marker=dict(size=4, color=color, line=dict(width=0.5, color="#F2F0EB")),
                     hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
                     + f"<b>{display_name}:</b> %{{y:.1f}}% of RDI<br>"
                     + "<extra></extra>",
@@ -58,16 +58,15 @@ def create_normalized_nutrients_figure(
     fig.add_hline(
         y=100,
         line_dash="dash",
-        line_color="#DC2626",
+        line_color="#2B2B2B",
         annotation_text="100% RDI Target",
         annotation_position="right",
-        line_width=2,
+        line_width=1,
         opacity=0.5,
     )
 
-    # Update layout with premium styling
+    # Update layout with brand styling (Artisan) - no title
     fig.update_layout(
-        title=f"Nutrient Intake vs RDI ({rolling_window}-day avg)",
         xaxis_title="Date",
         yaxis_title="Intake (% of RDI)",
         hovermode="x unified",
@@ -81,25 +80,27 @@ def create_normalized_nutrients_figure(
         ),
         height=600,
         template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", size=13, color="#475569"),
+        paper_bgcolor="#FEFDFB",
+        plot_bgcolor="#F2F0EB",
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
+        title_font=dict(family="'Crimson Text', serif", size=13),
+        showlegend=True,
     )
 
-    # Update axes with premium styling
+    # Update axes with brand styling
     fig.update_xaxes(
         showgrid=False,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#D4C5B0",
+        tickfont=dict(size=11, color="#6B6B6B"),
     )
     fig.update_yaxes(
         rangemode="tozero",
-        gridcolor="#F1F5F9",
-        gridwidth=1,
+        gridcolor="#D4C5B0",
+        gridwidth=0.5,
         showgrid=True,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#D4C5B0",
+        tickfont=dict(size=11, color="#6B6B6B"),
     )
 
     return fig

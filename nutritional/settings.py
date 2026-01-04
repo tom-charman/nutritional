@@ -47,13 +47,16 @@ RDI_GUIDELINES = {
     "Calcium mg": 1000,  # Target 1000mg (Osteoporsis)
 }
 
-# Custom Modern Palette (for consistent identity)
+# Custom Artisan Palette - Brand pigments (2026) with Nihonga colors
 COLOR_PALETTE = {
-    "deep_blue": "#0077b6",  # Primary: Salt, Calories
-    "vibrant_pink": "#ef476f",  # Secondary: Saturated Fat, Evening Weight
-    "mint_green": "#06d6a0",  # Tertiary: Fibre, Protein
-    "warm_yellow": "#ffd166",  # Quaternary: Sugar, Carbs
-    "rich_purple": "#6a4c93",  # Quinary: Calcium, Other Fat
+    "protein": "#E87722",  # Persimmon - Protein
+    "carbs": "#789440",  # Wakatake Bamboo - Carbohydrates
+    "fat": "#A04000",  # Bengara Rust - Fats
+    "calories": "#2B2B2B",  # Sumi Iron - Calories (neutral)
+    "fibre": "#789440",  # Wakatake Bamboo - Fibre
+    "sugar": "#A04000",  # Bengara Rust - Sugar (warning)
+    "salt": "#E87722",  # Persimmon - Salt (accent)
+    "calcium": "#4A9B8E",  # Teal - Calcium
 }
 
 # Database URL from environment

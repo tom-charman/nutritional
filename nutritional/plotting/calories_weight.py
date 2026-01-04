@@ -36,15 +36,15 @@ def create_calories_weight_figure(
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Add calories trace (primary y-axis) with royal blue color
+    # Add calories trace (primary y-axis) with Sumi Iron (brand color)
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=calories_avg,
             name=f"Calories ({rolling_window}-day avg)",
-            line=dict(color="#2563EB", width=3, shape="spline"),
+            line=dict(color="#2B2B2B", width=1.5, shape="spline"),
             mode="lines+markers",
-            marker=dict(size=6, color="#2563EB", line=dict(width=2, color="white")),
+            marker=dict(size=4, color="#2B2B2B", line=dict(width=0.5, color="#F2F0EB")),
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Calories:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -52,15 +52,15 @@ def create_calories_weight_figure(
         secondary_y=False,
     )
 
-    # Add morning weight trace (secondary y-axis) with emerald color
+    # Add morning weight trace (secondary y-axis) with Wakatake Bamboo
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_morning_avg,
             name=f"Morning Weight ({rolling_window}-day avg)",
             line=dict(
-                color="#059669",
-                width=2,
+                color="#789440",
+                width=1.5,
                 dash="dashdot",
                 shape="spline",
             ),
@@ -72,13 +72,13 @@ def create_calories_weight_figure(
         secondary_y=True,
     )
 
-    # Add evening weight trace (secondary y-axis) with emerald color
+    # Add evening weight trace (secondary y-axis) with Wakatake Bamboo
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_evening_avg,
             name=f"Evening Weight ({rolling_window}-day avg)",
-            line=dict(color="#059669", width=2, dash="dash", shape="spline"),
+            line=dict(color="#789440", width=1.5, dash="dash", shape="spline"),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Evening:</b> %{y:.1f} kg<br>"
@@ -110,52 +110,53 @@ def create_calories_weight_figure(
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor="rgba(5, 150, 105, 0.1)",
+                fillcolor="rgba(120, 148, 64, 0.08)",
                 name="Weight Range",
                 hoverinfo="skip",
             ),
             secondary_y=True,
         )
 
-    # Update axes with premium styling
+    # Update axes with brand styling
     fig.update_xaxes(
         title_text="Date",
         showgrid=False,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#D4C5B0",
+        tickfont=dict(size=11, color="#6B6B6B"),
     )
 
     fig.update_yaxes(
-        title_text=f"Calories ({rolling_window}-day avg)",
+        title_text="Calories (kcal)",
         range=[y1_min, y1_max],
-        gridcolor="#F1F5F9",
-        gridwidth=1,
+        gridcolor="#D4C5B0",
+        gridwidth=0.5,
         showgrid=True,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#D4C5B0",
+        tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=False,
     )
 
     fig.update_yaxes(
-        title_text=f"Weight (kg) ({rolling_window}-day avg)",
+        title_text="Weight (kg)",
         range=[y2_min, y2_max],
         showgrid=False,
-        linecolor="#E2E8F0",
-        tickfont=dict(size=12, color="#64748B"),
+        linecolor="#D4C5B0",
+        tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=True,
     )
 
-    # Update layout with premium styling
+    # Update layout with brand styling (Artisan) - no title
     fig.update_layout(
-        title="Calories and Weight Trends",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=600,
         template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", size=13, color="#475569"),
+        paper_bgcolor="#FEFDFB",
+        plot_bgcolor="#F2F0EB",
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
+        title_font=dict(family="'Crimson Text', serif", size=13),
+        showlegend=True,
     )
 
     return fig

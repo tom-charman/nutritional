@@ -34,168 +34,159 @@ def get_entry_layout():
         [
             # Hidden trigger to reload data when page is visited
             html.Div(id="page-load-trigger", className="hidden"),
-            # Store for selected date
-            dcc.Store(id="selected-date-store", data=date.today().isoformat()),
             # Store to trigger refresh when targets are updated
             dcc.Store(id="targets-updated-trigger", data=0),
-            # Date selector
-            html.Div(
-                [
-                    html.Label("Date:", style={"marginRight": "10px", "fontWeight": "bold"}),
-                    dcc.DatePickerSingle(
-                        id="entry-date-picker",
-                        date=date.today(),
-                        display_format="YYYY-MM-DD",
-                        max_date_allowed=date.today(),
-                        style={"marginBottom": "15px"},
-                    ),
-                    html.Span(
-                        " (Edit historical entries by selecting a past date)",
-                        style={"marginLeft": "10px", "fontStyle": "italic", "color": "#666"},
-                    ),
-                ],
-                style={"marginBottom": "20px", "display": "flex", "alignItems": "center"},
-            ),
             # Unified Daily Log Header
             html.Div(
                 [
                     html.Div(
                         [
                             html.H1(id="current-date-display", className="margin-bottom-0"),
+                            dcc.DatePickerSingle(
+                                id="entry-date-picker",
+                                date=date.today(),
+                                display_format="YYYY-MM-DD",
+                                max_date_allowed=date.today(),
+                                style={"marginBottom": "0", "display": "inline-block"},
+                            ),
                         ],
                         className="daily-header-left",
                     ),
                     html.Div(
-                        id="daily-summary-compact",
+                        [
+                            html.Div(
+                                id="daily-summary-compact",
+                                className="daily-summary-bar",
+                                style={"flex": "1"},
+                            ),
+                            dbc.Button(
+                                "Edit Targets",
+                                id="open-targets-modal",
+                                color="secondary",
+                                size="sm",
+                                className="ms-3",
+                            ),
+                        ],
+                        style={"display": "flex", "alignItems": "center", "gap": "12px"},
                         className="daily-summary-bar",
                     ),
                 ],
                 className="daily-header",
             ),
-            # Main Content Area
-            dbc.Row(
+            # Main Content Area - Mise-en-place 3-Column Layout
+            html.Div(
                 [
-                    # Main Journal Column
-                    dbc.Col(
+                    # Column 1: The Ingredients (25%)
+                    html.Div(
                         [
+                            html.Div("INGREDIENTS", className="section-label"),
                             # Action Row - Search/Add Food
                             html.Div(
                                 [
                                     dcc.Dropdown(
                                         id="food-selector",
-                                        placeholder="🔍 Search foods...",
+                                        placeholder="Search foods...",
                                         searchable=True,
                                         className="food-selector-full-width",
                                     ),
                                 ],
                                 className="action-row action-row-flex",
+                                style={"marginBottom": "0px"},
                             ),
                             # Inline Amount Input (appears when food selected)
-                            html.Div(id="food-input-container"),
+                            html.Div(id="food-input-container", style={"marginBottom": "0px"}),
                             # Calculated nutrients preview
-                            html.Div(id="calculated-nutrients", className="mt-2"),
-                            # Add button and message
-                            html.Div(
-                                [
-                                    dbc.Button(
-                                        "Add Entry",
-                                        id="add-entry-btn",
-                                        color="primary",
-                                        size="sm",
-                                        className="mt-2",
-                                    ),
-                                    html.Div(id="entry-message", className="mt-2"),
-                                ],
-                                id="add-controls-container",
-                                className="hidden",
-                            ),
-                            # Receipt-style List
+                            html.Div(id="calculated-nutrients"),
+                            # Entry message
+                            html.Div(id="entry-message"),
+                            # Ingredient List (only name, weight, calories)
                             html.Div(
                                 id="entries-list",
-                                className="receipt-list mt-3",
+                                className="ingredients-list",
                             ),
-                            # Inline Totals (thin footer style)
+                        ],
+                        className="mise-ingredients-column",
+                    ),
+                    # Column 2: The Summary (50%)
+                    html.Div(
+                        [
+                            html.Div("TODAY'S INTAKE", className="section-label"),
+                            # Calories Remaining Card
                             html.Div(
                                 [
                                     html.Div(
-                                        [
-                                            html.Div(id="daily-totals-inline"),
-                                            html.Div(
-                                                [
-                                                    dbc.Button(
-                                                        "Edit Targets",
-                                                        id="open-targets-modal",
-                                                        color="link",
-                                                        size="sm",
-                                                        className="mt-2",
-                                                    ),
-                                                ],
-                                                style={"textAlign": "center"},
-                                            ),
-                                        ],
+                                        "Calories Remaining",
+                                        className="calories-remaining-label",
+                                    ),
+                                    html.Div(
+                                        id="calories-remaining-display",
+                                        className="calories-remaining-number",
+                                    ),
+                                    html.Div(
+                                        id="calorie-status",
+                                        className="calorie-status-indicator",
                                     ),
                                 ],
-                                className="mt-3",
+                                className="calories-remaining-card",
+                            ),
+                            # Macronutrient Visualization
+                            html.Div(
+                                [
+                                    html.Div(
+                                        "Macronutrient Breakdown",
+                                        className="macros-visualization-title",
+                                    ),
+                                    html.Div(id="daily-macros-display", className="macros-bars"),
+                                ],
+                                className="macros-visualization",
                             ),
                         ],
-                        width=12,
-                        lg=8,
+                        className="mise-summary-column",
                     ),
-                    # Sidebar - Body Weight (Collapsed/Secondary)
-                    dbc.Col(
+                    # Column 3: The Logbook (25%)
+                    html.Div(
                         [
+                            html.Div("BODY MEASUREMENTS", className="section-label"),
                             dbc.Card(
                                 [
                                     dbc.CardBody(
                                         [
-                                            html.Div("BODY WEIGHT", className="section-label"),
-                                            dbc.Row(
+                                            html.Div(
                                                 [
-                                                    dbc.Col(
-                                                        [
-                                                            html.Div(
-                                                                [
-                                                                    html.Label(
-                                                                        "Morning (kg)",
-                                                                        className="form-label-sm",
-                                                                    ),
-                                                                    dbc.Input(
-                                                                        id="morning-weight",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=0.1,
-                                                                        size="sm",
-                                                                    ),
-                                                                ],
-                                                                className="compact-input",
-                                                            ),
-                                                        ],
-                                                        width=12,
-                                                        className="mb-2",
+                                                    html.Label(
+                                                        "Morning Weight (kg)",
+                                                        className="weight-input-group label",
                                                     ),
-                                                    dbc.Col(
-                                                        [
-                                                            html.Div(
-                                                                [
-                                                                    html.Label(
-                                                                        "Evening (kg)",
-                                                                        className="form-label-sm",
-                                                                    ),
-                                                                    dbc.Input(
-                                                                        id="evening-weight",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=0.1,
-                                                                        size="sm",
-                                                                    ),
-                                                                ],
-                                                                className="compact-input",
-                                                            ),
-                                                        ],
-                                                        width=12,
+                                                    dbc.Input(
+                                                        id="morning-weight",
+                                                        type="number",
+                                                        min=0,
+                                                        step=0.1,
+                                                        size="sm",
+                                                        placeholder="e.g. 75.5",
                                                     ),
-                                                ]
+                                                ],
+                                                className="weight-input-group",
+                                                style={"marginBottom": "12px"},
                                             ),
+                                            html.Div(
+                                                [
+                                                    html.Label(
+                                                        "Evening Weight (kg)",
+                                                        className="weight-input-group label",
+                                                    ),
+                                                    dbc.Input(
+                                                        id="evening-weight",
+                                                        type="number",
+                                                        min=0,
+                                                        step=0.1,
+                                                        size="sm",
+                                                        placeholder="e.g. 76.2",
+                                                    ),
+                                                ],
+                                                className="weight-input-group",
+                                            ),
+                                            # Weight trend sparkline
                                         ],
                                         className="card-padding",
                                     ),
@@ -203,10 +194,10 @@ def get_entry_layout():
                                 className="card-border",
                             ),
                         ],
-                        width=12,
-                        lg=4,
+                        className="mise-logbook-column",
                     ),
-                ]
+                ],
+                className="mise-en-place-container",
             ),
             # Targets Editor Modal
             dbc.Modal(
@@ -654,28 +645,38 @@ def update_food_options(search_value):
 
 
 @callback(
-    [Output("food-input-container", "children"), Output("add-controls-container", "style")],
+    Output("food-input-container", "children"),
     Input("food-selector", "value"),
 )
 def update_input_fields(food_id):
     """Update input fields based on selected food item and show add controls."""
     if not food_id:
-        return [], {"display": "none"}
+        return []
 
     item = storage.get_food_item(food_id)
     if not item:
-        return [], {"display": "none"}
+        return []
 
     if item.unit_type == UnitType.PER_100G:
         input_fields = html.Div(
             [
-                dbc.Input(
-                    id={"type": "food-amount", "index": 0},
-                    type="number",
-                    min=0,
-                    step=0.1,
-                    placeholder="Enter weight in grams",
-                    size="sm",
+                dbc.InputGroup(
+                    [
+                        dbc.Input(
+                            id={"type": "food-amount", "index": 0},
+                            type="number",
+                            min=0,
+                            step=0.1,
+                            placeholder="Enter weight in grams",
+                            size="sm",
+                        ),
+                        dbc.Button(
+                            "Add Entry",
+                            id="add-entry-btn",
+                            color="primary",
+                            size="sm",
+                        ),
+                    ],
                     style={"marginTop": "8px"},
                 ),
             ],
@@ -683,19 +684,29 @@ def update_input_fields(food_id):
     else:  # PER_ITEM
         input_fields = html.Div(
             [
-                dbc.Input(
-                    id={"type": "food-amount", "index": 0},
-                    type="number",
-                    min=0,
-                    step=0.1,
-                    placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
-                    size="sm",
+                dbc.InputGroup(
+                    [
+                        dbc.Input(
+                            id={"type": "food-amount", "index": 0},
+                            type="number",
+                            min=0,
+                            step=0.1,
+                            placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
+                            size="sm",
+                        ),
+                        dbc.Button(
+                            "Add Entry",
+                            id="add-entry-btn",
+                            color="primary",
+                            size="sm",
+                        ),
+                    ],
                     style={"marginTop": "8px"},
                 ),
             ],
         )
 
-    return input_fields, {"display": "block"}
+    return input_fields
 
 
 @callback(
@@ -863,7 +874,7 @@ def add_food_entry(
     prevent_initial_call=False,
 )
 def update_entries_list(entries, _):
-    """Display list of current entries with receipt-style layout."""
+    """Display list of current entries with clean ingredient format (no macro pills)."""
     if not entries:
         return html.Div(
             html.P(
@@ -883,48 +894,23 @@ def update_entries_list(entries, _):
             [
                 html.Div(
                     [
-                        html.Strong(entry["food_name"], style={"fontSize": "15px"}),
-                        html.Span(
-                            f" · {entry['weight_g']:.1f}g"
+                        html.Div(
+                            entry["food_name"],
+                            className="ingredient-name",
+                        ),
+                        html.Div(
+                            f"{entry['weight_g']:.1f}g"
                             if entry["weight_g"]
-                            else f" · {entry['quantity']:.1f}x",
-                            style={
-                                "color": "var(--text-muted)",
-                                "fontSize": "14px",
-                            },
+                            else f"{entry['quantity']:.1f}x",
+                            className="ingredient-weight",
                         ),
                     ],
-                    style={"flex": "1"},
+                    className="ingredient-item-header",
                 ),
-                html.Div(
-                    [
-                        html.Span(
-                            f"{entry['nutrients']['energy_kcal']:.0f} kcal",
-                            className="macro-badge badge-calories",
-                            title="Calories",
-                        ),
-                        html.Span(
-                            f"{entry['nutrients']['protein_g']:.1f} g Protein",
-                            className="macro-badge badge-protein",
-                            title="Protein",
-                        ),
-                        html.Span(
-                            f"{entry['nutrients']['carbohydrates_g']:.1f} g Carbs",
-                            className="macro-badge badge-carbs",
-                            title="Carbohydrates",
-                        ),
-                        html.Span(
-                            f"{entry['nutrients']['fat_g']:.1f} g Fat",
-                            className="macro-badge badge-fat",
-                            title="Fat",
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "gap": "6px",
-                        "flexWrap": "wrap",
-                        "alignItems": "center",
-                    },
+                html.Span(
+                    f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                    className="ingredient-calories",
+                    title="Calories",
                 ),
                 html.Span(
                     "×",
@@ -932,9 +918,17 @@ def update_entries_list(entries, _):
                     id={"type": "remove-entry", "index": i},
                     n_clicks=0,
                     title="Remove",
+                    style={
+                        "cursor": "pointer",
+                        "gridColumn": "3 / 4",
+                        "gridRow": "1 / 2",
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "center",
+                    },
                 ),
             ],
-            className="receipt-item",
+            className="ingredient-item",
         )
         for i, entry in enumerate(entries)
     ]
@@ -989,7 +983,11 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
 
 
 @callback(
-    [Output("daily-summary-compact", "children"), Output("daily-totals-inline", "children")],
+    [
+        Output("calories-remaining-display", "children"),
+        Output("calories-remaining-display", "className"),
+        Output("calorie-status", "children"),
+    ],
     [
         Input("persistent-entries", "data"),
         Input("page-load-trigger", "children"),
@@ -998,8 +996,8 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
     State("selected-date-store", "data"),
     prevent_initial_call=False,
 )
-def update_daily_totals(entries, _, __, selected_date_str):
-    """Calculate and display daily totals in both compact header and inline footer."""
+def update_calories_remaining(entries, _, __, selected_date_str):
+    """Display calories remaining in large, prominent format."""
     # Parse selected date
     if selected_date_str is None:
         current_date = date.today()
@@ -1009,10 +1007,49 @@ def update_daily_totals(entries, _, __, selected_date_str):
     # Load targets for selected day
     targets = storage.get_or_create_daily_targets(current_date)
 
-    if not entries:
-        compact_summary = html.Span(f"0 / {targets.energy_kcal:.0f} kcal", className="text-muted")
-        inline_totals = None
-        return compact_summary, inline_totals
+    # Calculate consumed calories
+    consumed_calories = 0.0
+    if entries:
+        for entry in entries:
+            consumed_calories += entry["nutrients"]["energy_kcal"]
+
+    # Calculate remaining
+    remaining = targets.energy_kcal - consumed_calories
+
+    # Determine display class and status message
+    if remaining < 0:
+        display_class = "calories-remaining-number calories-remaining-number target-exceeded"
+        status_text = f"{abs(remaining):.0f} kcal over target"
+    elif remaining < 200:
+        display_class = "calories-remaining-number calories-remaining-number target-met"
+        status_text = "Target nearly met"
+    else:
+        display_class = "calories-remaining-number"
+        status_text = "On track"
+
+    return f"{max(0, remaining):.0f}", display_class, status_text
+
+
+@callback(
+    Output("daily-macros-display", "children"),
+    [
+        Input("persistent-entries", "data"),
+        Input("page-load-trigger", "children"),
+        Input("targets-updated-trigger", "data"),
+    ],
+    State("selected-date-store", "data"),
+    prevent_initial_call=False,
+)
+def update_daily_macros(entries, _, __, selected_date_str):
+    """Display macronutrient breakdown with progress bars and indicators."""
+    # Parse selected date
+    if selected_date_str is None:
+        current_date = date.today()
+    else:
+        current_date = date.fromisoformat(selected_date_str)
+
+    # Load targets for selected day
+    targets = storage.get_or_create_daily_targets(current_date)
 
     # Calculate totals
     totals = {
@@ -1025,6 +1062,168 @@ def update_daily_totals(entries, _, __, selected_date_str):
         "fibre_g": 0.0,
         "salt_g": 0.0,
         "calcium_mg": 0.0,
+    }
+
+    if entries:
+        for entry in entries:
+            for nutrient in totals:
+                totals[nutrient] += entry["nutrients"][nutrient]
+
+    def create_macro_bar(label, value, target, color_class, mode="target", unit="g"):
+        """Create a macro progress bar with indicator."""
+        percentage = min((value / target * 100), 100) if target > 0 else 0
+
+        # Format values
+        if unit == "mg":
+            value_str = f"{value:.0f}mg"
+            target_str = f"{target:.0f}mg"
+        elif unit == "kcal":
+            value_str = f"{value:.0f}"
+            target_str = f"{target:.0f}"
+        else:
+            value_str = f"{value:.1f}g"
+            target_str = f"{target:.0f}g"
+
+        # Determine indicator
+        indicator = None
+        if mode == "limit":
+            # Limit mode - show warnings when exceeding
+            if value > target * 1.1:
+                indicator = html.Span(
+                    "⚠", className="macro-bar-indicator target-exceeded", title="Limit exceeded"
+                )
+            elif value > target:
+                indicator = html.Span(
+                    "⚠", className="macro-bar-indicator target-warning", title="Near limit"
+                )
+        else:
+            # Target mode - show checkmark when met
+            if value >= target:
+                indicator = html.Span(
+                    "✓", className="macro-bar-indicator target-met", title="Target met"
+                )
+
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.Span(label, className="macro-bar-label"),
+                        html.Div(
+                            [
+                                html.Span(
+                                    f"{value_str} / {target_str}", className="macro-bar-value"
+                                ),
+                                indicator if indicator else None,
+                            ],
+                            style={"display": "flex", "gap": "4px", "alignItems": "center"},
+                        ),
+                    ],
+                    className="macro-bar-header",
+                ),
+                dbc.Progress(
+                    value=percentage,
+                    className=f"progress-{color_class}",
+                    style={"height": "5px"},
+                ),
+            ],
+            className="macro-bar-item",
+        )
+
+    # Build list of nutrients to display (macros first, then micros)
+    macro_bars = [
+        create_macro_bar(
+            "Carbohydrates",
+            totals["carbohydrates_g"],
+            targets.carbohydrates_g,
+            "carbs",
+            mode=targets.get_nutrient_mode("carbohydrates").value,
+        ),
+        create_macro_bar(
+            "Protein",
+            totals["protein_g"],
+            targets.protein_g,
+            "protein",
+            mode=targets.get_nutrient_mode("protein").value,
+        ),
+        create_macro_bar(
+            "Fat",
+            totals["fat_g"],
+            targets.fat_g,
+            "fat",
+            mode=targets.get_nutrient_mode("fat").value,
+        ),
+        create_macro_bar(
+            "Fibre",
+            totals["fibre_g"],
+            targets.fibre_g,
+            "fibre",
+            mode=targets.get_nutrient_mode("fibre").value,
+        ),
+        create_macro_bar(
+            "Sugar",
+            totals["sugar_g"],
+            targets.sugar_g,
+            "sugar",
+            mode=targets.get_nutrient_mode("sugar").value,
+        ),
+        create_macro_bar(
+            "Saturated Fat",
+            totals["saturated_fat_g"],
+            targets.saturated_fat_g,
+            "saturated-fat",
+            mode=targets.get_nutrient_mode("saturated_fat").value,
+        ),
+        create_macro_bar(
+            "Salt",
+            totals["salt_g"],
+            targets.salt_g,
+            "salt",
+            mode=targets.get_nutrient_mode("salt").value,
+        ),
+        create_macro_bar(
+            "Calcium",
+            totals["calcium_mg"],
+            targets.calcium_mg,
+            "calcium",
+            mode=targets.get_nutrient_mode("calcium").value,
+            unit="mg",
+        ),
+    ]
+
+    return html.Div(macro_bars)
+
+
+@callback(
+    Output("daily-summary-compact", "children"),
+    [
+        Input("persistent-entries", "data"),
+        Input("page-load-trigger", "children"),
+        Input("targets-updated-trigger", "data"),
+    ],
+    State("selected-date-store", "data"),
+    prevent_initial_call=False,
+)
+def update_daily_totals(entries, _, __, selected_date_str):
+    """Calculate and display daily totals in compact header summary."""
+    # Parse selected date
+    if selected_date_str is None:
+        current_date = date.today()
+    else:
+        current_date = date.fromisoformat(selected_date_str)
+
+    # Load targets for selected day
+    targets = storage.get_or_create_daily_targets(current_date)
+
+    if not entries:
+        compact_summary = html.Span(f"0 / {targets.energy_kcal:.0f} kcal", className="text-muted")
+        return compact_summary
+
+    # Calculate totals
+    totals = {
+        "energy_kcal": 0.0,
+        "fat_g": 0.0,
+        "carbohydrates_g": 0.0,
+        "protein_g": 0.0,
     }
 
     for entry in entries:
@@ -1054,167 +1253,10 @@ def update_daily_totals(entries, _, __, selected_date_str):
                 f"{totals['fat_g']:.1f} g Fat",
                 className="summary-item",
             ),
-        ]
-    )
-
-    def create_thin_progress_bar(label, value, target, css_class, mode="target", unit="g"):
-        """Create a thin, modern progress bar with visual feedback."""
-        percentage = min((value / target * 100), 100) if target > 0 else 0
-
-        # Format values
-        if unit == "kcal":
-            value_str = f"{value:.0f}"
-            target_str = f"{target:.0f}"
-        elif unit == "mg":
-            value_str = f"{value:.0f} mg"
-            target_str = f"{target:.0f} mg"
-        else:
-            value_str = f"{value:.1f} g"
-            target_str = f"{target:.0f} g"
-
-        # Determine visual indicator
-        indicator = None
-        if mode == "limit":
-            # Limit mode - show warnings when exceeding
-            if value > target * 1.1:
-                indicator = html.Span("⚠️", className="target-exceeded", title="Limit exceeded")
-            elif value > target:
-                indicator = html.Span("⚠️", className="target-warning", title="Near limit")
-        else:
-            # Target mode - show checkmark when met
-            if value >= target:
-                indicator = html.Span("✓", className="target-met", title="Target met")
-
-        return html.Div(
-            [
-                html.Div(
-                    [
-                        html.Span(label, className="progress-label"),
-                        html.Div(
-                            [
-                                html.Span(
-                                    f"{value_str} / {target_str}",
-                                    className="progress-value",
-                                ),
-                                indicator if indicator else None,
-                            ],
-                            style={"display": "flex", "gap": "6px", "alignItems": "center"},
-                        ),
-                    ],
-                    className="progress-header",
-                ),
-                dbc.Progress(
-                    value=percentage,
-                    className=css_class,
-                    style={"height": "4px"},
-                ),
-            ],
-            style={"marginBottom": "16px"},
-        )
-
-    # Inline Totals with all 9 nutrients as progress bars
-    inline_totals = html.Div(
-        [
-            html.Div(
-                [
-                    html.Div(
-                        [
-                            # Left column - macros
-                            html.Div(
-                                [
-                                    create_thin_progress_bar(
-                                        "Calories",
-                                        totals["energy_kcal"],
-                                        targets.energy_kcal,
-                                        "progress-calories",
-                                        mode=targets.get_nutrient_mode("energy").value,
-                                        unit="kcal",
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Protein",
-                                        totals["protein_g"],
-                                        targets.protein_g,
-                                        "progress-protein",
-                                        mode=targets.get_nutrient_mode("protein").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Carbs",
-                                        totals["carbohydrates_g"],
-                                        targets.carbohydrates_g,
-                                        "progress-carbs",
-                                        mode=targets.get_nutrient_mode("carbohydrates").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Fat",
-                                        totals["fat_g"],
-                                        targets.fat_g,
-                                        "progress-fat",
-                                        mode=targets.get_nutrient_mode("fat").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Fibre",
-                                        totals["fibre_g"],
-                                        targets.fibre_g,
-                                        "progress-fibre",
-                                        mode=targets.get_nutrient_mode("fibre").value,
-                                    ),
-                                ],
-                                style={"flex": "1"},
-                            ),
-                            # Right column - sugars, fats, minerals
-                            html.Div(
-                                [
-                                    create_thin_progress_bar(
-                                        "Sugar",
-                                        totals["sugar_g"],
-                                        targets.sugar_g,
-                                        "progress-sugar",
-                                        mode=targets.get_nutrient_mode("sugar").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Saturated Fat",
-                                        totals["saturated_fat_g"],
-                                        targets.saturated_fat_g,
-                                        "progress-saturated-fat",
-                                        mode=targets.get_nutrient_mode("saturated_fat").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Salt",
-                                        totals["salt_g"],
-                                        targets.salt_g,
-                                        "progress-salt",
-                                        mode=targets.get_nutrient_mode("salt").value,
-                                    ),
-                                    create_thin_progress_bar(
-                                        "Calcium",
-                                        totals["calcium_mg"],
-                                        targets.calcium_mg,
-                                        "progress-calcium",
-                                        mode=targets.get_nutrient_mode("calcium").value,
-                                        unit="mg",
-                                    ),
-                                ],
-                                style={"flex": "1"},
-                            ),
-                        ],
-                        style={
-                            "display": "flex",
-                            "gap": "24px",
-                            "flexWrap": "wrap",
-                        },
-                    ),
-                ],
-                style={
-                    "padding": "16px",
-                    "background": "var(--surface)",
-                    "border": "1px solid var(--border)",
-                    "borderRadius": "8px",
-                },
-            ),
         ],
     )
 
-    return compact_summary, inline_totals
+    return compact_summary
 
 
 # Targets Modal Callbacks
@@ -1229,8 +1271,21 @@ def update_daily_totals(entries, _, __, selected_date_str):
     prevent_initial_call=True,
 )
 def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
-    """Toggle the targets editor modal."""
-    return not is_open
+    """Toggle the targets editor modal based on which button was clicked."""
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return is_open
+
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Only open if open button was clicked
+    if trigger_id == "open-targets-modal":
+        return True
+    # Close if close or save buttons were clicked
+    elif trigger_id in ["close-targets-modal", "save-targets"]:
+        return False
+
+    return is_open
 
 
 @callback(
@@ -1392,16 +1447,15 @@ def save_targets_to_storage(
 
 
 @callback(
-    Output("morning-weight", "id"),
-    Input("morning-weight", "value"),
     [
-        State("persistent-entries", "data"),
-        State("persistent-evening-weight", "data"),
-        State("selected-date-store", "data"),
+        Output("morning-weight", "id"),
+        Output("persistent-morning-weight", "data", allow_duplicate=True),
     ],
+    Input("morning-weight", "value"),
+    State("selected-date-store", "data"),
     prevent_initial_call=True,
 )
-def save_morning_weight(morning_weight, entries, evening_weight, selected_date_str):
+def save_morning_weight(morning_weight, selected_date_str):
     """Save morning weight to database when it changes."""
     # Parse selected date
     if selected_date_str is None:
@@ -1409,32 +1463,23 @@ def save_morning_weight(morning_weight, entries, evening_weight, selected_date_s
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
-    # Save to database
-    food_entries = [FoodEntry(**e) for e in entries]
-    daily_data = DailyData(
-        date=entry_date,
-        entries=food_entries,
-        measurements=Measurements(
-            morning_weight_kg=morning_weight,
-            evening_weight_kg=evening_weight,
-        ),
-    )
-    storage.save_daily_entry(daily_data)
+    # Update only measurements without touching entries
+    storage.update_measurements(entry_date, morning_weight_kg=morning_weight)
 
-    return no_update
+    # Update persistent store to keep in sync
+    return no_update, morning_weight
 
 
 @callback(
-    Output("evening-weight", "id"),
-    Input("evening-weight", "value"),
     [
-        State("persistent-entries", "data"),
-        State("persistent-morning-weight", "data"),
-        State("selected-date-store", "data"),
+        Output("evening-weight", "id"),
+        Output("persistent-evening-weight", "data", allow_duplicate=True),
     ],
+    Input("evening-weight", "value"),
+    State("selected-date-store", "data"),
     prevent_initial_call=True,
 )
-def save_evening_weight(evening_weight, entries, morning_weight, selected_date_str):
+def save_evening_weight(evening_weight, selected_date_str):
     """Save evening weight to database when it changes."""
     # Parse selected date
     if selected_date_str is None:
@@ -1442,16 +1487,8 @@ def save_evening_weight(evening_weight, entries, morning_weight, selected_date_s
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
-    # Save to database
-    food_entries = [FoodEntry(**e) for e in entries]
-    daily_data = DailyData(
-        date=entry_date,
-        entries=food_entries,
-        measurements=Measurements(
-            morning_weight_kg=morning_weight,
-            evening_weight_kg=evening_weight,
-        ),
-    )
-    storage.save_daily_entry(daily_data)
+    # Update only measurements without touching entries
+    storage.update_measurements(entry_date, evening_weight_kg=evening_weight)
 
-    return no_update
+    # Update persistent store to keep in sync
+    return no_update, evening_weight
