@@ -146,19 +146,13 @@ def get_foods_layout():
                                         className="form-row-mb hidden",
                                         id="form-row-2",
                                     ),
-                                    # Nutritional Values Label
-                                    html.Div(
-                                        "NUTRITIONAL VALUES",
-                                        className="section-label hidden",
-                                        id="form-label",
-                                    ),
                                     # Nutritional Grid
                                     html.Div(
                                         [
                                             html.Div(
                                                 [
                                                     html.Label(
-                                                        "Kcal",
+                                                        "Calories (kcal)",
                                                         className="form-label-xs",
                                                     ),
                                                     dbc.Input(
@@ -362,7 +356,6 @@ def layout():
         Output("food-editor", "style"),
         Output("form-row-1", "style"),
         Output("form-row-2", "style"),
-        Output("form-label", "style"),
         Output("form-grid", "style"),
         Output("form-actions", "style"),
         Output("edit-food-id", "data", allow_duplicate=True),
@@ -418,7 +411,6 @@ def load_food_editor(new_btn_clicks, select_clicks, current_id):
         editor_hidden,  # Hide placeholder message
         form_visible,  # Show form row 1
         form_visible,  # Show form row 2
-        form_visible,  # Show form label
         form_grid_visible,  # Show form grid
         form_actions_visible,  # Show form actions
         food_id,

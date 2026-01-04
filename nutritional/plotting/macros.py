@@ -33,22 +33,7 @@ def create_macro_breakdown_figure(
     fig = go.Figure()
 
     # Add traces in order (bottom to top of stack)
-    # Order: Carbs, Protein, Other Fat, Saturated Fat
-
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=carbs_cal,
-            name="Carbohydrates",
-            mode="lines",
-            line=dict(width=0, color="#789440"),
-            stackgroup="one",
-            fillcolor="#789440",
-            hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
-            + "<b>Carbs:</b> %{y:.0f} kcal<br>"
-            + "<extra></extra>",
-        )
-    )
+    # Order: Protein, Saturated Fat, Other Fat, Carbs
 
     fig.add_trace(
         go.Scatter(
@@ -56,11 +41,26 @@ def create_macro_breakdown_figure(
             y=protein_cal,
             name="Protein",
             mode="lines",
-            line=dict(width=0, color="#E87722"),
+            line=dict(width=0, color="#2C4C5B"),
             stackgroup="one",
-            fillcolor="#E87722",
+            fillcolor="#2C4C5B",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Protein:</b> %{y:.0f} kcal<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=carbs_cal,
+            name="Carbohydrates",
+            mode="lines",
+            line=dict(width=0, color="#C8963E"),
+            stackgroup="one",
+            fillcolor="#C8963E",
+            hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
+            + "<b>Carbs:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
         )
     )
@@ -71,9 +71,9 @@ def create_macro_breakdown_figure(
             y=other_fat_cal,
             name="Other Fat",
             mode="lines",
-            line=dict(width=0, color="#4A9B8E"),
+            line=dict(width=0, color="#BF6B59"),
             stackgroup="one",
-            fillcolor="#4A9B8E",
+            fillcolor="#BF6B59",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Other Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -86,9 +86,9 @@ def create_macro_breakdown_figure(
             y=saturated_fat_cal,
             name="Saturated Fat",
             mode="lines",
-            line=dict(width=0, color="#A04000"),
+            line=dict(width=0, color="#E09F91"),
             stackgroup="one",
-            fillcolor="rgba(160, 64, 0, 0.7)",
+            fillcolor="rgba(224, 159, 145, 0.7)",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Saturated Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
