@@ -2,42 +2,50 @@
 /* Brand: Kaolin Paper, Sumi Iron Ink, Oxidized Brass, Matcha Stone, Baked Terracotta */
 
 /* Import Brand Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ==================== CSS Variables (Design Tokens) ==================== */
 :root {
-    /* Foundation Colors - Brand Palette */
+    /* Foundation Colors - Brand Palette (2026) */
     --background: #F2F0EB;           /* Kaolin White - paper base */
-    --surface: #FEFDFB;              /* Off-white paper - cards and panels */
-    --border: #A6A6A6;               /* Graphite - edges and dividers */
-    --border-hover: #7A7A7A;         /* Graphite darker - interactive states */
+    --surface: #FFFFFF;              /* Pure white - cards and panels (whiter for contrast) */
+    --border: #D4C5B0;               /* Lighter warm gray - edges and dividers */
+    --border-hover: #A0937D;         /* Darker warm gray - interactive states */
 
-    /* Brand & Actions - Pigments */
-    --primary: #BFA67D;              /* Oxidized Brass - primary actions */
-    --primary-hover: #9D8866;        /* Brass darker - hover states */
-    --primary-light: #EFE8DC;        /* Brass tinted - subtle backgrounds */
+    /* Brand & Actions - Pigments (New) */
+    --primary: #2C3E50;              /* Aizome Indigo - primary actions */
+    --primary-hover: #1F2A37;        /* Indigo darker - hover states */
+    --primary-light: #E8EEF5;        /* Indigo tinted - subtle backgrounds */
 
-    /* Text Hierarchy - Ink */
-    --text-main: #2B2B2B;            /* Sumi Iron - headings, critical data */
-    --text-body: #3F3F3F;            /* Sumi Iron lighter - body text */
+    /* Text Hierarchy - Ink (Darker for contrast) */
+    --text-main: #1A1A1A;            /* Sumi Iron - darker, higher contrast headings */
+    --text-body: #2B2B2B;            /* Sumi Iron - darker body text */
     --text-muted: #6B6B6B;           /* Graphite - labels, helper text */
     --text-disabled: #A0A0A0;        /* Graphite lighter - disabled states */
 
-    /* Semantic Colors - Brand pigments */
-    --success: #5B8C6A;              /* Matcha Stone - success states */
-    --success-bg: #E5EFE9;           /* Matcha tinted - success backgrounds */
-    --danger: #C47E68;               /* Baked Terracotta - destructive actions */
-    --danger-bg: #F4E5E0;            /* Terracotta tinted - error backgrounds */
-    --warning: #D4A574;              /* Brass accent - warnings */
-    --warning-bg: #F0E8DC;           /* Brass light - warning backgrounds */
+    /* Semantic Colors - Brand pigments (New) */
+    --success: #789440;              /* Wakatake Bamboo - success states */
+    --success-bg: #E9F0E0;           /* Bamboo tinted - success backgrounds */
+    --danger: #A04000;               /* Bengara Rust - destructive actions */
+    --danger-bg: #F5E6D3;            /* Rust tinted - error backgrounds */
+    --warning: #A04000;              /* Bengara Rust - warnings */
+    --warning-bg: #F5E6D3;           /* Rust light - warning backgrounds */
 
-    /* Macro Nutrient Colors - Brand pigment remapping */
-    --protein-text: #BFA67D;         /* Oxidized Brass - protein */
-    --protein-bg: #EFE8DC;           /* Brass tinted bg */
-    --carbs-text: #8A9A85;           /* Matcha Stone - carbs */
-    --carbs-bg: #EBF0E8;             /* Matcha tinted bg */
-    --fat-text: #C47E68;             /* Baked Terracotta - fat */
-    --fat-bg: #F4E5E0;               /* Terracotta tinted bg */
+    /* Nihonga Data Palette (New) */
+    --nihonga-indigo: #2C3E50;       /* Indigo - anchor data point */
+    --nihonga-persimmon: #E87722;    /* Persimmon - high contrast complement */
+    --nihonga-pine: #3D5941;         /* Pine - distinct from success color */
+    --nihonga-wisteria: #7B5FB8;     /* Wisteria - separation/accent */
+    --nihonga-mustard: #B8A900;      /* Mustard - legible yellow */
+    --nihonga-teal: #4A9B8E;         /* Teal - bridges blue and green */
+
+    /* Macro Nutrient Colors - Brand pigment remapping (New) */
+    --protein-text: #E87722;         /* Persimmon - protein */
+    --protein-bg: #FFF0E3;           /* Persimmon tinted bg */
+    --carbs-text: #789440;           /* Wakatake Bamboo - carbs */
+    --carbs-bg: #E9F0E0;             /* Bamboo tinted bg */
+    --fat-text: #A04000;             /* Bengara Rust - fat */
+    --fat-bg: #F5E6D3;               /* Rust tinted bg */
     --calories-text: #2B2B2B;        /* Sumi Iron - calories (neutral) */
     --calories-bg: #F2F0EB;          /* Kaolin - calories bg */
 
@@ -60,8 +68,8 @@
     --shadow-lg: inset 0 1px 3px rgba(0, 0, 0, 0.08);
 
     /* Typography - Brand fonts */
-    --font-display: 'Crimson Text', serif;                    /* Editorial serif */
-    --font-mono: 'IBM Plex Mono', monospace;                  /* Technical mono */
+    --font-display: 'Crimson Text', serif;                    /* Editorial serif for headings */
+    --font-mono: 'JetBrains Mono', monospace;                 /* Data & technical monospace */
     --font-primary: 'Crimson Text', 'Georgia', serif;         /* Default serif */
     --font-size-tiny: 11px;
     --font-size-xs: 12px;
@@ -85,6 +93,11 @@
 }
 
 /* ==================== Global Styles ==================== */
+html {
+    margin: 0;
+    padding: 0;
+}
+
 body {
     background-color: var(--background) !important;
     background-image: url('/assets/textures/kaolin-paper.png');
@@ -95,6 +108,8 @@ body {
     font-size: var(--font-size-base);
     line-height: 1.5;
     position: relative;
+    margin: 0;
+    padding: 0;
 }
 
 /* Paper grain overlay using CSS */
@@ -125,6 +140,16 @@ body::before {
     max-width: 1000px;
     margin: 0 auto;
     padding-top: 40px;
+}
+
+/* Main container needs margin-top to account for full-bleed navbar */
+.container, .container-fluid {
+    margin-top: 0;
+}
+
+/* App page wrapper spacing (keeps navbar flush to top) */
+.app-page-container {
+    padding-top: 4px;
 }
 
 /* Section Labels - Subtle, uppercase */
@@ -202,18 +227,23 @@ p {
 }
 
 /* ==================== Navigation Bar ==================== */
+/* "Book Binding" Header - Full-bleed anchoring */
 .navbar {
-    background-color: var(--surface) !important;
+    background-color: #E8E5D8 !important;  /* Kraft paper tone - slightly darker than background */
     border-bottom: 1px solid var(--border);
     box-shadow: none;
-    padding: 0.5rem 0 !important;
-    min-height: 56px;
-    margin-bottom: var(--space-xl) !important;
+    padding: 0.35rem 0 !important;
+    min-height: 44px;
+    margin-bottom: 0 !important;  /* Full-bleed to top */
+    width: 100vw;  /* Span full viewport width */
+    margin-left: calc(-50vw + 50%);  /* Center it */
+    position: relative;
+    margin-top: 0 !important;
 }
 
 .navbar-brand {
     font-family: var(--font-display);
-    font-size: var(--font-size-lg) !important;
+    font-size: 1.1rem !important;
     font-weight: var(--font-weight-semibold) !important;
     color: var(--text-main) !important;
     letter-spacing: 0.05em;
@@ -223,7 +253,7 @@ p {
     color: var(--text-muted) !important;
     font-weight: var(--font-weight-normal);
     font-size: var(--font-size-sm);
-    padding: 8px 12px !important;
+    padding: 4px 8px !important;
     border-radius: var(--radius-sm);
     transition: all 0.15s ease;
     margin: 0 2px;
@@ -244,19 +274,20 @@ p {
 .card {
     background-color: var(--surface) !important;
     border-radius: var(--radius-md) !important;
-    box-shadow: none !important;
-    border: 0.5px solid var(--border) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;  /* Subtle but visible shadow */
+    border: 1px solid var(--border) !important;  /* Thicker border for definition */
     margin-bottom: var(--space-xl);
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
     border-color: var(--border-hover);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 .card-header {
     background-color: transparent !important;
-    border-bottom: 0.5px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;  /* Thicker border */
     padding: var(--space-lg) var(--space-xl) !important;
     font-weight: var(--font-weight-medium);
 }
@@ -275,15 +306,17 @@ p {
 /* Summary Statistics Cards */
 .summary-card {
     background-color: var(--surface);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     border-radius: var(--radius-md);
     padding: var(--space-lg);
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .summary-card:hover {
     border-color: var(--border-hover);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .summary-card h3 {
@@ -329,10 +362,10 @@ button, .btn {
     justify-content: center;
 }
 
-/* Primary Button - Brass Coin style */
+/* Primary Button - Aizome Indigo style */
 .btn-primary, button.btn-primary {
     background-color: var(--primary) !important;
-    border: 0.5px solid var(--primary-hover) !important;
+    border: 1px solid var(--primary-hover) !important;
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3) !important;
     color: white !important;
 }
@@ -350,41 +383,41 @@ button, .btn {
 /* Warning Button */
 .btn-warning {
     background-color: var(--warning) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;
     color: white !important;
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-warning:hover {
-    background-color: #C49468 !important;
+    background-color: #8B3200 !important;
 }
 
 /* Success Button */
 .btn-success {
     background-color: var(--success) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-success:hover {
-    background-color: #4F7A5C !important;
+    background-color: #657A36 !important;
 }
 
 /* Danger Button */
 .btn-danger {
     background-color: var(--danger) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
 }
 
 .btn-danger:hover {
-    background-color: #B56F59 !important;
+    background-color: #8B3400 !important;
 }
 
 /* Secondary/Ghost Button */
 .btn-secondary, .btn-outline-primary, .btn-ghost {
     background-color: var(--surface) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;
     color: var(--text-body) !important;
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3) !important;
 }
@@ -420,7 +453,7 @@ textarea,
 .form-select {
     height: 36px;
     background-color: var(--surface) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;  /* Thicker border */
     border-radius: var(--radius-sm) !important;
     padding: 8px 12px !important;
     font-size: var(--font-size-sm) !important;
@@ -484,7 +517,7 @@ input:disabled,
 .Select-control,
 .dash-dropdown .Select-control {
     background-color: var(--surface) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;  /* Thicker border */
     border-radius: var(--radius-sm) !important;
     min-height: 36px !important;
     box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05) !important;
@@ -560,7 +593,7 @@ input:disabled,
 /* ==================== Plotly Graph Containers ==================== */
 .graph-container {
     background-color: var(--surface);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     border-radius: var(--radius-md);
     padding: var(--space-xl);
     margin-bottom: var(--space-xl);
@@ -576,7 +609,7 @@ input:disabled,
 /* Data list container */
 .data-list {
     background: var(--surface);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     border-radius: var(--radius-md);
     overflow: hidden;
 }
@@ -587,7 +620,7 @@ input:disabled,
     align-items: center;
     justify-content: space-between;
     padding: var(--space-md) var(--space-lg);
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);  /* Thicker border */
     background: var(--surface);
     transition: background 0.1s ease;
 }
@@ -633,7 +666,7 @@ input:disabled,
 .list-group-item {
     background-color: var(--surface) !important;
     border: none !important;
-    border-bottom: 0.5px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;  /* Thicker border */
     padding: var(--space-md) var(--space-lg) !important;
     margin-bottom: 0 !important;
     border-radius: 0 !important;
@@ -662,7 +695,7 @@ input:disabled,
     justify-content: space-between;
     padding: var(--space-md) var(--space-lg);
     background: var(--surface);
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);  /* Thicker border */
     transition: background 0.1s ease;
 }
 
@@ -822,6 +855,13 @@ input:disabled,
     flex-wrap: wrap;
 }
 
+.daily-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .daily-header-left h1 {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
@@ -858,7 +898,7 @@ input:disabled,
 .receipt-list {
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     overflow: hidden;
 }
 
@@ -867,7 +907,7 @@ input:disabled,
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);  /* Thicker border */
     transition: background 0.1s ease;
 }
 
@@ -893,6 +933,10 @@ input:disabled,
     font-weight: bold;
 }
 
+.ingredient-item:hover .delete-icon {
+    color: var(--danger);
+}
+
 /* ==================== Master-Detail Layout ==================== */
 .master-detail {
     display: flex;
@@ -911,7 +955,7 @@ input:disabled,
     width: 60%;
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     padding: 24px;
     overflow-y: auto;
 }
@@ -921,7 +965,7 @@ input:disabled,
     flex: 1;
     background: var(--surface);
     border-radius: var(--radius-md);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     overflow-y: auto;
 }
 
@@ -930,7 +974,7 @@ input:disabled,
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);  /* Thicker border */
     cursor: pointer;
     transition: background 0.1s ease;
 }
@@ -944,7 +988,7 @@ input:disabled,
 }
 
 .master-list-item.selected {
-    background: var(--primary-light);
+    background: #E8EEF5;  /* Aizome Indigo tinted background */
     border-left: 3px solid var(--primary);
 }
 
@@ -1077,7 +1121,7 @@ input:disabled,
 .DateRangePickerInput {
     background-color: var(--surface) !important;
     border-radius: var(--radius-sm) !important;
-    border: 0.5px solid var(--border) !important;
+    border: 1px solid var(--border) !important;  /* Thicker border */
 }
 
 .DateRangePickerInput:hover {
@@ -1111,7 +1155,7 @@ input:disabled,
 .control-bar,
 .bg-light.rounded {
     background-color: var(--surface) !important;
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);  /* Thicker border */
     border-radius: var(--radius-md) !important;
     padding: var(--space-md) var(--space-lg);
     margin-bottom: var(--space-xl);
@@ -1478,4 +1522,334 @@ input:disabled,
 
 .page-padding-top-20 {
     padding-top: 20px;
+}
+/* ==================== Mise-en-place 3-Column Layout ==================== */
+/* Daily Entry Interface - 3-column grid */
+.mise-en-place-container {
+    display: grid;
+    grid-template-columns: 37.5% 37.5% 25%;  /* Ingredients | Summary | Logbook */
+    gap: 20px;
+    width: 100%;
+}
+
+/* In the 3-column entry layout, rely on flex gaps for spacing */
+.mise-en-place-container .section-label {
+    margin-bottom: 0;
+}
+
+/* Column 1: The Ingredients (Input & Edit) */
+.mise-ingredients-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ingredients-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-top: 8px;
+}
+
+#food-input-container:not(:empty) {
+    margin-bottom: 8px;
+}
+
+#calculated-nutrients:not(:empty) {
+    margin-bottom: 6px;
+}
+
+#entry-message:not(:empty) {
+    margin-bottom: 6px;
+}
+
+.ingredient-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s ease;
+    gap: 12px;
+    row-gap: 0;
+}
+
+.ingredient-item:last-child {
+    border-bottom: none;
+}
+
+.ingredient-item:hover {
+    padding-left: 4px;
+    padding-right: 4px;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+}
+
+.ingredient-item-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.ingredient-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.ingredient-item-weight {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.ingredient-name {
+    font-family: var(--font-mono);  /* Monospace for data */
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.3;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.ingredient-weight {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.ingredient-calories {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 600;
+    min-width: 65px;
+    text-align: right;
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.ingredient-macros {
+    display: none;  /* Hide macros by default */
+}
+
+.ingredient-item.expanded .ingredient-macros {
+    display: block;
+}
+
+/* Column 2: The Summary (The Focus) */
+.mise-summary-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calories-remaining-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.calories-remaining-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.calories-remaining-number {
+    font-family: var(--font-display);
+    font-size: 3.5rem;  /* Large */
+    font-weight: 700;
+    color: var(--primary);  /* Aizome Indigo */
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.calorie-status-indicator {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.calories-remaining-number.target-exceeded {
+    color: var(--danger);  /* Bengara Rust */
+}
+
+.calories-remaining-number.target-met {
+    color: var(--success);  /* Wakatake Bamboo */
+}
+
+.macros-visualization {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.macros-visualization-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.macros-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.macro-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.macro-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.macro-bar-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-body);
+    font-family: var(--font-mono);
+}
+
+.macro-bar-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-main);
+    font-family: var(--font-mono);
+}
+
+.macro-bar-indicator {
+    font-size: 12px;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* Column 3: The Logbook (Context) */
+.mise-logbook-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.weight-entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.weight-entry-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.weight-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.weight-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weight-input-group label {
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 70px;
+    font-weight: 500;
+}
+
+.weight-input-group input {
+    flex: 1;
+    font-family: var(--font-mono);
+}
+
+.weight-sparkline {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.weight-sparkline-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.weight-trend-graph {
+    width: 100%;
+    height: 80px;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .mise-en-place-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .mise-ingredients-column,
+    .mise-summary-column,
+    .mise-logbook-column {
+        width: 100%;
+    }
+
+    .calories-remaining-number {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .mise-en-place-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .calories-remaining-number {
+        font-size: 2rem;
+    }
+
+    .ingredient-item:hover {
+        padding-left: 0;
+        padding-right: 0;
+    }
 }

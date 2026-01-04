@@ -28,13 +28,13 @@ def create_normalized_nutrients_figure(
     # Create figure
     fig = go.Figure()
 
-    # Define nutrient mapping with brand palette - unique colors
+    # Define nutrient mapping with brand palette - Nihonga colors for distinction
     nutrient_config = {
-        "saturated_fat_pct": ("Saturated Fat", "#A67D5B"),  # Darker brass
-        "sugar_pct": ("Sugar", "#D4A574"),  # Light brass - distinct from saturated fat
-        "fibre_pct": ("Fibre", "#6B8B6F"),  # Darker matcha green
-        "salt_pct": ("Salt", "#BFA67D"),  # Brass
-        "calcium_pct": ("Calcium", "#A0B89D"),  # Lighter matcha green - distinct from fibre
+        "saturated_fat_pct": ("Saturated Fat", "#A04000"),  # Bengara Rust
+        "sugar_pct": ("Sugar", "#E87722"),  # Persimmon
+        "fibre_pct": ("Fibre", "#789440"),  # Wakatake Bamboo
+        "salt_pct": ("Salt", "#2C3E50"),  # Aizome Indigo
+        "calcium_pct": ("Calcium", "#4A9B8E"),  # Teal
     }
 
     # Add a trace for each nutrient
@@ -82,7 +82,7 @@ def create_normalized_nutrients_figure(
         template="plotly_white",
         paper_bgcolor="#FEFDFB",
         plot_bgcolor="#F2F0EB",
-        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
         title_font=dict(family="'Crimson Text', serif", size=13),
         showlegend=True,
@@ -91,15 +91,15 @@ def create_normalized_nutrients_figure(
     # Update axes with brand styling
     fig.update_xaxes(
         showgrid=False,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
     fig.update_yaxes(
         rangemode="tozero",
-        gridcolor="#A6A6A6",
+        gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
 

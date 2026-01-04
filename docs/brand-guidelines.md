@@ -1,41 +1,77 @@
-Brand Guidelines: Nutritional
-Version 2.0 | Concept: "The Precision Tool"
+Brand Guidelines
+Concept: "The Precision Tool"
+
 1. Brand Philosophy
-Nutritional is not a "tracker." Just as a master chef respects their knife, or a barista respects their portafilter, our user respects their biometric data. The brand rejects the gamified noise of modern apps in favor of the quiet, heavy confidence of a well-made tool.
+"Nutritional" is not a gamified tracker; it is a precision instrument. Just as a master chef respects their knife, or a carpenter respects their caliper, our user respects their biometric data. The brand rejects the noise of modern applications in favor of the quiet, heavy confidence of a well-made tool.
+
 Core Pillars:
-Wabi-Sabi Precision: The data is exact, but the presentation feels organic. Perfect numbers on textured paper.
-Material Honesty: Digital elements should feel like they have physical weight and friction.
-Zen Essentialism: If it isn't necessary, cut it away. White space is active, not passive.
+
+Wabi-Sabi Precision: The data is mathematically exact, but the presentation feels organic. We aim for the aesthetic of perfect numbers recorded on textured paper.
+
+Material Honesty: Digital elements should feel like they have physical weight and friction. Buttons press; they do not just blink.
+
+Zen Essentialism: If it isn't necessary, cut it away. White space (Ma) is an active design element, not empty space.
 
 2. Visual Identity
-A. The "Material" Palette (Oxidized & Earthen)
-We are moving away from standard "hex codes" and thinking in terms of materials. Colors should feel like they were ground from stone or forged in metal, not picked from a color wheel.
-Canvas (Background): Kaolin White (#F2F0EB)
-Texture: Not a flat fill. A very subtle, high-res texture of unglazed porcelain or heavy washi paper.
-Primary Ink (Text): Sumi Iron (#2B2B2B)
-Tone: A warm, soft charcoal. Never pure #000000. It should look like wet ink drying on paper.
-Accent 1 (Proteins/Structure): Oxidized Brass (#BFA67D)
-Vibe: Dull gold, matte finish. Used for headers and primary distinctors.
-Accent 2 (Vegetals/Carbs): Matcha Stone (#8A9A85)
-Vibe: Desaturated, earthy green. Like moss on a rock or dried tea leaves.
-Accent 3 (Alerts/Fats): Baked Terracotta (#C47E68)
-Vibe: Warm clay. Used sparingly for warnings or fat metrics.
-The "Edge" (Borders/Dividers): Graphite (#A6A6A6)
-Usage: Very thin, precise lines. 0.5px stroke weight.
+A. The Material Palette
+We do not use standard "hex codes" in isolation; we think in terms of materials. Colors should feel ground from stone, forged in metal, or dyed from plants.
 
-B. Typography: "The Architect's Journal"
-The pairing must suggest a blend of human hand and machine precision.
-Primary (Headings/Display): Editorial New or GT Super Display.
-Why: An elegant serif that feels like high-end print editorial. It brings the "Japanese Calligraphy" feel—variable stroke width, human touch.
+The Canvas (Background)
+
+Name: Kaolin White
+
+Ref: #F2F0EB
+
+Texture: Not a flat fill. A very subtle, high-resolution texture of unglazed porcelain or heavy washi paper.
+
+Usage: The universal background.
+
+The Ink (Typography)
+
+Name: Sumi Iron
+
+Ref: #2B2B2B
+
+Tone: A warm, soft charcoal. Never pure black (#000000).
+
+Rule: High contrast is essential. It must look like wet ink drying on paper, not gray digital text.
+
+The Functional UI Colors (Interface actions) These colors guide user interaction. They are derived from traditional Japanese dyes.
+
+Primary Action: Aizome Indigo (#2C3E50 - Deep Blue).
+
+Usage: Active tabs, "Save" buttons, primary navigation. Represents durability and work.
+
+Success / Target Met: Wakatake Bamboo (#789440 - Vibrant Yellow-Green).
+
+Usage: Checkmarks, progress bars reaching 100%. Represents fresh growth. (Note: We avoid red for success).
+
+Warning / Delete: Bengara Rust (#A04000 - Reddish Brown).
+
+Usage: Error messages, delete actions, caloric overages. Represents warning without alarmism.
+
+B. The "Nihonga" Data Palette
+For charts, graphs, and categorical differentiation, we use a set of mineral pigment colors. These are selected for high contrast against each other and legibility on the Kaolin background. We do not assign colors based on "feeling" (e.g., heavy colors for heavy weight), but on visual distinction.
+
+Indigo (Blue) – The anchor data point.
+
+Persimmon (Orange) – High contrast complement to Blue.
+
+Pine (Dark Green) – Distinct from the "Bamboo" success color.
+
+Wisteria (Purple) – Used for separation.
+
+Mustard (Dark Yellow) – Legible on white (unlike pale lemon).
+
+Teal/Verdigris (Blue-Green) – Bridges the gap between blue and green.
+
+C. Typography
+The font pairing suggests a blend of human hand and machine precision.
+
+Primary (Headings): Editorial New or GT Super Display.
+
+Role: Brings the "Calligraphy" feel. Elegant, variable stroke width.
+
 Secondary (Data/UI): Berkeley Mono or Suisse Int'l Mono.
-Why: A strictly gridded monospace font. This represents the "Weber" engineering aspect. It aligns numbers perfectly in vertical columns.
 
-C. Texture & Interaction (The "Weber" Influence)
-Glass & Blur: Use "frosted glass" effects (background blur) over the textured background to create depth, mimicking looking through a laboratory beaker.
-Tactility: Buttons shouldn’t just change color; they should feel like they "depress." Use subtle inner shadows to suggest engraving or debossing rather than drop shadows (which suggest floating).
-Imperfection: Lines (dividers) should have a slight "ink bleed" quality at high zoom, or a very subtle jitter, preventing them from looking like sterile vectors.
-
-Before finalizing any design, ask these three questions:
-Does it look printed? If the UI elements look too "glowy" or digital, flatten them. Add noise. It should feel like ink on fiber.
-Is the materials list consistent? Use the metaphors: Is this paper, ink, brass, or stone? If it looks like plastic, delete it.
-Is it quiet? The design should whisper. If a color is screaming for attention, desaturate it until it feels like a natural pigment.
+Role: The "Weber" engineering aspect. Strictly gridded. Aligns numbers perfectly in vertical columns.

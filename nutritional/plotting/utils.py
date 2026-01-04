@@ -27,7 +27,7 @@ def apply_common_layout(
     fig.update_layout(
         height=height,
         template="plotly_white",
-        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         hovermode="x unified",
         plot_bgcolor="#F2F0EB",
         paper_bgcolor="#FEFDFB",
@@ -35,14 +35,14 @@ def apply_common_layout(
     )
 
     fig.update_xaxes(
-        gridcolor="#A6A6A6",
+        gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
         zeroline=False,
     )
 
     fig.update_yaxes(
-        gridcolor="#A6A6A6",
+        gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
         zeroline=False,
@@ -81,7 +81,7 @@ def add_date_range_selector(fig: go.Figure) -> go.Figure:
         rangeselector=dict(
             buttons=create_date_selector_buttons(),
             bgcolor="#F2F0EB",
-            activecolor="#BFA67D",
+            activecolor="#2C3E50",
         ),
         rangeslider=dict(visible=False),
     )

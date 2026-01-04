@@ -52,14 +52,14 @@ def create_calories_weight_figure(
         secondary_y=False,
     )
 
-    # Add morning weight trace (secondary y-axis) with Matcha Stone
+    # Add morning weight trace (secondary y-axis) with Wakatake Bamboo
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_morning_avg,
             name=f"Morning Weight ({rolling_window}-day avg)",
             line=dict(
-                color="#8A9A85",
+                color="#789440",
                 width=1.5,
                 dash="dashdot",
                 shape="spline",
@@ -72,13 +72,13 @@ def create_calories_weight_figure(
         secondary_y=True,
     )
 
-    # Add evening weight trace (secondary y-axis) with Matcha Stone
+    # Add evening weight trace (secondary y-axis) with Wakatake Bamboo
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=weight_evening_avg,
             name=f"Evening Weight ({rolling_window}-day avg)",
-            line=dict(color="#8A9A85", width=1.5, dash="dash", shape="spline"),
+            line=dict(color="#789440", width=1.5, dash="dash", shape="spline"),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Evening:</b> %{y:.1f} kg<br>"
@@ -110,7 +110,7 @@ def create_calories_weight_figure(
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor="rgba(138, 154, 133, 0.08)",
+                fillcolor="rgba(120, 148, 64, 0.08)",
                 name="Weight Range",
                 hoverinfo="skip",
             ),
@@ -121,17 +121,17 @@ def create_calories_weight_figure(
     fig.update_xaxes(
         title_text="Date",
         showgrid=False,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
 
     fig.update_yaxes(
         title_text="Calories (kcal)",
         range=[y1_min, y1_max],
-        gridcolor="#A6A6A6",
+        gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=False,
     )
@@ -140,7 +140,7 @@ def create_calories_weight_figure(
         title_text="Weight (kg)",
         range=[y2_min, y2_max],
         showgrid=False,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=True,
     )
@@ -153,7 +153,7 @@ def create_calories_weight_figure(
         template="plotly_white",
         paper_bgcolor="#FEFDFB",
         plot_bgcolor="#F2F0EB",
-        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
         title_font=dict(family="'Crimson Text', serif", size=13),
         showlegend=True,

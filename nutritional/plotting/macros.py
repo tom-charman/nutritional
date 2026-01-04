@@ -41,9 +41,9 @@ def create_macro_breakdown_figure(
             y=carbs_cal,
             name="Carbohydrates",
             mode="lines",
-            line=dict(width=0, color="#8A9A85"),
+            line=dict(width=0, color="#789440"),
             stackgroup="one",
-            fillcolor="#8A9A85",
+            fillcolor="#789440",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Carbs:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -56,9 +56,9 @@ def create_macro_breakdown_figure(
             y=protein_cal,
             name="Protein",
             mode="lines",
-            line=dict(width=0, color="#BFA67D"),
+            line=dict(width=0, color="#E87722"),
             stackgroup="one",
-            fillcolor="#BFA67D",
+            fillcolor="#E87722",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Protein:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -71,9 +71,9 @@ def create_macro_breakdown_figure(
             y=other_fat_cal,
             name="Other Fat",
             mode="lines",
-            line=dict(width=0, color="#C47E68"),
+            line=dict(width=0, color="#4A9B8E"),
             stackgroup="one",
-            fillcolor="#C47E68",
+            fillcolor="#4A9B8E",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Other Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -86,9 +86,9 @@ def create_macro_breakdown_figure(
             y=saturated_fat_cal,
             name="Saturated Fat",
             mode="lines",
-            line=dict(width=0, color="#C47E68"),
+            line=dict(width=0, color="#A04000"),
             stackgroup="one",
-            fillcolor="rgba(196, 126, 104, 0.7)",
+            fillcolor="rgba(160, 64, 0, 0.7)",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
             + "<b>Saturated Fat:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
@@ -105,7 +105,7 @@ def create_macro_breakdown_figure(
         template="plotly_white",
         paper_bgcolor="#FEFDFB",
         plot_bgcolor="#F2F0EB",
-        font=dict(family="'IBM Plex Mono', monospace", size=11, color="#2B2B2B"),
+        font=dict(family="'JetBrains Mono', monospace", size=11, color="#2B2B2B"),
         margin=dict(l=60, r=20, t=40, b=40),
         title_font=dict(family="'Crimson Text', serif", size=13),
         showlegend=True,
@@ -114,15 +114,15 @@ def create_macro_breakdown_figure(
     # Update axes with brand styling
     fig.update_xaxes(
         showgrid=False,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
     fig.update_yaxes(
         rangemode="tozero",
-        gridcolor="#A6A6A6",
+        gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
-        linecolor="#A6A6A6",
+        linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
 
