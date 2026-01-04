@@ -1497,11 +1497,14 @@ def save_morning_weight(morning_weight, selected_date_str):
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
+    # Treat 0 as None (invalid weight)
+    morning_weight_kg = None if morning_weight == 0 or morning_weight is None else morning_weight
+
     # Update only measurements without touching entries
-    storage.update_measurements(entry_date, morning_weight_kg=morning_weight)
+    storage.update_measurements(entry_date, morning_weight_kg=morning_weight_kg)
 
     # Update persistent store to keep in sync
-    return no_update, morning_weight
+    return no_update, morning_weight_kg
 
 
 @callback(
@@ -1521,8 +1524,11 @@ def save_evening_weight(evening_weight, selected_date_str):
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
+    # Treat 0 as None (invalid weight)
+    evening_weight_kg = None if evening_weight == 0 or evening_weight is None else evening_weight
+
     # Update only measurements without touching entries
-    storage.update_measurements(entry_date, evening_weight_kg=evening_weight)
+    storage.update_measurements(entry_date, evening_weight_kg=evening_weight_kg)
 
     # Update persistent store to keep in sync
-    return no_update, evening_weight
+    return no_update, evening_weight_kg
