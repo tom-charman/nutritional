@@ -133,7 +133,8 @@ def prepare_macro_breakdown_data(
     Returns:
         dict with keys:
             - 'dates': np.array
-            - 'carbs_cal': np.array
+            - 'other_carbs_cal': np.array
+            - 'sugar_cal': np.array
             - 'protein_cal': np.array
             - 'other_fat_cal': np.array
             - 'saturated_fat_cal': np.array
@@ -144,6 +145,7 @@ def prepare_macro_breakdown_data(
     required_cols = [
         "Protein g",
         "Carbohydrates g",
+        "Sugar g",
         "Fat g",
         "Saturated Fat g",
         "Energy kcal",
@@ -156,6 +158,7 @@ def prepare_macro_breakdown_data(
     dates = raw_data["dates"]
     protein_g = raw_data["data"]["Protein g"]
     carbs_g = raw_data["data"]["Carbohydrates g"]
+    sugar_g = raw_data["data"]["Sugar g"]
     fat_g = raw_data["data"]["Fat g"]
     saturated_fat_g = raw_data["data"]["Saturated Fat g"]
     total_calories = raw_data["data"]["Energy kcal"]
@@ -172,12 +175,30 @@ def prepare_macro_breakdown_data(
         cal_fat,
     )
 
+    # Calculate sugar and other carbs calories
+    carbs_cal = macro_cals["carbs_cal"]
+    sugar_cal = np.where(carbs_g > 0, (sugar_g / carbs_g) * carbs_cal, 0)
+    other_carbs_cal = carbs_cal - sugar_cal
+
     # Interpolate each macro to daily and apply rolling average
     result_dates = None
     result_data = {}
 
-    for key in ["protein_cal", "carbs_cal", "saturated_fat_cal", "other_fat_cal"]:
-        interp_dates, interp_values = interpolate_daily(dates, macro_cals[key])
+    for key in [
+        "protein_cal",
+        "other_carbs_cal",
+        "sugar_cal",
+        "saturated_fat_cal",
+        "other_fat_cal",
+    ]:
+        if key == "other_carbs_cal":
+            values = other_carbs_cal
+        elif key == "sugar_cal":
+            values = sugar_cal
+        else:
+            values = macro_cals[key]
+
+        interp_dates, interp_values = interpolate_daily(dates, values)
         rolling_values = rolling_average(interp_values, rolling_window)
 
         if result_dates is None:
@@ -187,7 +208,8 @@ def prepare_macro_breakdown_data(
 
     return {
         "dates": result_dates,
-        "carbs_cal": result_data["carbs_cal"],
+        "other_carbs_cal": result_data["other_carbs_cal"],
+        "sugar_cal": result_data["sugar_cal"],
         "protein_cal": result_data["protein_cal"],
         "other_fat_cal": result_data["other_fat_cal"],
         "saturated_fat_cal": result_data["saturated_fat_cal"],

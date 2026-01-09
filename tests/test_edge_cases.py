@@ -120,6 +120,7 @@ def test_prepare_macro_breakdown_data_with_zeros(sample_dates):
             "Energy kcal": np.array([2000, 2100, 1900, 2050, 2200]),
             "Protein g": np.array([0, 0, 0, 0, 0]),  # All zeros
             "Carbohydrates g": np.array([200, 210, 190, 205, 215]),
+            "Sugar g": np.array([50, 52, 48, 51, 53]),
             "Fat g": np.array([50, 52, 48, 51, 53]),
             "Saturated Fat g": np.array([20, 22, 18, 21, 23]),
         },
@@ -127,6 +128,7 @@ def test_prepare_macro_breakdown_data_with_zeros(sample_dates):
             "Energy kcal",
             "Protein g",
             "Carbohydrates g",
+            "Sugar g",
             "Fat g",
             "Saturated Fat g",
         ],

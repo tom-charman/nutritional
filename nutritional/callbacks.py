@@ -4,6 +4,8 @@ Dash callback functions for interactivity.
 Handles data loading, plot updates, and summary statistics based on user interactions.
 """
 
+from datetime import date, timedelta
+
 import numpy as np
 from dash import Input, Output, callback
 
@@ -92,31 +94,6 @@ def load_data(n_clicks):
 
 @callback(
     [
-        Output("date-range-picker", "start_date"),
-        Output("date-range-picker", "end_date"),
-    ],
-    Input("data-store", "data"),
-    prevent_initial_call=False,
-)
-def set_initial_date_range(stored_data):
-    """
-    Set date picker range to match data extent.
-
-    Args:
-        stored_data: Data from store
-
-    Returns:
-        Tuple of (start_date, end_date) strings
-    """
-    if not stored_data:  # pragma: no cover
-        return None, None
-
-    dates = stored_data["dates"]
-    return dates[0], dates[-1]
-
-
-@callback(
-    [
         Output("calories-weight-plot", "figure"),
         Output("macro-breakdown-plot", "figure"),
         Output("nutrients-rdi-plot", "figure"),
@@ -127,32 +104,25 @@ def set_initial_date_range(stored_data):
         Output("data-source-info", "children"),
         Output("loading-output", "children"),
     ],
-    [
-        Input("data-store", "data"),
-        Input("date-range-picker", "start_date"),
-        Input("date-range-picker", "end_date"),
-        Input("rolling-window-dropdown", "value"),
-    ],
+    [Input("data-store", "data")],
 )
-def update_dashboard(stored_data, start_date, end_date, rolling_window):
+def update_dashboard(stored_data, start_date=None, end_date=None, rolling_window=None):
     """
     Update all plots and summary statistics.
 
     Triggered when:
     - Data is loaded/refreshed
-    - Date range changes
-    - Rolling window changes
+    - (No user controls; uses default range)
 
     Args:
         stored_data: Data from store
-        start_date: Start date string (YYYY-MM-DD)
-        end_date: End date string (YYYY-MM-DD)
-        rolling_window: Window size in days
-
+        (Date range is derived from the loaded data)
     Returns:
         Tuple of (fig1, fig2, fig3, cal_stat, weight_stat, protein_stat,
                  data_points, source_info, loading_div)
     """
+    # Always use 30 days (UI selector removed)
+    rolling_window = 30
     # Handle empty data
     if not stored_data:
         empty_fig = create_empty_figure("No data available")
@@ -171,13 +141,11 @@ def update_dashboard(stored_data, start_date, end_date, rolling_window):
     # Deserialize data
     raw_data = deserialize_data(stored_data)
 
-    # Filter by date range if specified
-    if start_date and end_date:
-        start = np.datetime64(start_date, "D")
-        end = np.datetime64(end_date, "D")
-        filtered_data = filter_by_date_range(raw_data, start, end)
-    else:
-        filtered_data = raw_data
+    # Default range: full available data, capped to yesterday (today is often incomplete)
+    start = raw_data["dates"][0]
+    yesterday = np.datetime64(date.today() - timedelta(days=1), "D")
+    end = min(raw_data["dates"][-1], yesterday)
+    filtered_data = filter_by_date_range(raw_data, start, end)
 
     # Check if we have data after filtering
     if len(filtered_data["dates"]) == 0:
@@ -216,9 +184,11 @@ def update_dashboard(stored_data, start_date, end_date, rolling_window):
         )
 
     # Create figures
-    fig1 = create_calories_weight_figure(cal_weight_data, COLOR_PALETTE)
-    fig2 = create_macro_breakdown_figure(macro_data, COLOR_PALETTE)
-    fig3 = create_normalized_nutrients_figure(nutrients_data, COLOR_PALETTE)
+    fig1 = create_calories_weight_figure(cal_weight_data, COLOR_PALETTE, rolling_window=30)
+    fig2 = create_macro_breakdown_figure(macro_data, COLOR_PALETTE, rolling_window=30)
+    fig3 = create_normalized_nutrients_figure(
+        nutrients_data, COLOR_PALETTE, RDI_GUIDELINES, rolling_window=30
+    )
 
     # Calculate summary statistics
     stats = calculate_summary_statistics(filtered_data)

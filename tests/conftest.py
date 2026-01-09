@@ -59,6 +59,7 @@ def sample_macro_data():
     return {
         "protein": np.array([80.0, 85.0, 90.0, 87.0, 82.0]),
         "carbs": np.array([250.0, 260.0, 270.0, 265.0, 255.0]),
+        "sugar": np.array([50.0, 55.0, 60.0, 57.0, 52.0]),
         "fat": np.array([70.0, 75.0, 80.0, 77.0, 72.0]),
         "saturated_fat": np.array([20.0, 22.0, 24.0, 23.0, 21.0]),
     }
@@ -89,6 +90,7 @@ def minimal_data_dict(sample_dates, sample_energy_data, sample_weight_data, samp
             "Energy kcal": sample_energy_data,
             "Protein g": sample_macro_data["protein"],
             "Carbohydrates g": sample_macro_data["carbs"],
+            "Sugar g": sample_macro_data["sugar"],
             "Fat g": sample_macro_data["fat"],
             "Saturated Fat g": sample_macro_data["saturated_fat"],
             "Weight Kg (Morning)": sample_weight_data["morning"],
@@ -98,6 +100,7 @@ def minimal_data_dict(sample_dates, sample_energy_data, sample_weight_data, samp
             "Energy kcal",
             "Protein g",
             "Carbohydrates g",
+            "Sugar g",
             "Fat g",
             "Saturated Fat g",
             "Weight Kg (Morning)",

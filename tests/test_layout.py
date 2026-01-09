@@ -26,14 +26,15 @@ def test_layout_contains_header():
 
 
 def test_layout_contains_controls():
-    """Layout should contain control components."""
+    """Layout should not contain removed controls."""
     from nutritional.layout import get_layout
 
     layout = get_layout()
     layout_str = str(layout)
 
-    # Should have some control elements
-    assert "rolling-window" in layout_str or "window" in layout_str.lower()
+    # Rolling window selector and date picker were removed
+    assert "rolling-window-dropdown" not in layout_str
+    assert "date-range-picker" not in layout_str
 
 
 def test_layout_contains_graph_placeholders():

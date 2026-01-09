@@ -75,8 +75,8 @@ def test_create_macro_breakdown_figure_has_stacked_traces(minimal_data_dict, col
     plot_data = prepare_macro_breakdown_data(minimal_data_dict, rolling_window=3)
     fig = create_macro_breakdown_figure(plot_data, color_palette)
 
-    # Should have 4 traces (protein, carbs, other fat, saturated fat)
-    assert len(fig.data) == 4
+    # Should have 5 traces (protein, other carbs, sugar, other fat, saturated fat)
+    assert len(fig.data) == 5
 
 
 # Test create_normalized_nutrients_figure
@@ -91,7 +91,7 @@ def test_create_normalized_nutrients_figure_returns_figure(
     plot_data = prepare_normalized_nutrients_data(
         data_dict_with_nutrients, rdi_guidelines, rolling_window=3
     )
-    fig = create_normalized_nutrients_figure(plot_data, color_palette)
+    fig = create_normalized_nutrients_figure(plot_data, color_palette, rdi_guidelines)
 
     assert isinstance(fig, go.Figure)
 
@@ -105,7 +105,7 @@ def test_create_normalized_nutrients_figure_has_multiple_traces(
     plot_data = prepare_normalized_nutrients_data(
         data_dict_with_nutrients, rdi_guidelines, rolling_window=3
     )
-    fig = create_normalized_nutrients_figure(plot_data, color_palette)
+    fig = create_normalized_nutrients_figure(plot_data, color_palette, rdi_guidelines)
 
     # Should have traces for each nutrient (at least 1)
     assert len(fig.data) >= 1
