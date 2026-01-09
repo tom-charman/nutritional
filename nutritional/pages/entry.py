@@ -14,6 +14,8 @@ from nutritional.auth_utils import (
 )
 from nutritional.data_entry.calculator import calculate_nutrients
 from nutritional.data_entry.models import (
+    NUTRIENT_FIELD_INFO,
+    NUTRIENT_INPUT_ORDER,
     DailyData,
     DailyTargets,
     FoodEntry,
@@ -28,8 +30,37 @@ dash.register_page(__name__, path="/entry", title="Daily Entry")
 storage = SQLModelStorage()
 
 
+def create_target_input(field):
+    """Create a target input element for the given nutrient field."""
+    target_id = f"target-{field.replace('_', '-')}"
+    mode_id = f"mode-{field.replace('_', '-')}"
+    step_value = 10 if field == "energy_kcal" else (0.1 if field in ["salt_g", "calcium_mg"] else 1)
+    return html.Div(
+        [
+            html.Label(NUTRIENT_FIELD_INFO[field]["label"]),
+            dbc.InputGroup(
+                [
+                    dbc.Input(
+                        id=target_id,
+                        type="number",
+                        min=0,
+                        step=step_value,
+                    ),
+                    dbc.Select(
+                        id=mode_id,
+                        options=[
+                            {"label": "Target", "value": "target"},
+                            {"label": "Limit", "value": "limit"},
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        className="compact-input",
+    )
+
+
 def get_entry_layout():
-    """Return the entry form layout."""
     return dbc.Container(
         [
             # Hidden trigger to reload data when page is visited
@@ -209,283 +240,13 @@ def get_entry_layout():
                                         "(maximum to stay under) for each nutrient.",
                                         className="text-muted mb-3",
                                     ),
-                                    # Two-column layout for inputs
-                                    dbc.Row(
+                                    # Grid layout for inputs
+                                    html.Div(
                                         [
-                                            # Left column
-                                            dbc.Col(
-                                                [
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Calories (kcal)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-energy",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=10,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-energy",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Fat (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-fat",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-fat",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Saturated Fat (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-saturated-fat",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-saturated-fat",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Carbohydrates (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-carbohydrates",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-carbohydrates",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Sugar (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-sugar",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-sugar",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                ],
-                                                md=6,
-                                            ),
-                                            # Right column
-                                            dbc.Col(
-                                                [
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Protein (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-protein",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-protein",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Fibre (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-fibre",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-fibre",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Salt (g)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-salt",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=0.1,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-salt",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Label("Calcium (mg)"),
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="target-calcium",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=10,
-                                                                    ),
-                                                                    dbc.Select(
-                                                                        id="mode-calcium",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Target",
-                                                                                "value": "target",
-                                                                            },
-                                                                            {
-                                                                                "label": "Limit",
-                                                                                "value": "limit",
-                                                                            },
-                                                                        ],
-                                                                    ),
-                                                                ],
-                                                                className="mb-3",
-                                                            ),
-                                                        ]
-                                                    ),
-                                                ],
-                                                md=6,
-                                            ),
-                                        ]
+                                            create_target_input(field)
+                                            for field in NUTRIENT_INPUT_ORDER
+                                        ],
+                                        className="editor-grid",
                                     ),
                                 ]
                             ),
