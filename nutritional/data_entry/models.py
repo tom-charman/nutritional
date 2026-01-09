@@ -6,6 +6,32 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 
+# Order for nutrient input fields (including energy/calories)
+NUTRIENT_INPUT_ORDER = [
+    "energy_kcal",
+    "fat_g",
+    "saturated_fat_g",
+    "carbohydrates_g",
+    "sugar_g",
+    "protein_g",
+    "fibre_g",
+    "salt_g",
+    "calcium_mg",
+]
+
+# Field info for generating input forms
+NUTRIENT_FIELD_INFO = {
+    "energy_kcal": {"label": "Calories (kcal)", "id": "energy-kcal", "unit": "kcal"},
+    "fat_g": {"label": "Fat (g)", "id": "fat-g", "unit": "g"},
+    "saturated_fat_g": {"label": "Sat Fat (g)", "id": "saturated-fat-g", "unit": "g"},
+    "carbohydrates_g": {"label": "Carbs (g)", "id": "carbohydrates-g", "unit": "g"},
+    "sugar_g": {"label": "Sugar (g)", "id": "sugar-g", "unit": "g"},
+    "protein_g": {"label": "Protein (g)", "id": "protein-g", "unit": "g"},
+    "fibre_g": {"label": "Fibre (g)", "id": "fibre-g", "unit": "g"},
+    "salt_g": {"label": "Salt (g)", "id": "salt-g", "unit": "g"},
+    "calcium_mg": {"label": "Calcium (mg)", "id": "calcium-mg", "unit": "mg"},
+}
+
 
 class UnitType(str, Enum):
     """Unit type for food items."""

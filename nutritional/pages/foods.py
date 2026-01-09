@@ -10,7 +10,12 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
-from nutritional.data_entry.models import FoodItem, UnitType
+from nutritional.data_entry.models import (
+    NUTRIENT_FIELD_INFO,
+    NUTRIENT_INPUT_ORDER,
+    FoodItem,
+    UnitType,
+)
 from nutritional.data_entry.sqlmodel_storage import SQLModelStorage
 
 dash.register_page(__name__, path="/foods", title="Food Database")
@@ -152,11 +157,11 @@ def get_foods_layout():
                                             html.Div(
                                                 [
                                                     html.Label(
-                                                        "Calories (kcal)",
+                                                        NUTRIENT_FIELD_INFO[field]["label"],
                                                         className="form-label-xs",
                                                     ),
                                                     dbc.Input(
-                                                        id="energy-kcal",
+                                                        id=NUTRIENT_FIELD_INFO[field]["id"],
                                                         type="number",
                                                         min=0,
                                                         step=0.1,
@@ -165,143 +170,8 @@ def get_foods_layout():
                                                     ),
                                                 ],
                                                 className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Protein (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="protein-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Carbs (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="carbohydrates-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Fat (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="fat-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Sugar (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="sugar-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Sat Fat (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="saturated-fat-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Fibre (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="fibre-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Salt (g)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="salt-g",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Label(
-                                                        "Calcium (mg)",
-                                                        className="form-label-xs",
-                                                    ),
-                                                    dbc.Input(
-                                                        id="calcium-mg",
-                                                        type="number",
-                                                        min=0,
-                                                        step=0.1,
-                                                        size="sm",
-                                                        placeholder="0",
-                                                    ),
-                                                ],
-                                                className="compact-input",
-                                            ),
+                                            )
+                                            for field in NUTRIENT_INPUT_ORDER
                                         ],
                                         className="editor-grid hidden",
                                         id="form-grid",
