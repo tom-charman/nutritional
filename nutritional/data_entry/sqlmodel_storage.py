@@ -279,37 +279,45 @@ class SQLModelStorage:
             evening_weight_kg: Evening weight (or None to keep existing)
         """
         with get_db_session() as session:
-            # Get or create summary
-            summary_statement = select(DailySummaryModel).where(
-                DailySummaryModel.summary_date == entry_date
-            )
-            summary = session.exec(summary_statement).first()
+            # Upsert the summary using PostgreSQL on_conflict
+            from sqlalchemy.dialects.postgresql import insert
 
-            if summary:
-                # Update existing
-                if morning_weight_kg is not None:
-                    summary.morning_weight_kg = morning_weight_kg
-                if evening_weight_kg is not None:
-                    summary.evening_weight_kg = evening_weight_kg
-                summary.updated_at = datetime.now(UTC)
-                session.add(summary)
-            else:
-                # Create new with just measurements (zero nutrients)
-                summary = DailySummaryModel(
-                    summary_date=entry_date,
-                    energy_kcal=0,
-                    fat_g=0,
-                    saturated_fat_g=0,
-                    carbohydrates_g=0,
-                    sugar_g=0,
-                    protein_g=0,
-                    fibre_g=0,
-                    salt_g=0,
-                    calcium_mg=0,
-                    morning_weight_kg=morning_weight_kg,
-                    evening_weight_kg=evening_weight_kg,
+            # Prepare the values
+            values = {
+                "summary_date": entry_date,
+                "energy_kcal": 0,
+                "fat_g": 0,
+                "saturated_fat_g": 0,
+                "carbohydrates_g": 0,
+                "sugar_g": 0,
+                "protein_g": 0,
+                "fibre_g": 0,
+                "salt_g": 0,
+                "calcium_mg": 0,
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
+            }
+            if morning_weight_kg is not None:
+                values["morning_weight_kg"] = morning_weight_kg
+            if evening_weight_kg is not None:
+                values["evening_weight_kg"] = evening_weight_kg
+
+            # Build the update dict
+            update_dict = {"updated_at": datetime.now(UTC)}
+            if morning_weight_kg is not None:
+                update_dict["morning_weight_kg"] = morning_weight_kg
+            if evening_weight_kg is not None:
+                update_dict["evening_weight_kg"] = evening_weight_kg
+
+            insert_stmt = (
+                insert(DailySummaryModel)
+                .values(**values)
+                .on_conflict_do_update(
+                    index_elements=["summary_date"],
+                    set_=update_dict,
                 )
-                session.add(summary)
+            )
+            session.exec(insert_stmt)
 
     def get_all_dates(self) -> list[date]:
         """Get all dates with entries.
