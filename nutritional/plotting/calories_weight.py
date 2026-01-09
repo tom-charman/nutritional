@@ -41,7 +41,7 @@ def create_calories_weight_figure(
         go.Scatter(
             x=dates,
             y=calories_avg,
-            name=f"Calories ({rolling_window}-day avg)",
+            name="Calories",
             line=dict(color="#2B2B2B", width=1.5, shape="spline"),
             mode="lines+markers",
             marker=dict(size=4, color="#2B2B2B", line=dict(width=0.5, color="#F2F0EB")),
@@ -57,7 +57,7 @@ def create_calories_weight_figure(
         go.Scatter(
             x=dates,
             y=weight_morning_avg,
-            name=f"Morning Weight ({rolling_window}-day avg)",
+            name="Morning Weight",
             line=dict(
                 color="#789440",
                 width=1.5,
@@ -77,7 +77,7 @@ def create_calories_weight_figure(
         go.Scatter(
             x=dates,
             y=weight_evening_avg,
-            name=f"Evening Weight ({rolling_window}-day avg)",
+            name="Evening Weight",
             line=dict(color="#789440", width=1.5, dash="dash", shape="spline"),
             mode="lines",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
@@ -130,7 +130,7 @@ def create_calories_weight_figure(
     )
 
     fig.update_yaxes(
-        title_text="Calories (kcal)",
+        title_text=f"Calories {rolling_window}-day average (kcal)",
         range=[y1_min, y1_max + 1e-6],
         gridcolor="#D4C5B0",
         gridwidth=1,
@@ -145,7 +145,7 @@ def create_calories_weight_figure(
     )
 
     fig.update_yaxes(
-        title_text="Weight (kg)",
+        title_text=f"Weight {rolling_window}-day average (kg)",
         range=[y2_min, y2_max + 1e-6],
         showgrid=False,
         showline=True,

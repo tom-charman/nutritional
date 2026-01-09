@@ -40,7 +40,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=protein_cal,
-            name=f"Protein ({rolling_window}-day avg)",
+            name="Protein",
             mode="lines",
             line=dict(width=0, color="#2C4C5B"),
             stackgroup="one",
@@ -55,7 +55,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=other_carbs_cal,
-            name=f"Other Carbohydrates ({rolling_window}-day avg)",
+            name="Other Carbohydrates",
             mode="lines",
             line=dict(width=0, color="#C8963E"),
             stackgroup="one",
@@ -70,7 +70,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=sugar_cal,
-            name=f"Sugar ({rolling_window}-day avg)",
+            name="Sugar",
             mode="lines",
             line=dict(width=0, color="#EBC374"),
             stackgroup="one",
@@ -85,7 +85,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=other_fat_cal,
-            name=f"Other Fat ({rolling_window}-day avg)",
+            name="Other Fat",
             mode="lines",
             line=dict(width=0, color="#BF6B59"),
             stackgroup="one",
@@ -100,7 +100,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=saturated_fat_cal,
-            name=f"Saturated Fat ({rolling_window}-day avg)",
+            name="Saturated Fat",
             mode="lines",
             line=dict(width=0, color="#E09F91"),
             stackgroup="one",
@@ -114,7 +114,7 @@ def create_macro_breakdown_figure(
     # Update layout with brand styling (Artisan) - no title
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="Total Calories (kcal)",
+        yaxis_title=f"Total Calories {rolling_window}-day average (kcal)",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=600,

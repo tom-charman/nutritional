@@ -44,7 +44,7 @@ def create_normalized_nutrients_figure(
             # Get RDI value and unit
             rdi_value = rdi_guidelines.get(rdi_key, 0)
             unit = rdi_key.split()[-1]  # e.g., "g" or "mg"
-            legend_name = f"{display_name} ({rdi_value}{unit}, {rolling_window}-day avg)"
+            legend_name = f"{display_name} ({rdi_value}{unit})"
 
             fig.add_trace(
                 go.Scatter(
@@ -74,7 +74,7 @@ def create_normalized_nutrients_figure(
     # Update layout with brand styling (Artisan) - no title
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="Intake (% of RDI)",
+        yaxis_title=f"Intake {rolling_window}-day average (% of RDI)",
         hovermode="x unified",
         legend=dict(
             title="Nutrient (RDI)",
