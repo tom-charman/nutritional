@@ -95,7 +95,8 @@ def create_normalized_nutrients_figure(
         tickfont=dict(size=11, color="#6B6B6B"),
     )
     fig.update_yaxes(
-        rangemode="tozero",
+        range=[0, 200],
+        autorange=False,
         gridcolor="#D4C5B0",
         gridwidth=0.5,
         showgrid=True,
