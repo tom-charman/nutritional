@@ -79,7 +79,7 @@ def get_entry_layout():
                     # Column 1: The Ingredients (25%)
                     html.Div(
                         [
-                            html.Div("INGREDIENTS", className="section-label"),
+                            html.Div("Food", className="section-label"),
                             # Action Row - Search/Add Food
                             html.Div(
                                 [

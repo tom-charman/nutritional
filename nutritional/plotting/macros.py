@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 
 
 def create_macro_breakdown_figure(
-    plot_data: dict, color_palette: dict, rolling_window: int = 7
+    plot_data: dict, color_palette: dict, rolling_window: int = 30
 ) -> go.Figure:
     """
     Create Plotly stacked area chart for macronutrient calorie breakdown.
@@ -40,7 +40,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=protein_cal,
-            name="Protein",
+            name=f"Protein ({rolling_window}-day avg)",
             mode="lines",
             line=dict(width=0, color="#2C4C5B"),
             stackgroup="one",
@@ -55,7 +55,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=other_carbs_cal,
-            name="Other Carbohydrates",
+            name=f"Other Carbohydrates ({rolling_window}-day avg)",
             mode="lines",
             line=dict(width=0, color="#C8963E"),
             stackgroup="one",
@@ -70,7 +70,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=sugar_cal,
-            name="Sugar",
+            name=f"Sugar ({rolling_window}-day avg)",
             mode="lines",
             line=dict(width=0, color="#EBC374"),
             stackgroup="one",
@@ -85,7 +85,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=other_fat_cal,
-            name="Other Fat",
+            name=f"Other Fat ({rolling_window}-day avg)",
             mode="lines",
             line=dict(width=0, color="#BF6B59"),
             stackgroup="one",
@@ -100,7 +100,7 @@ def create_macro_breakdown_figure(
         go.Scatter(
             x=dates,
             y=saturated_fat_cal,
-            name="Saturated Fat",
+            name=f"Saturated Fat ({rolling_window}-day avg)",
             mode="lines",
             line=dict(width=0, color="#E09F91"),
             stackgroup="one",

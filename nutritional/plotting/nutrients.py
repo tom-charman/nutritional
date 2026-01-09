@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 
 
 def create_normalized_nutrients_figure(
-    plot_data: dict, color_palette: dict, rolling_window: int = 7
+    plot_data: dict, color_palette: dict, rdi_guidelines: dict, rolling_window: int = 30
 ) -> go.Figure:
     """
     Create Plotly multi-line chart for nutrients normalized to RDI percentages.
@@ -18,6 +18,7 @@ def create_normalized_nutrients_figure(
     Args:
         plot_data: Output from prepare_normalized_nutrients_data()
         color_palette: Color scheme dict
+        rdi_guidelines: Dict of RDI values with keys like "Sugar g", "Fibre g", etc.
         rolling_window: Window size for display purposes
 
     Returns:
@@ -30,21 +31,26 @@ def create_normalized_nutrients_figure(
 
     # Define nutrient mapping with brand palette - Nihonga colors for distinction
     nutrient_config = {
-        "saturated_fat_pct": ("Saturated Fat", "#E09F91"),  # Dusty Salmon
-        "sugar_pct": ("Sugar", "#EBC374"),  # Pale Amber
-        "fibre_pct": ("Fibre", "#4F6D46"),  # Aged Pine
-        "salt_pct": ("Salt", "#7C6A88"),  # Oxidized Ube
-        "calcium_pct": ("Calcium", "#6B7F82"),  # Stone Grey
+        "saturated_fat_pct": ("Saturated Fat", "#E09F91", "Saturated Fat g"),  # Dusty Salmon
+        "sugar_pct": ("Sugar", "#EBC374", "Sugar g"),  # Pale Amber
+        "fibre_pct": ("Fibre", "#4F6D46", "Fibre g"),  # Aged Pine
+        "salt_pct": ("Salt", "#7C6A88", "Salt g"),  # Oxidized Ube
+        "calcium_pct": ("Calcium", "#6B7F82", "Calcium mg"),  # Stone Grey
     }
 
     # Add a trace for each nutrient
-    for key, (display_name, color) in nutrient_config.items():
+    for key, (display_name, color, rdi_key) in nutrient_config.items():
         if key in plot_data:
+            # Get RDI value and unit
+            rdi_value = rdi_guidelines.get(rdi_key, 0)
+            unit = rdi_key.split()[-1]  # e.g., "g" or "mg"
+            legend_name = f"{display_name} ({rdi_value}{unit}, {rolling_window}-day avg)"
+
             fig.add_trace(
                 go.Scatter(
                     x=dates,
                     y=plot_data[key],
-                    name=display_name,
+                    name=legend_name,
                     mode="lines+markers",
                     line=dict(color=color, width=1.5, shape="spline"),
                     marker=dict(size=4, color=color, line=dict(width=0.5, color="#F2F0EB")),
@@ -71,7 +77,7 @@ def create_normalized_nutrients_figure(
         yaxis_title="Intake (% of RDI)",
         hovermode="x unified",
         legend=dict(
-            title="Nutrient",
+            title="Nutrient (RDI)",
             orientation="v",
             yanchor="top",
             y=1,

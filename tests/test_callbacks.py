@@ -189,7 +189,7 @@ def test_update_dashboard_with_no_data():
     """Dashboard update should handle empty data gracefully."""
     from nutritional.callbacks import update_dashboard
 
-    results = update_dashboard(None, None, None, 7)
+    results = update_dashboard(None)
 
     # Should return 9 values
     assert len(results) == 9
@@ -205,7 +205,7 @@ def test_update_dashboard_with_valid_data(minimal_data_dict):
     from nutritional.callbacks import update_dashboard
 
     stored_data = serialize_data(minimal_data_dict)
-    results = update_dashboard(stored_data, None, None, 7)
+    results = update_dashboard(stored_data)
 
     # Should return 9 values
     assert len(results) == 9
@@ -215,82 +215,12 @@ def test_update_dashboard_with_valid_data(minimal_data_dict):
     assert results[2] is not None  # nutrients_figure
 
 
-def test_update_dashboard_with_date_range_filter(data_dict_with_nutrients):
-    """Dashboard update should filter data by date range."""
-    from nutritional.callbacks import update_dashboard
-
-    stored_data = serialize_data(data_dict_with_nutrients)
-    start_date = "2025-01-02"
-    end_date = "2025-01-04"
-
-    results = update_dashboard(stored_data, start_date, end_date, 3)
-
-    # Should have filtered to 3 data points
-    assert results[6] == "3"  # data_points
-
-
-def test_update_dashboard_with_empty_date_range():
-    """Dashboard update should handle date range with no data."""
-    from nutritional.callbacks import update_dashboard
-
-    # Create data for Jan 1-5
-    data_dict = {
-        "dates": np.array(
-            ["2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05"],
-            dtype="datetime64[D]",
-        ),
-        "data": {
-            "Calories": np.array([2000, 2100, 1900, 2050, 2200]),
-            "Weight (morning)": np.array([70.0, 70.1, 70.2, 70.0, 69.9]),
-            "Weight (evening)": np.array([70.5, 70.6, 70.7, 70.5, 70.4]),
-            "Protein (g)": np.array([150, 160, 140, 155, 165]),
-            "Carbs (g)": np.array([200, 210, 190, 205, 215]),
-            "Saturated Fat (g)": np.array([20, 22, 18, 21, 23]),
-            "Other Fat (g)": np.array([50, 52, 48, 51, 53]),
-        },
-        "columns": [
-            "Calories",
-            "Weight (morning)",
-            "Weight (evening)",
-            "Protein (g)",
-            "Carbs (g)",
-            "Saturated Fat (g)",
-            "Other Fat (g)",
-        ],
-        "source": "CSV",
-    }
-
-    stored_data = serialize_data(data_dict)
-    # Request date range outside data range
-    start_date = "2025-02-01"
-    end_date = "2025-02-28"
-
-    results = update_dashboard(stored_data, start_date, end_date, 7)
-
-    # Should have 0 data points
-    assert results[6] == "0"
-
-
-def test_update_dashboard_with_different_rolling_windows(data_dict_with_nutrients):
-    """Dashboard update should handle different rolling window sizes."""
-    from nutritional.callbacks import update_dashboard
-
-    stored_data = serialize_data(data_dict_with_nutrients)
-
-    # Test with different rolling windows
-    for window in [1, 3, 7, 14]:
-        results = update_dashboard(stored_data, None, None, window)
-        # Should succeed for all window sizes
-        assert len(results) == 9
-        assert results[0] is not None  # Should have valid figure
-
-
 def test_update_dashboard_calculates_summary_stats(data_dict_with_nutrients):
     """Dashboard update should calculate valid summary statistics."""
     from nutritional.callbacks import update_dashboard
 
     stored_data = serialize_data(data_dict_with_nutrients)
-    results = update_dashboard(stored_data, None, None, 7)
+    results = update_dashboard(stored_data)
 
     avg_cals = results[3]
     avg_weight = results[4]
@@ -312,7 +242,7 @@ def test_update_dashboard_includes_source_info(data_dict_with_nutrients):
     from nutritional.callbacks import update_dashboard
 
     stored_data = serialize_data(data_dict_with_nutrients)
-    results = update_dashboard(stored_data, None, None, 7)
+    results = update_dashboard(stored_data)
 
     source_info = results[7]
 
@@ -360,17 +290,3 @@ def test_load_data_with_multiple_clicks(monkeypatch, minimal_data_dict):
         result = callbacks.load_data(n_clicks)
         assert isinstance(result, dict)
         assert "dates" in result
-
-
-# Test set_initial_date_range callback
-
-
-def test_set_initial_date_range_with_valid_data(minimal_data_dict):
-    """set_initial_date_range should return first and last dates."""
-    from nutritional.callbacks import serialize_data, set_initial_date_range
-
-    stored_data = serialize_data(minimal_data_dict)
-    start, end = set_initial_date_range(stored_data)
-
-    assert start == stored_data["dates"][0]
-    assert end == stored_data["dates"][-1]

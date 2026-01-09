@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 
 
 def create_calories_weight_figure(
-    plot_data: dict, color_palette: dict, rolling_window: int = 7
+    plot_data: dict, color_palette: dict, rolling_window: int = 30
 ) -> go.Figure:
     """
     Create Plotly figure with dual y-axes for calories and weight.
@@ -121,16 +121,24 @@ def create_calories_weight_figure(
     fig.update_xaxes(
         title_text="Date",
         showgrid=False,
+        showline=True,
+        linewidth=0.5,
+        mirror=False,
+        zeroline=False,
         linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
     )
 
     fig.update_yaxes(
         title_text="Calories (kcal)",
-        range=[y1_min, y1_max],
+        range=[y1_min, y1_max + 1e-6],
         gridcolor="#D4C5B0",
-        gridwidth=0.5,
+        gridwidth=1,
         showgrid=True,
+        showline=True,
+        linewidth=0.5,
+        mirror=False,
+        zeroline=False,
         linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=False,
@@ -138,8 +146,12 @@ def create_calories_weight_figure(
 
     fig.update_yaxes(
         title_text="Weight (kg)",
-        range=[y2_min, y2_max],
+        range=[y2_min, y2_max + 1e-6],
         showgrid=False,
+        showline=True,
+        linewidth=0.5,
+        mirror=False,
+        zeroline=False,
         linecolor="#D4C5B0",
         tickfont=dict(size=11, color="#6B6B6B"),
         secondary_y=True,

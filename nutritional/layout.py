@@ -20,115 +20,70 @@ def get_layout():
             # Unified Dashboard View - No separate sections
             html.Div(
                 [
-                    # Integrated Controls & Visualizations
-                    html.Div(
+                    # Visualization Tabs - Clean, no emojis
+                    dbc.Tabs(
                         [
-                            # Control Bar - positioned above visualizations
-                            html.Div(
+                            dbc.Tab(
                                 [
                                     html.Div(
                                         [
-                                            dcc.DatePickerRange(
-                                                id="date-range-picker",
-                                                display_format="YYYY-MM-DD",
-                                                start_date_placeholder_text="Start Date",
-                                                end_date_placeholder_text="End Date",
-                                                className="date-picker-style",
-                                            ),
+                                            dcc.Graph(
+                                                id="calories-weight-plot",
+                                                config={
+                                                    "displayModeBar": False,
+                                                    "displaylogo": False,
+                                                },
+                                                className="graph-height",
+                                            )
                                         ],
-                                        className="control-group",
-                                    ),
-                                    html.Div(
-                                        [
-                                            html.Span(
-                                                "Rolling:",
-                                                className="rolling-label",
-                                            ),
-                                            dcc.Dropdown(
-                                                id="rolling-window-dropdown",
-                                                options=[
-                                                    {"label": "3 days", "value": 3},
-                                                    {"label": "7 days", "value": 7},
-                                                    {"label": "14 days", "value": 14},
-                                                    {"label": "30 days", "value": 30},
-                                                ],
-                                                value=7,
-                                                clearable=False,
-                                                className="rolling-dropdown",
-                                            ),
-                                        ],
-                                        className="control-group",
-                                    ),
+                                        className="graph-wrapper",
+                                    )
                                 ],
-                                className="control-section",
+                                label="Calories & Weight",
+                                tab_id="tab-1",
                             ),
-                            # Visualization Tabs - Clean, no emojis
-                            dbc.Tabs(
+                            dbc.Tab(
                                 [
-                                    dbc.Tab(
+                                    html.Div(
                                         [
-                                            html.Div(
-                                                [
-                                                    dcc.Graph(
-                                                        id="calories-weight-plot",
-                                                        config={
-                                                            "displayModeBar": False,
-                                                            "displaylogo": False,
-                                                        },
-                                                        className="graph-height",
-                                                    )
-                                                ],
-                                                className="graph-wrapper",
+                                            dcc.Graph(
+                                                id="macro-breakdown-plot",
+                                                config={
+                                                    "displayModeBar": False,
+                                                    "displaylogo": False,
+                                                },
+                                                className="graph-height",
                                             )
                                         ],
-                                        label="Calories & Weight",
-                                        tab_id="tab-1",
-                                    ),
-                                    dbc.Tab(
-                                        [
-                                            html.Div(
-                                                [
-                                                    dcc.Graph(
-                                                        id="macro-breakdown-plot",
-                                                        config={
-                                                            "displayModeBar": False,
-                                                            "displaylogo": False,
-                                                        },
-                                                        className="graph-height",
-                                                    )
-                                                ],
-                                                className="graph-wrapper",
-                                            )
-                                        ],
-                                        label="Macronutrient Breakdown",
-                                        tab_id="tab-2",
-                                    ),
-                                    dbc.Tab(
-                                        [
-                                            html.Div(
-                                                [
-                                                    dcc.Graph(
-                                                        id="nutrients-rdi-plot",
-                                                        config={
-                                                            "displayModeBar": False,
-                                                            "displaylogo": False,
-                                                        },
-                                                        className="graph-height",
-                                                    )
-                                                ],
-                                                className="graph-wrapper",
-                                            )
-                                        ],
-                                        label="Nutrients vs RDI",
-                                        tab_id="tab-3",
-                                    ),
+                                        className="graph-wrapper",
+                                    )
                                 ],
-                                id="plot-tabs",
-                                active_tab="tab-1",
-                                className="tab-content-padding",
+                                label="Macronutrient Breakdown",
+                                tab_id="tab-2",
+                            ),
+                            dbc.Tab(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(
+                                                id="nutrients-rdi-plot",
+                                                config={
+                                                    "displayModeBar": False,
+                                                    "displaylogo": False,
+                                                },
+                                                className="graph-height",
+                                            )
+                                        ],
+                                        className="graph-wrapper",
+                                    )
+                                ],
+                                label="Nutrients vs RDI",
+                                tab_id="tab-3",
                             ),
                         ],
-                        className="visualizations-container",
+                        id="plot-tabs",
+                        active_tab="tab-1",
+                        className="tab-content-padding",
                     ),
                 ],
             ),
