@@ -77,7 +77,8 @@ def test_prepare_macro_breakdown_data_returns_required_keys(minimal_data_dict):
 
     required_keys = [
         "dates",
-        "carbs_cal",
+        "other_carbs_cal",
+        "sugar_cal",
         "protein_cal",
         "other_fat_cal",
         "saturated_fat_cal",
@@ -93,7 +94,8 @@ def test_prepare_macro_breakdown_data_converts_to_calories(minimal_data_dict):
     # Protein and carbs use 4 cal/g, fat uses 9 cal/g
     # Check that calorie values are in reasonable range
     assert np.all(result["protein_cal"][~np.isnan(result["protein_cal"])] > 0)
-    assert np.all(result["carbs_cal"][~np.isnan(result["carbs_cal"])] > 0)
+    assert np.all(result["other_carbs_cal"][~np.isnan(result["other_carbs_cal"])] > 0)
+    assert np.all(result["sugar_cal"][~np.isnan(result["sugar_cal"])] >= 0)
 
 
 @pytest.mark.parametrize("rolling_window", [3, 7, 14])

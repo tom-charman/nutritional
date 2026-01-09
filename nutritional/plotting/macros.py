@@ -11,7 +11,7 @@ def create_macro_breakdown_figure(
 
     Features:
     - Stacked areas showing calorie contribution from each macro
-    - Ordered: Carbs, Protein, Other Fat, Saturated Fat
+    - Ordered: Protein, Other Carbs, Sugar, Other Fat, Saturated Fat
     - Interactive tooltips showing breakdown
     - Y-axis starts at 0
 
@@ -24,7 +24,8 @@ def create_macro_breakdown_figure(
         plotly.graph_objects.Figure
     """
     dates = plot_data["dates"]
-    carbs_cal = plot_data["carbs_cal"]
+    other_carbs_cal = plot_data["other_carbs_cal"]
+    sugar_cal = plot_data["sugar_cal"]
     protein_cal = plot_data["protein_cal"]
     other_fat_cal = plot_data["other_fat_cal"]
     saturated_fat_cal = plot_data["saturated_fat_cal"]
@@ -33,7 +34,7 @@ def create_macro_breakdown_figure(
     fig = go.Figure()
 
     # Add traces in order (bottom to top of stack)
-    # Order: Protein, Saturated Fat, Other Fat, Carbs
+    # Order: Protein, Other Carbs, Sugar, Other Fat, Saturated Fat
 
     fig.add_trace(
         go.Scatter(
@@ -53,14 +54,29 @@ def create_macro_breakdown_figure(
     fig.add_trace(
         go.Scatter(
             x=dates,
-            y=carbs_cal,
-            name="Carbohydrates",
+            y=other_carbs_cal,
+            name="Other Carbohydrates",
             mode="lines",
             line=dict(width=0, color="#C8963E"),
             stackgroup="one",
             fillcolor="#C8963E",
             hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
-            + "<b>Carbs:</b> %{y:.0f} kcal<br>"
+            + "<b>Other Carbs:</b> %{y:.0f} kcal<br>"
+            + "<extra></extra>",
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=sugar_cal,
+            name="Sugar",
+            mode="lines",
+            line=dict(width=0, color="#EBC374"),
+            stackgroup="one",
+            fillcolor="#EBC374",
+            hovertemplate="<b>Date:</b> %{x|%Y-%m-%d}<br>"
+            + "<b>Sugar:</b> %{y:.0f} kcal<br>"
             + "<extra></extra>",
         )
     )
