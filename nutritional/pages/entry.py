@@ -67,6 +67,8 @@ def get_entry_layout():
             html.Div(id="page-load-trigger", className="hidden"),
             # Store to trigger refresh when targets are updated
             dcc.Store(id="targets-updated-trigger", data=0),
+            # Store for editing entry index
+            dcc.Store(id="editing-entry-index", data=None),
             # Unified Daily Log Header
             html.Div(
                 [
@@ -128,8 +130,6 @@ def get_entry_layout():
                             html.Div(id="food-input-container", style={"marginBottom": "0px"}),
                             # Calculated nutrients preview
                             html.Div(id="calculated-nutrients"),
-                            # Entry message
-                            html.Div(id="entry-message"),
                             # Ingredient List (only name, weight, calories)
                             html.Div(
                                 id="entries-list",
@@ -270,6 +270,12 @@ def get_entry_layout():
                 id="targets-modal",
                 size="lg",
                 is_open=False,
+            ),
+            # Toast notification
+            dbc.Toast(
+                id="entry-toast",
+                is_open=False,
+                duration=3000,
             ),
         ],
         fluid=True,
@@ -553,7 +559,9 @@ def calculate_and_display_nutrients(food_id, amount_list):
 @callback(
     [
         Output("persistent-entries", "data"),
-        Output("entry-message", "children"),
+        Output("entry-toast", "is_open"),
+        Output("entry-toast", "children"),
+        Output("entry-toast", "style"),
         Output("food-selector", "value"),
         Output("persistent-morning-weight", "data", allow_duplicate=True),
         Output("persistent-evening-weight", "data", allow_duplicate=True),
@@ -594,7 +602,16 @@ def add_food_entry(
     if not amount:
         return (
             no_update,
-            dbc.Alert("Please enter an amount", color="warning"),
+            True,
+            "Please enter an amount",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
             no_update,
             no_update,
             no_update,
@@ -604,7 +621,16 @@ def add_food_entry(
     if not item:
         return (
             no_update,
-            dbc.Alert("Food item not found", color="danger"),
+            True,
+            "Food item not found",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
             no_update,
             no_update,
             no_update,
@@ -648,7 +674,16 @@ def add_food_entry(
 
         return (
             current_entries,
-            dbc.Alert(f"Added {item.name}", color="success"),
+            True,
+            f"Added {item.name}",
+            {
+                "backgroundColor": "#789440",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
             None,  # Clear food selector (which will remove the amount input)
             morning_weight,  # Save current morning weight to persistent store
             evening_weight,  # Save current evening weight to persistent store
@@ -656,7 +691,16 @@ def add_food_entry(
     except Exception as e:
         return (
             no_update,
-            dbc.Alert(f"Error adding entry: {str(e)}", color="danger"),
+            True,
+            f"Error adding entry: {str(e)}",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
             no_update,
             no_update,
             no_update,
@@ -665,10 +709,14 @@ def add_food_entry(
 
 @callback(
     Output("entries-list", "children"),
-    [Input("persistent-entries", "data"), Input("page-load-trigger", "children")],
+    [
+        Input("persistent-entries", "data"),
+        Input("page-load-trigger", "children"),
+        Input("editing-entry-index", "data"),
+    ],
     prevent_initial_call=False,
 )
-def update_entries_list(entries, _):
+def update_entries_list(entries, _, editing_index):
     """Display list of current entries with clean ingredient format (no macro pills)."""
     if not entries:
         return html.Div(
@@ -684,49 +732,113 @@ def update_entries_list(entries, _):
             },
         )
 
-    return [
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            entry["food_name"],
-                            className="ingredient-name",
-                        ),
-                        html.Div(
-                            f"{entry['weight_g']:.1f}g"
-                            if entry["weight_g"]
-                            else f"{entry['quantity']:.1f}x",
-                            className="ingredient-weight",
-                        ),
-                    ],
-                    className="ingredient-item-header",
-                ),
-                html.Span(
-                    f"{entry['nutrients']['energy_kcal']:.0f} kcal",
-                    className="ingredient-calories",
-                    title="Calories",
-                ),
-                html.Span(
-                    "×",
-                    className="delete-icon",
-                    id={"type": "remove-entry", "index": i},
-                    n_clicks=0,
-                    title="Remove",
-                    style={
-                        "cursor": "pointer",
-                        "gridColumn": "3 / 4",
-                        "gridRow": "1 / 2",
-                        "display": "flex",
-                        "alignItems": "center",
-                        "justifyContent": "center",
-                    },
-                ),
-            ],
-            className="ingredient-item",
-        )
-        for i, entry in enumerate(entries)
-    ]
+    entry_items = []
+    for i, entry in enumerate(entries):
+        if editing_index == i:
+            # Edit mode
+            item = storage.get_food_item(entry["food_id"])
+            if not item:
+                # Skip edit if item not found
+                continue
+            if item.unit_type == UnitType.PER_100G:
+                current_amount = entry["weight_g"]
+                placeholder = "weight in grams"
+            else:
+                current_amount = entry["quantity"]
+                placeholder = "quantity"
+            entry_div = html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div(
+                                entry["food_name"],
+                                className="ingredient-name",
+                            ),
+                            dcc.Input(
+                                id={"type": "edit-amount", "index": i},
+                                type="number",
+                                value=current_amount,
+                                placeholder=placeholder,
+                                min=0,
+                                step=0.1,
+                                size="sm",
+                                style={"width": "100px"},
+                            ),
+                        ],
+                        className="ingredient-item-header",
+                    ),
+                    html.Span(
+                        f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                        className="ingredient-calories",
+                        title="Calories",
+                    ),
+                    html.Span(
+                        "×",
+                        className="delete-icon",
+                        id={"type": "remove-entry", "index": i},
+                        n_clicks=0,
+                        title="Remove",
+                        style={
+                            "cursor": "pointer",
+                            "gridColumn": "3 / 4",
+                            "gridRow": "1 / 2",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                        },
+                    ),
+                ],
+                className="ingredient-item",
+            )
+        else:
+            # Normal display
+            entry_div = html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div(
+                                entry["food_name"],
+                                className="ingredient-name",
+                            ),
+                            html.Div(
+                                f"{entry['weight_g']:.1f}g"
+                                if entry["weight_g"]
+                                else f"{entry['quantity']:.1f}x",
+                                className="ingredient-weight",
+                                id={"type": "edit-trigger", "index": i},
+                                n_clicks=0,
+                                style={"cursor": "pointer"},
+                                title="Click to edit amount",
+                            ),
+                        ],
+                        className="ingredient-item-header",
+                    ),
+                    html.Span(
+                        f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                        className="ingredient-calories",
+                        title="Calories",
+                    ),
+                    html.Span(
+                        "×",
+                        className="delete-icon",
+                        id={"type": "remove-entry", "index": i},
+                        n_clicks=0,
+                        title="Remove",
+                        style={
+                            "cursor": "pointer",
+                            "gridColumn": "3 / 4",
+                            "gridRow": "1 / 2",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                        },
+                    ),
+                ],
+                className="ingredient-item",
+            )
+        entry_items.append(entry_div)
+
+    return entry_items
 
 
 @callback(
@@ -775,6 +887,159 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
     storage.save_daily_entry(daily_data)
 
     return entries
+
+
+@callback(
+    Output("editing-entry-index", "data"),
+    Input({"type": "edit-trigger", "index": dash.ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def start_edit(n_clicks):
+    """Start editing an entry."""
+    if not any(n_clicks):
+        raise PreventUpdate
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    index = eval(button_id)["index"]
+
+    return index
+
+
+@callback(
+    [
+        Output("persistent-entries", "data", allow_duplicate=True),
+        Output("editing-entry-index", "data", allow_duplicate=True),
+        Output("entry-toast", "is_open", allow_duplicate=True),
+        Output("entry-toast", "children", allow_duplicate=True),
+        Output("entry-toast", "style", allow_duplicate=True),
+    ],
+    [
+        Input({"type": "edit-amount", "index": dash.ALL}, "n_blur"),
+        Input({"type": "edit-amount", "index": dash.ALL}, "n_submit"),
+    ],
+    [
+        State({"type": "edit-amount", "index": dash.ALL}, "value"),
+        State("persistent-entries", "data"),
+        State("persistent-morning-weight", "data"),
+        State("persistent-evening-weight", "data"),
+        State("selected-date-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def save_edit(
+    n_blur, n_submit, amounts, entries, morning_weight, evening_weight, selected_date_str
+):
+    """Save the edited amount for an entry."""
+    if not any(n_blur) and not any(n_submit):
+        raise PreventUpdate
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    index = eval(button_id)["index"]
+
+    new_amount = amounts[0]
+
+    if not new_amount:
+        return (
+            no_update,
+            None,
+            True,
+            "Please enter an amount",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+
+    entry = entries[index]
+
+    item = storage.get_food_item(entry["food_id"])
+    if not item:
+        return (
+            no_update,
+            None,
+            True,
+            "Food item not found",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+
+    try:
+        if item.unit_type == UnitType.PER_100G:
+            nutrients = calculate_nutrients(item, weight_g=float(new_amount))
+            entry["weight_g"] = float(new_amount)
+            entry["quantity"] = None
+        else:
+            nutrients = calculate_nutrients(item, quantity=float(new_amount))
+            entry["weight_g"] = None
+            entry["quantity"] = float(new_amount)
+
+        entry["nutrients"] = nutrients.model_dump(mode="json")
+
+        # Parse selected date
+        if selected_date_str is None:
+            entry_date = date.today()
+        else:
+            entry_date = date.fromisoformat(selected_date_str)
+
+        # Save immediately to selected day
+        food_entries = [FoodEntry(**e) for e in entries]
+        daily_data = DailyData(
+            date=entry_date,
+            entries=food_entries,
+            measurements=Measurements(
+                morning_weight_kg=morning_weight,
+                evening_weight_kg=evening_weight,
+            ),
+        )
+        storage.save_daily_entry(daily_data)
+
+        return (
+            entries,
+            None,
+            True,
+            f"Updated {item.name}",
+            {
+                "backgroundColor": "#789440",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+    except Exception as e:
+        return (
+            no_update,
+            None,
+            True,
+            f"Error updating entry: {str(e)}",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
 
 
 @callback(
