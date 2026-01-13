@@ -39,6 +39,8 @@ sudo -u postgres psql -d nutritional_db <<EOF
 DROP TABLE IF EXISTS daily_targets CASCADE;
 DROP TABLE IF EXISTS daily_summaries CASCADE;
 DROP TABLE IF EXISTS food_entries CASCADE;
+DROP TABLE IF EXISTS meal_ingredients CASCADE;
+DROP TABLE IF EXISTS meals CASCADE;
 DROP TABLE IF EXISTS food_items CASCADE;
 DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 EOF
@@ -69,10 +71,10 @@ TABLE_COUNT=$(sudo -u postgres psql -d nutritional_db -t -c "SELECT COUNT(*) FRO
 
 echo "Tables created: $TABLE_COUNT"
 
-if [ "$TABLE_COUNT" -ge 4 ]; then
+if [ "$TABLE_COUNT" -ge 6 ]; then
     echo -e "${GREEN}✓ All tables created successfully${NC}"
 else
-    echo -e "${RED}✗ Expected at least 4 tables, found $TABLE_COUNT${NC}"
+    echo -e "${RED}✗ Expected at least 6 tables, found $TABLE_COUNT${NC}"
     exit 1
 fi
 

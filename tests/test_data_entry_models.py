@@ -10,6 +10,9 @@ from nutritional.data_entry.models import (
     DailyData,
     FoodEntry,
     FoodItem,
+    Meal,
+    MealEntry,
+    MealIngredient,
     Measurements,
     Nutrients,
     UnitType,
@@ -69,6 +72,18 @@ def per_item_food_item(sample_nutrients: Nutrients) -> FoodItem:
         fibre_g=sample_nutrients.fibre_g,
         salt_g=sample_nutrients.salt_g,
         calcium_mg=sample_nutrients.calcium_mg,
+    )
+
+
+@pytest.fixture
+def sample_food_entry(sample_nutrients: Nutrients) -> FoodEntry:
+    """Sample food entry for testing."""
+    return FoodEntry(
+        timestamp=datetime(2025, 12, 28, 12, 0, 0),
+        food_id="550e8400-e29b-41d4-a716-446655440000",
+        food_name="Brown Rice",
+        weight_g=100.0,
+        nutrients=sample_nutrients,
     )
 
 
@@ -606,3 +621,156 @@ def test_daily_data_requires_valid_date(invalid_date) -> None:
             entries=[],
             measurements=Measurements(),
         )
+
+
+# Tests for MealIngredient
+
+
+@pytest.fixture
+def sample_meal_ingredient(sample_nutrients: Nutrients) -> MealIngredient:
+    """Sample meal ingredient for testing."""
+    return MealIngredient(
+        food_id="550e8400-e29b-41d4-a716-446655440000",
+        food_name="Brown Rice",
+        weight_g=100.0,
+        quantity=None,
+        nutrients=sample_nutrients,
+    )
+
+
+def test_meal_ingredient_creation(sample_meal_ingredient: MealIngredient) -> None:
+    """Test MealIngredient can be created with valid data."""
+    assert sample_meal_ingredient.food_id == "550e8400-e29b-41d4-a716-446655440000"
+    assert sample_meal_ingredient.food_name == "Brown Rice"
+    assert sample_meal_ingredient.weight_g == 100.0
+    assert sample_meal_ingredient.quantity is None
+    assert sample_meal_ingredient.nutrients.energy_kcal == 250.0
+
+
+def test_meal_ingredient_requires_either_weight_or_quantity() -> None:
+    """Test MealIngredient requires either weight_g or quantity."""
+    with pytest.raises(ValidationError):
+        MealIngredient(
+            food_id="550e8400-e29b-41d4-a716-446655440000",
+            food_name="Brown Rice",
+            weight_g=None,
+            quantity=None,
+            nutrients=Nutrients(
+                energy_kcal=250.0,
+                fat_g=10.0,
+                saturated_fat_g=3.0,
+                carbohydrates_g=30.0,
+                sugar_g=5.0,
+                protein_g=8.0,
+                fibre_g=2.0,
+                salt_g=0.5,
+                calcium_mg=100.0,
+            ),
+        )
+
+
+# Tests for Meal
+
+
+@pytest.fixture
+def sample_meal(sample_meal_ingredient: MealIngredient) -> Meal:
+    """Sample meal for testing."""
+    return Meal(
+        name="Rice Bowl",
+        ingredients=[sample_meal_ingredient],
+    )
+
+
+def test_meal_creation(sample_meal: Meal) -> None:
+    """Test Meal can be created with valid data."""
+    assert sample_meal.name == "Rice Bowl"
+    assert len(sample_meal.ingredients) == 1
+    assert sample_meal.ingredients[0].food_name == "Brown Rice"
+
+
+def test_meal_calculate_totals(sample_meal: Meal) -> None:
+    """Test Meal.calculate_totals() works correctly."""
+    totals = sample_meal.calculate_totals()
+    assert totals.energy_kcal == 250.0
+    assert totals.fat_g == 10.0
+    assert totals.protein_g == 8.0
+
+
+# Tests for MealEntry
+
+
+@pytest.fixture
+def sample_meal_entry(sample_meal_ingredient: MealIngredient) -> MealEntry:
+    """Sample meal entry for testing."""
+    # Create a FoodEntry from the MealIngredient
+    food_entry = FoodEntry(
+        entry_id="770e8400-e29b-41d4-a716-446655440002",
+        timestamp=datetime(2025, 12, 28, 12, 0, 0),
+        food_id=sample_meal_ingredient.food_id,
+        food_name=sample_meal_ingredient.food_name,
+        weight_g=sample_meal_ingredient.weight_g,
+        quantity=sample_meal_ingredient.quantity,
+        nutrients=sample_meal_ingredient.nutrients,
+    )
+    return MealEntry(
+        meal_id="660e8400-e29b-41d4-a716-446655440001",
+        meal_name="Rice Bowl",
+        portions=1.0,
+        ingredients=[food_entry],
+    )
+
+
+def test_meal_entry_creation(sample_meal_entry: MealEntry) -> None:
+    """Test MealEntry can be created with valid data."""
+    assert sample_meal_entry.meal_id == "660e8400-e29b-41d4-a716-446655440001"
+    assert sample_meal_entry.meal_name == "Rice Bowl"
+    assert sample_meal_entry.portions == 1.0
+    assert len(sample_meal_entry.ingredients) == 1
+
+
+def test_meal_entry_calculate_totals(sample_meal_entry: MealEntry) -> None:
+    """Test MealEntry.calculate_totals() works correctly."""
+    totals = sample_meal_entry.calculate_totals()
+    assert totals.energy_kcal == 250.0
+    assert totals.fat_g == 10.0
+    assert totals.protein_g == 8.0
+
+
+# Tests for DailyData with MealEntry
+
+
+def test_daily_data_with_meal_entries(sample_meal_entry: MealEntry) -> None:
+    """Test DailyData can contain MealEntry objects."""
+    daily_data = DailyData(
+        date=date(2025, 1, 15),
+        entries=[sample_meal_entry],
+        measurements=Measurements(),
+    )
+
+    assert len(daily_data.entries) == 1
+    assert isinstance(daily_data.entries[0], MealEntry)
+    assert daily_data.entries[0].meal_name == "Rice Bowl"
+
+
+def test_daily_data_mixed_entries(
+    sample_food_entry: FoodEntry, sample_meal_entry: MealEntry
+) -> None:
+    """Test DailyData can contain both FoodEntry and MealEntry objects."""
+    daily_data = DailyData(
+        date=date(2025, 1, 15),
+        entries=[sample_food_entry, sample_meal_entry],
+        measurements=Measurements(),
+    )
+
+    assert len(daily_data.entries) == 2
+    assert isinstance(daily_data.entries[0], FoodEntry)
+    assert isinstance(daily_data.entries[1], MealEntry)
+
+    # Test totals calculation with mixed entries
+    totals = daily_data.calculate_totals()
+    # Should be sum of both entries
+    expected_energy = (
+        sample_food_entry.nutrients.energy_kcal
+        + sample_meal_entry.ingredients[0].nutrients.energy_kcal
+    )
+    assert totals.energy_kcal == expected_energy

@@ -3,8 +3,9 @@
 import uuid
 from datetime import date, datetime
 from enum import Enum
+from typing import Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Order for nutrient input fields (including energy/calories)
 NUTRIENT_INPUT_ORDER = [
@@ -52,6 +53,84 @@ class Nutrients(BaseModel):
     fibre_g: float = Field(ge=0)
     salt_g: float = Field(ge=0)
     calcium_mg: float = Field(ge=0)
+
+
+class MealIngredient(BaseModel):
+    """An ingredient in a meal with specified amount."""
+
+    food_id: str
+    food_name: str
+    weight_g: float | None = Field(default=None, ge=0)
+    quantity: float | None = Field(default=None, ge=0)
+    nutrients: Nutrients
+
+    @model_validator(mode="after")
+    def validate_weight_or_quantity(self) -> "MealIngredient":
+        """Ensure either weight_g or quantity is provided, but not both."""
+        if self.weight_g is not None and self.quantity is not None:
+            raise ValueError("Cannot specify both weight_g and quantity")
+        if self.weight_g is None and self.quantity is None:
+            raise ValueError("Must specify either weight_g or quantity")
+        return self
+
+
+class Meal(BaseModel):
+    """A meal template with ingredients."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = Field(min_length=1, max_length=255)
+    ingredients: list[MealIngredient] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    def calculate_totals(self) -> Nutrients:
+        """Calculate total nutrients from all ingredients."""
+        totals = {
+            "energy_kcal": 0.0,
+            "fat_g": 0.0,
+            "saturated_fat_g": 0.0,
+            "carbohydrates_g": 0.0,
+            "sugar_g": 0.0,
+            "protein_g": 0.0,
+            "fibre_g": 0.0,
+            "salt_g": 0.0,
+            "calcium_mg": 0.0,
+        }
+
+        for ingredient in self.ingredients:
+            for nutrient in totals:
+                totals[nutrient] += getattr(ingredient.nutrients, nutrient)
+
+        return Nutrients(**totals)
+
+
+class MealEntry(BaseModel):
+    """A meal entry in daily data with portions and calculated ingredients."""
+
+    meal_id: str
+    meal_name: str
+    portions: float = Field(default=1.0, ge=0)
+    ingredients: list["FoodEntry"] = Field(default_factory=list)  # Calculated FoodEntry instances
+
+    def calculate_totals(self) -> Nutrients:
+        """Calculate total nutrients from all ingredients."""
+        totals = {
+            "energy_kcal": 0.0,
+            "fat_g": 0.0,
+            "saturated_fat_g": 0.0,
+            "carbohydrates_g": 0.0,
+            "sugar_g": 0.0,
+            "protein_g": 0.0,
+            "fibre_g": 0.0,
+            "salt_g": 0.0,
+            "calcium_mg": 0.0,
+        }
+
+        for ingredient in self.ingredients:
+            for nutrient in totals:
+                totals[nutrient] += getattr(ingredient.nutrients, nutrient)
+
+        return Nutrients(**totals)
 
 
 class FoodItem(BaseModel):
@@ -202,7 +281,7 @@ class DailyData(BaseModel):
     """Complete data for a single day."""
 
     date: date
-    entries: list[FoodEntry] = Field(default_factory=list)
+    entries: list[Union["FoodEntry", "MealEntry"]] = Field(default_factory=list)
     measurements: Measurements = Field(default_factory=Measurements)
     totals: Nutrients | None = None
 
@@ -221,7 +300,19 @@ class DailyData(BaseModel):
         }
 
         for entry in self.entries:
+            if isinstance(entry, FoodEntry):
+                entry_totals = entry.nutrients
+            elif isinstance(entry, MealEntry):
+                entry_totals = entry.calculate_totals()
+            else:
+                raise ValueError(f"Unknown entry type: {type(entry)}")
+
             for nutrient in totals:
-                totals[nutrient] += getattr(entry.nutrients, nutrient)
+                totals[nutrient] += getattr(entry_totals, nutrient)
 
         return Nutrients(**totals)
+
+
+# Rebuild models to resolve forward references
+MealEntry.model_rebuild()
+DailyData.model_rebuild()
