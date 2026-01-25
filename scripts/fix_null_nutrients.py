@@ -15,25 +15,23 @@ from nutritional.database.models import DailySummaryModel, FoodEntryModel
 def fix_null_nutrients():
     """Update daily summaries to set nutrients to NULL where no food entries exist."""
     with get_db_session() as session:
-        # Find all summaries with 0 calories (indicating no data)
-        summaries_to_check = session.exec(
-            select(DailySummaryModel).where(DailySummaryModel.energy_kcal == 0)
+        # Find all dates with summaries having 0 calories (indicating no data)
+        dates_to_check = session.exec(
+            select(DailySummaryModel.summary_date).where(DailySummaryModel.energy_kcal == 0)
         ).all()
 
         updated_count = 0
-        for summary in summaries_to_check:
+        for date_val in dates_to_check:
             # Check if there are any food entries for this date
             entries_exist = session.exec(
-                select(FoodEntryModel.id)
-                .where(FoodEntryModel.entry_date == summary.summary_date)
-                .limit(1)
+                select(FoodEntryModel.id).where(FoodEntryModel.entry_date == date_val).limit(1)
             ).first()
 
             if not entries_exist:
                 # No food entries, set all nutrients to NULL
                 session.exec(
                     update(DailySummaryModel)
-                    .where(DailySummaryModel.id == summary.id)
+                    .where(DailySummaryModel.summary_date == date_val)
                     .values(
                         energy_kcal=None,
                         fat_g=None,
