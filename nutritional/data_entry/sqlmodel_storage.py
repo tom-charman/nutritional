@@ -234,35 +234,62 @@ class SQLModelStorage:
 
             if summary:
                 # Update existing
-                summary.energy_kcal = totals.energy_kcal
-                summary.fat_g = totals.fat_g
-                summary.saturated_fat_g = totals.saturated_fat_g
-                summary.carbohydrates_g = totals.carbohydrates_g
-                summary.sugar_g = totals.sugar_g
-                summary.protein_g = totals.protein_g
-                summary.fibre_g = totals.fibre_g
-                summary.salt_g = totals.salt_g
-                summary.calcium_mg = totals.calcium_mg
+                if totals is not None:
+                    summary.energy_kcal = totals.energy_kcal
+                    summary.fat_g = totals.fat_g
+                    summary.saturated_fat_g = totals.saturated_fat_g
+                    summary.carbohydrates_g = totals.carbohydrates_g
+                    summary.sugar_g = totals.sugar_g
+                    summary.protein_g = totals.protein_g
+                    summary.fibre_g = totals.fibre_g
+                    summary.salt_g = totals.salt_g
+                    summary.calcium_mg = totals.calcium_mg
+                else:
+                    summary.energy_kcal = None
+                    summary.fat_g = None
+                    summary.saturated_fat_g = None
+                    summary.carbohydrates_g = None
+                    summary.sugar_g = None
+                    summary.protein_g = None
+                    summary.fibre_g = None
+                    summary.salt_g = None
+                    summary.calcium_mg = None
                 summary.morning_weight_kg = daily_data.measurements.morning_weight_kg
                 summary.evening_weight_kg = daily_data.measurements.evening_weight_kg
                 summary.updated_at = datetime.now(UTC)
                 session.add(summary)
             else:
                 # Create new
-                summary = DailySummaryModel(
-                    summary_date=daily_data.date,
-                    energy_kcal=totals.energy_kcal,
-                    fat_g=totals.fat_g,
-                    saturated_fat_g=totals.saturated_fat_g,
-                    carbohydrates_g=totals.carbohydrates_g,
-                    sugar_g=totals.sugar_g,
-                    protein_g=totals.protein_g,
-                    fibre_g=totals.fibre_g,
-                    salt_g=totals.salt_g,
-                    calcium_mg=totals.calcium_mg,
-                    morning_weight_kg=daily_data.measurements.morning_weight_kg,
-                    evening_weight_kg=daily_data.measurements.evening_weight_kg,
-                )
+                if totals is not None:
+                    summary = DailySummaryModel(
+                        summary_date=daily_data.date,
+                        energy_kcal=totals.energy_kcal,
+                        fat_g=totals.fat_g,
+                        saturated_fat_g=totals.saturated_fat_g,
+                        carbohydrates_g=totals.carbohydrates_g,
+                        sugar_g=totals.sugar_g,
+                        protein_g=totals.protein_g,
+                        fibre_g=totals.fibre_g,
+                        salt_g=totals.salt_g,
+                        calcium_mg=totals.calcium_mg,
+                        morning_weight_kg=daily_data.measurements.morning_weight_kg,
+                        evening_weight_kg=daily_data.measurements.evening_weight_kg,
+                    )
+                else:
+                    summary = DailySummaryModel(
+                        summary_date=daily_data.date,
+                        energy_kcal=None,
+                        fat_g=None,
+                        saturated_fat_g=None,
+                        carbohydrates_g=None,
+                        sugar_g=None,
+                        protein_g=None,
+                        fibre_g=None,
+                        salt_g=None,
+                        calcium_mg=None,
+                        morning_weight_kg=daily_data.measurements.morning_weight_kg,
+                        evening_weight_kg=daily_data.measurements.evening_weight_kg,
+                    )
                 session.add(summary)
 
     def update_measurements(
@@ -285,15 +312,15 @@ class SQLModelStorage:
             # Prepare the values
             values = {
                 "summary_date": entry_date,
-                "energy_kcal": 0,
-                "fat_g": 0,
-                "saturated_fat_g": 0,
-                "carbohydrates_g": 0,
-                "sugar_g": 0,
-                "protein_g": 0,
-                "fibre_g": 0,
-                "salt_g": 0,
-                "calcium_mg": 0,
+                "energy_kcal": None,
+                "fat_g": None,
+                "saturated_fat_g": None,
+                "carbohydrates_g": None,
+                "sugar_g": None,
+                "protein_g": None,
+                "fibre_g": None,
+                "salt_g": None,
+                "calcium_mg": None,
                 "created_at": datetime.now(UTC),
                 "updated_at": datetime.now(UTC),
             }
