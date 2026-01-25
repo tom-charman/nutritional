@@ -1112,6 +1112,21 @@ def update_daily_macros(entries, _, __, selected_date_str):
     targets = storage.get_or_create_daily_targets(current_date)
 
     # Calculate totals
+    if not entries:
+        # No data for this day
+        return html.Div(
+            html.P(
+                "No food entries for this day.",
+                className="text-muted",
+                style={"textAlign": "center", "padding": "24px"},
+            ),
+            style={
+                "border": "1px solid var(--border)",
+                "borderRadius": "8px",
+                "background": "var(--surface)",
+            },
+        )
+
     totals = {
         "energy_kcal": 0.0,
         "fat_g": 0.0,
@@ -1124,10 +1139,9 @@ def update_daily_macros(entries, _, __, selected_date_str):
         "calcium_mg": 0.0,
     }
 
-    if entries:
-        for entry in entries:
-            for nutrient in totals:
-                totals[nutrient] += entry["nutrients"][nutrient]
+    for entry in entries:
+        for nutrient in totals:
+            totals[nutrient] += entry["nutrients"][nutrient]
 
     def create_macro_bar(label, value, target, color_class, mode="target", unit="g"):
         """Create a macro progress bar with indicator."""
@@ -1275,7 +1289,7 @@ def update_daily_totals(entries, _, __, selected_date_str):
     targets = storage.get_or_create_daily_targets(current_date)
 
     if not entries:
-        compact_summary = html.Span(f"0 / {targets.energy_kcal:.0f} kcal", className="text-muted")
+        compact_summary = html.Span("No data", className="text-muted")
         return compact_summary
 
     # Calculate totals

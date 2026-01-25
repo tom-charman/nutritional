@@ -206,8 +206,11 @@ class DailyData(BaseModel):
     measurements: Measurements = Field(default_factory=Measurements)
     totals: Nutrients | None = None
 
-    def calculate_totals(self) -> Nutrients:
+    def calculate_totals(self) -> Nutrients | None:
         """Calculate total nutrients from all entries."""
+        if not self.entries:
+            return None
+
         totals = {
             "energy_kcal": 0.0,
             "fat_g": 0.0,
