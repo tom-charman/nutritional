@@ -23,9 +23,6 @@ def load_data() -> dict:
             - 'columns': list of column names
             - 'source': 'PostgreSQL'
             - 'last_updated': str timestamp
-
-    Raises:
-        ValueError: If no data found in database
     """
     try:
         with get_db_session() as session:
@@ -34,7 +31,27 @@ def load_data() -> dict:
             summaries = session.exec(statement).all()
 
             if not summaries:
-                raise ValueError("No data found in PostgreSQL database")
+                # Return empty data structure instead of raising error
+                empty_data = {
+                    "Energy kcal": [],
+                    "Fat g": [],
+                    "Saturated Fat g": [],
+                    "Carbohydrates g": [],
+                    "Sugar g": [],
+                    "Protein g": [],
+                    "Fibre g": [],
+                    "Salt g": [],
+                    "Calcium mg": [],
+                    "Weight Kg (Morning)": [],
+                    "Weight Kg (Evening)": [],
+                }
+                return {
+                    "dates": np.array([], dtype="datetime64[D]"),
+                    "data": {k: np.array(v, dtype=float) for k, v in empty_data.items()},
+                    "columns": list(empty_data.keys()),
+                    "source": "PostgreSQL",
+                    "last_updated": dt.now().isoformat(),
+                }
 
             # Parse data into lists
             dates_list = []

@@ -1907,6 +1907,96 @@ input:disabled,
     }
 }
 
+/* ==================== Meal Planner Styles ==================== */
+
+.meal-planner-container {
+    padding-top: 32px;
+}
+
+.page-title {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.section-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 24px;
+}
+
+.composer-panel,
+.meals-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    height: fit-content;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ingredients-container,
+.meals-container {
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--background);
+}
+
+.ingredients-container:empty::before,
+.meals-container:empty::before {
+    content: "No items yet";
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.totals-display {
+    background: var(--primary-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.totals-card h5 {
+    color: var(--primary);
+    margin-bottom: 16px;
+}
+
+.total-item {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--text-body);
+    margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+    .meal-planner-container {
+        padding-top: 16px;
+    }
+
+    .composer-panel,
+    .meals-panel {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+    }
+}
+
 @media (max-width: 768px) {
     .mise-en-place-container {
         grid-template-columns: 1fr;
