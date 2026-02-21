@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Food items reference table
-CREATE TABLE food_items (
+CREATE TABLE IF NOT EXISTS food_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
     unit_type VARCHAR(20) NOT NULL DEFAULT 'per_100g' CHECK (unit_type IN ('per_100g', 'per_item')),
@@ -28,7 +28,7 @@ CREATE TABLE food_items (
 );
 
 -- Individual food entries (history)
-CREATE TABLE food_entries (
+CREATE TABLE IF NOT EXISTS food_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_date DATE NOT NULL,
     timestamp TIMESTAMP NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE food_entries (
 );
 
 -- Daily summaries (main app data source)
-CREATE TABLE daily_summaries (
+CREATE TABLE IF NOT EXISTS daily_summaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     summary_date DATE NOT NULL UNIQUE,
     energy_kcal DECIMAL(8,2),
@@ -68,7 +68,7 @@ CREATE TABLE daily_summaries (
 );
 
 -- Daily targets (nutritional goals/limits)
-CREATE TABLE daily_targets (
+CREATE TABLE IF NOT EXISTS daily_targets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     target_date DATE NOT NULL UNIQUE,
     default_mode VARCHAR(10) NOT NULL DEFAULT 'target' CHECK (default_mode IN ('target', 'limit')),
@@ -97,7 +97,7 @@ CREATE TABLE daily_targets (
 );
 
 -- Meal templates
-CREATE TABLE meals (
+CREATE TABLE IF NOT EXISTS meals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -105,7 +105,7 @@ CREATE TABLE meals (
 );
 
 -- Meal ingredients (links meals to foods with amounts)
-CREATE TABLE meal_ingredients (
+CREATE TABLE IF NOT EXISTS meal_ingredients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     meal_id UUID REFERENCES meals(id) ON DELETE CASCADE,
     food_id UUID REFERENCES food_items(id),
@@ -149,20 +149,26 @@ END;
 $$ language 'plpgsql';
 
 -- Apply updated_at triggers to all tables
+DROP TRIGGER IF EXISTS update_food_items_updated_at ON food_items;
 CREATE TRIGGER update_food_items_updated_at BEFORE UPDATE ON food_items
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_food_entries_updated_at ON food_entries;
 CREATE TRIGGER update_food_entries_updated_at BEFORE UPDATE ON food_entries
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_daily_summaries_updated_at ON daily_summaries;
 CREATE TRIGGER update_daily_summaries_updated_at BEFORE UPDATE ON daily_summaries
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_daily_targets_updated_at ON daily_targets;
 CREATE TRIGGER update_daily_targets_updated_at BEFORE UPDATE ON daily_targets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_meals_updated_at ON meals;
 CREATE TRIGGER update_meals_updated_at BEFORE UPDATE ON meals
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_meal_ingredients_updated_at ON meal_ingredients;
 CREATE TRIGGER update_meal_ingredients_updated_at BEFORE UPDATE ON meal_ingredients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
