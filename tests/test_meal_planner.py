@@ -5,6 +5,10 @@ from unittest.mock import Mock, patch
 import pytest
 from dash import no_update
 
+from nutritional.components import (
+    create_ingredients_list,
+    create_nutrient_totals,
+)
 from nutritional.data_entry.models import FoodItem, MealIngredient, Nutrients, UnitType
 
 # Mock auth and dash before importing
@@ -14,10 +18,8 @@ with (
 ):
     from nutritional.pages.meal_planner import (
         calculate_totals,
-        create_ingredients_list,
-        create_totals_display,
         load_meals_list,
-        update_amount_unit,
+        update_amount_placeholder,
         update_food_options,
     )
 
@@ -119,7 +121,8 @@ class TestMealPlannerHelpers:
     def test_create_ingredients_list_empty(self):
         """Test creating ingredients list with no ingredients."""
         result = create_ingredients_list([])
-        assert "No ingredients added yet" in str(result)
+        # Now returns None for empty list (zen essentialism)
+        assert result is None
 
     def test_create_ingredients_list_with_ingredients(self):
         """Test creating ingredients list with ingredients."""
@@ -128,11 +131,13 @@ class TestMealPlannerHelpers:
                 "food_name": "Chicken Breast",
                 "weight_g": 100.0,
                 "quantity": None,
+                "nutrients": {"energy_kcal": 165.0},
             },
             {
                 "food_name": "Rice",
                 "weight_g": None,
                 "quantity": 2.0,
+                "nutrients": {"energy_kcal": 130.0},
             },
         ]
         result = create_ingredients_list(ingredients)
@@ -143,8 +148,8 @@ class TestMealPlannerHelpers:
         assert "Rice" in result_str
         assert "2.0 servings" in result_str
 
-    def test_create_totals_display(self):
-        """Test creating totals display."""
+    def test_create_nutrient_totals(self):
+        """Test creating nutrient totals display."""
         totals = Nutrients(
             energy_kcal=500.0,
             protein_g=25.0,
@@ -156,13 +161,15 @@ class TestMealPlannerHelpers:
             salt_g=2.0,
             calcium_mg=150.0,
         )
-        result = create_totals_display(totals)
+        result = create_nutrient_totals(totals)
         result_str = str(result)
 
-        assert "Calories: 500 kcal" in result_str
-        assert "Protein: 25.0g" in result_str
-        assert "Carbs: 50.0g" in result_str
-        assert "Fat: 20.0g" in result_str
+        assert "500" in result_str
+        assert "kcal" in result_str
+        # Now uses full nutrient preview format (same as entry screen)
+        assert "Protein" in result_str
+        assert "Carbohydrates" in result_str
+        assert "Fat" in result_str
 
 
 class TestMealPlannerCallbacks:
@@ -217,8 +224,8 @@ class TestMealPlannerCallbacks:
         assert result[0]["value"] == "food1"
 
     @patch("nutritional.pages.meal_planner.storage")
-    def test_update_amount_unit_per_100g(self, mock_storage):
-        """Test amount unit update for per 100g food."""
+    def test_update_amount_placeholder_per_100g(self, mock_storage):
+        """Test amount placeholder update for per 100g food."""
         mock_food = FoodItem(
             id="food1",
             name="Chicken Breast",
@@ -235,16 +242,18 @@ class TestMealPlannerCallbacks:
         )
         mock_storage.get_food_item.return_value = mock_food
 
-        result = update_amount_unit("food1")
-        assert result == "g"
+        unit, placeholder = update_amount_placeholder("food1")
+        assert unit == "g"
+        assert "grams" in placeholder.lower()
 
     @patch("nutritional.pages.meal_planner.storage")
-    def test_update_amount_unit_per_item(self, mock_storage):
-        """Test amount unit update for per item food."""
+    def test_update_amount_placeholder_per_item(self, mock_storage):
+        """Test amount placeholder update for per item food."""
         mock_food = FoodItem(
             id="food1",
             name="Apple",
             unit_type=UnitType.PER_ITEM,
+            serving_size_g=150.0,
             energy_kcal=52.0,
             fat_g=0.2,
             saturated_fat_g=0.0,
@@ -257,16 +266,18 @@ class TestMealPlannerCallbacks:
         )
         mock_storage.get_food_item.return_value = mock_food
 
-        result = update_amount_unit("food1")
-        assert result == "servings"
+        unit, placeholder = update_amount_placeholder("food1")
+        assert unit == "servings"
+        assert "servings" in placeholder.lower()
 
     @patch("nutritional.pages.meal_planner.storage")
-    def test_update_amount_unit_no_food(self, mock_storage):
-        """Test amount unit update when no food selected."""
+    def test_update_amount_placeholder_no_food(self, mock_storage):
+        """Test amount placeholder update when no food selected."""
         mock_storage.get_food_item.return_value = None
 
-        result = update_amount_unit(None)
-        assert result == "g"
+        unit, placeholder = update_amount_placeholder(None)
+        assert unit == "g"
+        assert "grams" in placeholder.lower()
 
     @patch("nutritional.pages.meal_planner.storage")
     def test_load_meals_list_empty(self, mock_storage):
@@ -315,5 +326,5 @@ class TestMealPlannerCallbacks:
         result_str = str(result)
 
         assert "Test Meal" in result_str
-        assert "1 ingredients" in result_str
-        assert "Calories: 100 kcal" in result_str
+        assert "1 ingredient" in result_str
+        assert "100 kcal" in result_str

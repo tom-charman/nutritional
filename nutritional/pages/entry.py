@@ -12,6 +12,7 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
+from nutritional.components import create_nutrient_preview
 from nutritional.data_entry.calculator import calculate_nutrients
 from nutritional.data_entry.models import (
     NUTRIENT_FIELD_INFO,
@@ -597,63 +598,8 @@ def calculate_and_display_nutrients(food_id, amount_list, portions_list):
         if not nutrients:
             return []
 
-        # Create styled nutrient display
-        nutrient_data = [
-            ("Energy", f"{nutrients.energy_kcal:.1f}", "kcal", "#2B2B2B"),
-            ("Fat", f"{nutrients.fat_g:.1f}", "g", "#BF6B59"),
-            ("Saturated Fat", f"{nutrients.saturated_fat_g:.1f}", "g", "#E09F91"),
-            ("Carbohydrates", f"{nutrients.carbohydrates_g:.1f}", "g", "#C8963E"),
-            ("Sugar", f"{nutrients.sugar_g:.1f}", "g", "#EBC374"),
-            ("Protein", f"{nutrients.protein_g:.1f}", "g", "#2C4C5B"),
-            ("Fibre", f"{nutrients.fibre_g:.1f}", "g", "#4F6D46"),
-            ("Salt", f"{nutrients.salt_g:.1f}", "g", "#7C6A88"),
-            ("Calcium", f"{nutrients.calcium_mg:.1f}", "mg", "#6B7F82"),
-        ]
-
-        nutrient_items = []
-        for name, value, unit, color in nutrient_data:
-            nutrient_items.append(
-                html.Div(
-                    [
-                        html.Span(
-                            "",
-                            style={
-                                "display": "inline-block",
-                                "width": "12px",
-                                "height": "12px",
-                                "borderRadius": "50%",
-                                "backgroundColor": color,
-                                "marginRight": "8px",
-                                "flexShrink": "0",
-                            },
-                        ),
-                        html.Span(
-                            f"{name}: {value} {unit}",
-                            style={
-                                "color": "var(--text-main)",
-                                "fontFamily": "var(--font-mono)",
-                                "fontWeight": "500",
-                            },
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "alignItems": "center",
-                        "marginBottom": "6px",
-                    },
-                )
-            )
-
-        return html.Div(
-            nutrient_items,
-            style={
-                "backgroundColor": "var(--surface)",
-                "border": "1px solid var(--border)",
-                "borderRadius": "var(--radius-md)",
-                "padding": "16px",
-                "boxShadow": "var(--shadow-sm)",
-            },
-        )
+        # Use shared component for nutrient preview
+        return create_nutrient_preview(nutrients)
     except Exception:
         return []
 

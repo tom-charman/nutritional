@@ -9,6 +9,12 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
+from nutritional.components import (
+    create_empty_state,
+    create_ingredients_list,
+    create_meal_card,
+    create_nutrient_totals,
+)
 from nutritional.data_entry.models import (
     Meal,
     MealIngredient,
@@ -23,7 +29,11 @@ storage = SQLModelStorage()
 
 
 def get_meal_planner_layout():
-    """Return the meal planner layout."""
+    """Return the meal planner layout.
+
+    Uses a 2-column mise-en-place grid matching the entry screen's visual style.
+    Both columns are styled consistently with section-label headers.
+    """
     return dbc.Container(
         [
             # Header
@@ -37,146 +47,97 @@ def get_meal_planner_layout():
                 ],
                 className="page-header",
             ),
-            # Main Content - Two Column Layout
-            dbc.Row(
+            # Main Content - Mise-en-place 2-Column Layout
+            html.Div(
                 [
-                    # Left Column - Meal Composer
-                    dbc.Col(
+                    # Column 1: Meal Composer
+                    html.Div(
                         [
+                            html.Div("MEAL COMPOSER", className="section-label"),
+                            # Meal Name Input
                             html.Div(
                                 [
-                                    html.H3("Meal Composer", className="section-title"),
-                                    # Meal Name Input
-                                    html.Div(
-                                        [
-                                            html.Label("Meal Name", className="form-label"),
-                                            dbc.Input(
-                                                id="meal-name",
-                                                placeholder="e.g., Breakfast Smoothie",
-                                                type="text",
-                                                className="mb-3",
-                                            ),
-                                        ]
-                                    ),
-                                    # Food Selector and Amount
-                                    html.Div(
-                                        [
-                                            html.Label("Add Ingredient", className="form-label"),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        [
-                                                            dcc.Dropdown(
-                                                                id="food-selector",
-                                                                placeholder="Select a food...",
-                                                                className="mb-2",
-                                                            ),
-                                                        ],
-                                                        md=6,
-                                                    ),
-                                                    dbc.Col(
-                                                        [
-                                                            dbc.InputGroup(
-                                                                [
-                                                                    dbc.Input(
-                                                                        id="ingredient-amount",
-                                                                        placeholder="Amount",
-                                                                        type="number",
-                                                                        min=0,
-                                                                        step=0.1,
-                                                                    ),
-                                                                    dbc.InputGroupText(
-                                                                        id="amount-unit",
-                                                                        children="g",
-                                                                    ),
-                                                                ]
-                                                            ),
-                                                        ],
-                                                        md=3,
-                                                    ),
-                                                    dbc.Col(
-                                                        [
-                                                            dbc.Button(
-                                                                "Add",
-                                                                id="add-ingredient-btn",
-                                                                color="primary",
-                                                                className="w-100",
-                                                            ),
-                                                        ],
-                                                        md=3,
-                                                    ),
-                                                ]
-                                            ),
-                                        ],
-                                        className="mb-4",
-                                    ),
-                                    # Ingredients List
-                                    html.Div(
-                                        [
-                                            html.Label("Ingredients", className="form-label"),
-                                            html.Div(
-                                                id="ingredients-list",
-                                                children=[
-                                                    html.P(
-                                                        "No ingredients added yet.",
-                                                        className="text-muted text-center py-3",
-                                                    )
-                                                ],
-                                                className="ingredients-container",
-                                            ),
-                                        ]
-                                    ),
-                                    # Totals Display
-                                    html.Div(
-                                        id="meal-totals",
-                                        className="totals-display mt-3",
-                                    ),
-                                    # Action Buttons
-                                    html.Div(
-                                        [
-                                            dbc.Button(
-                                                "Save Meal",
-                                                id="save-meal-btn",
-                                                color="success",
-                                                className="me-2",
-                                            ),
-                                            dbc.Button(
-                                                "Clear",
-                                                id="clear-composer-btn",
-                                                color="secondary",
-                                            ),
-                                        ],
-                                        className="mt-4",
+                                    dbc.Input(
+                                        id="meal-name",
+                                        placeholder="Meal name (e.g., Breakfast Smoothie)",
+                                        type="text",
                                     ),
                                 ],
-                                className="composer-panel",
+                                className="action-row",
+                                style={"marginBottom": "12px"},
                             ),
-                        ],
-                        md=6,
-                    ),
-                    # Right Column - Saved Meals
-                    dbc.Col(
-                        [
+                            # Food Selector
                             html.Div(
                                 [
-                                    html.H3("Saved Meals", className="section-title"),
-                                    html.Div(
-                                        id="meals-list",
-                                        children=[
-                                            html.P(
-                                                "No meals saved yet.",
-                                                className="text-muted text-center py-3",
-                                            )
-                                        ],
-                                        className="meals-container",
+                                    dcc.Dropdown(
+                                        id="food-selector",
+                                        placeholder="Search for a food...",
+                                        searchable=True,
+                                        className="food-selector-full-width",
                                     ),
                                 ],
-                                className="meals-panel",
+                                className="action-row",
+                                style={"marginBottom": "8px"},
+                            ),
+                            # Amount input row
+                            html.Div(
+                                [
+                                    dbc.Input(
+                                        id="ingredient-amount",
+                                        placeholder="Amount",
+                                        type="number",
+                                        min=0,
+                                        step=0.1,
+                                        style={"flex": "1"},
+                                    ),
+                                    # Hidden element to store unit type
+                                    html.Div(
+                                        id="amount-unit",
+                                        style={"display": "none"},
+                                    ),
+                                    dbc.Button(
+                                        "Add",
+                                        id="add-ingredient-btn",
+                                        color="primary",
+                                    ),
+                                ],
+                                className="action-row action-row-flex",
+                                style={"marginBottom": "12px"},
+                            ),
+                            # Ingredients List - only shown when there are ingredients
+                            html.Div(id="ingredients-list"),
+                            # Totals Display - styled like entry screen nutrients preview
+                            html.Div(id="meal-totals"),
+                            # Action Buttons
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        "Save Meal",
+                                        id="save-meal-btn",
+                                        color="success",
+                                        className="me-2",
+                                    ),
+                                    dbc.Button(
+                                        "Clear",
+                                        id="clear-composer-btn",
+                                        color="secondary",
+                                    ),
+                                ],
+                                className="mt-3",
                             ),
                         ],
-                        md=6,
+                        className="mise-planner-column",
                     ),
-                ]
+                    # Column 2: Saved Meals
+                    html.Div(
+                        [
+                            html.Div("SAVED MEALS", className="section-label"),
+                            html.Div(id="meals-list", className="saved-meals-list"),
+                        ],
+                        className="mise-planner-column",
+                    ),
+                ],
+                className="mise-planner-container",
             ),
             # Hidden stores
             dcc.Store(id="current-meal-id", data=None),
@@ -244,17 +205,18 @@ def update_food_options(search_value, current_value):
 
 @callback(
     Output("amount-unit", "children"),
+    Output("ingredient-amount", "placeholder"),
     Input("food-selector", "value"),
 )
-def update_amount_unit(food_id):
-    """Update the amount unit based on selected food."""
+def update_amount_placeholder(food_id):
+    """Update the amount input placeholder based on selected food."""
     if not food_id:
-        return "g"
+        return "g", "Weight in grams"
 
     food = storage.get_food_item(food_id)
     if food and food.unit_type == UnitType.PER_ITEM:
-        return "servings"
-    return "g"
+        return "servings", f"Servings ({food.serving_size_g}g each)"
+    return "g", "Weight in grams"
 
 
 @callback(
@@ -282,7 +244,7 @@ def manage_ingredients(
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if trigger_id == "clear-composer-btn":
-        return [], create_ingredients_list([]), create_totals_display(Nutrients()), None, None
+        return [], None, None, None, None
 
     if trigger_id == "add-ingredient-btn":
         # Ensure current_ingredients is a list
@@ -327,51 +289,17 @@ def manage_ingredients(
         )
 
         new_ingredients = current_ingredients + [ingredient.model_dump()]
+        totals = calculate_totals(new_ingredients)
 
         return (
             new_ingredients,
             create_ingredients_list(new_ingredients),
-            create_totals_display(calculate_totals(new_ingredients)),
+            create_nutrient_totals(totals),
             None,  # Clear food selector
             None,  # Clear amount input
         )
 
     return no_update, no_update, no_update, no_update, no_update
-
-
-def create_ingredients_list(ingredients_data):
-    """Create the ingredients list display."""
-    if not ingredients_data:
-        return html.P("No ingredients added yet.", className="text-muted text-center py-3")
-
-    items = []
-    for i, ing in enumerate(ingredients_data):
-        amount_text = (
-            f"{ing['weight_g']}g" if ing.get("weight_g") else f"{ing['quantity']} servings"
-        )
-        items.append(
-            dbc.ListGroupItem(
-                [
-                    html.Div(
-                        [
-                            html.Strong(ing["food_name"]),
-                            html.Span(f" - {amount_text}", className="text-muted"),
-                        ],
-                        className="d-flex justify-content-between align-items-center",
-                    ),
-                    dbc.Button(
-                        "×",
-                        id={"type": "remove-ingredient", "index": i},
-                        color="danger",
-                        size="sm",
-                        className="btn-close",
-                    ),
-                ],
-                className="d-flex justify-content-between align-items-center",
-            )
-        )
-
-    return dbc.ListGroup(items, flush=True)
 
 
 def calculate_totals(ingredients_data):
@@ -401,36 +329,6 @@ def calculate_totals(ingredients_data):
     return totals
 
 
-def create_totals_display(totals):
-    """Create the totals display."""
-    return html.Div(
-        [
-            html.H5("Nutritional Totals", className="mb-3"),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div(
-                                f"Calories: {totals.energy_kcal:.0f} kcal", className="total-item"
-                            ),
-                            html.Div(f"Protein: {totals.protein_g:.1f}g", className="total-item"),
-                        ]
-                    ),
-                    dbc.Col(
-                        [
-                            html.Div(
-                                f"Carbs: {totals.carbohydrates_g:.1f}g", className="total-item"
-                            ),
-                            html.Div(f"Fat: {totals.fat_g:.1f}g", className="total-item"),
-                        ]
-                    ),
-                ]
-            ),
-        ],
-        className="totals-card",
-    )
-
-
 @callback(
     Output("meals-list", "children", allow_duplicate=True),
     Input("save-meal-btn", "n_clicks"),
@@ -441,50 +339,21 @@ def load_meals_list(save_clicks, current_list):
     """Load and display the list of saved meals."""
     meals = storage.load_meals()
     if not meals:
-        return html.P("No meals saved yet.", className="text-muted text-center py-3")
+        return create_empty_state("No meals saved yet. Create your first meal using the composer.")
 
     items = []
     for meal in meals:
         totals = meal.calculate_totals()
         items.append(
-            dbc.Card(
-                [
-                    dbc.CardBody(
-                        [
-                            html.H5(meal.name, className="card-title"),
-                            html.P(
-                                f"{len(meal.ingredients)} ingredients",
-                                className="card-text text-muted",
-                            ),
-                            html.Small(
-                                f"Calories: {totals.energy_kcal:.0f} kcal", className="text-muted"
-                            ),
-                            html.Div(
-                                [
-                                    dbc.Button(
-                                        "Edit",
-                                        id={"type": "edit-meal", "meal_id": meal.id},
-                                        color="primary",
-                                        size="sm",
-                                        className="me-2",
-                                    ),
-                                    dbc.Button(
-                                        "Delete",
-                                        id={"type": "delete-meal", "meal_id": meal.id},
-                                        color="danger",
-                                        size="sm",
-                                    ),
-                                ],
-                                className="mt-2",
-                            ),
-                        ]
-                    ),
-                ],
-                className="mb-3",
+            create_meal_card(
+                meal_id=meal.id,
+                name=meal.name,
+                ingredient_count=len(meal.ingredients),
+                total_calories=totals.energy_kcal,
             )
         )
 
-    return items
+    return html.Div(items)
 
 
 @callback(
@@ -493,15 +362,15 @@ def load_meals_list(save_clicks, current_list):
     Output("ingredients-list", "children"),
     Output("meal-totals", "children"),
     Output("current-meal-id", "data"),
-    Input({"type": "edit-meal", "meal_id": dash.ALL}, "n_clicks"),
+    Input({"type": "meal-card", "meal_id": dash.ALL}, "n_clicks"),
 )
-def load_meal_for_editing(edit_clicks):
-    """Load a meal into the composer for editing."""
+def load_meal_for_editing(meal_clicks):
+    """Load a meal into the composer for editing when clicked."""
     ctx = dash.callback_context
-    if not ctx.triggered or not any(edit_clicks):
+    if not ctx.triggered or not any(meal_clicks):
         return no_update, no_update, no_update, no_update, no_update
 
-    # Find which button was clicked
+    # Find which meal card was clicked
     triggered = ctx.triggered[0]
     meal_id = triggered["prop_id"].split('"meal_id":"')[1].split('"')[0]
 
@@ -510,12 +379,13 @@ def load_meal_for_editing(edit_clicks):
         return no_update, no_update, no_update, no_update, no_update
 
     ingredients_data = [ing.model_dump() for ing in meal.ingredients]
+    totals = meal.calculate_totals()
 
     return (
         meal.name,
         ingredients_data,
         create_ingredients_list(ingredients_data),
-        create_totals_display(meal.calculate_totals()),
+        create_nutrient_totals(totals),
         meal.id,
     )
 
@@ -541,12 +411,13 @@ def remove_ingredient(remove_clicks, current_ingredients):
     index = int(triggered["prop_id"].split('"index":')[1].split("}")[0])
 
     new_ingredients = [ing for i, ing in enumerate(current_ingredients) if i != index]
+    totals = calculate_totals(new_ingredients) if new_ingredients else None
 
     return (
         no_update,
         new_ingredients,
         create_ingredients_list(new_ingredients),
-        create_totals_display(calculate_totals(new_ingredients)),
+        create_nutrient_totals(totals) if totals else None,
         no_update,
     )
 
@@ -580,12 +451,12 @@ def save_meal(save_clicks, meal_name, ingredients_data, current_meal_id):
 
     storage.save_meal(meal)
 
-    # Clear composer
+    # Clear composer and refresh meals list
     return (
         "",
         [],
-        create_ingredients_list([]),
-        create_totals_display(Nutrients()),
+        None,
+        None,
         None,
         load_meals_list(1, None),
     )

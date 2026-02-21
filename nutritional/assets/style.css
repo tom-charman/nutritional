@@ -1907,74 +1907,236 @@ input:disabled,
     }
 }
 
+/* ==================== Shared Components ==================== */
+
+/* Nutrient Preview Card - used in entry and meal planner */
+.nutrient-preview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.nutrient-preview-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.nutrient-preview-item:last-child {
+    margin-bottom: 0;
+}
+
+.nutrient-label {
+    color: var(--text-body);
+    font-weight: 500;
+}
+
+.nutrient-value {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+/* Meal Totals Display - compact macro summary */
+.meal-totals-display {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.totals-main {
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+}
+
+.totals-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.totals-unit {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.totals-macros {
+    display: flex;
+    gap: 16px;
+}
+
+.totals-macro {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Legacy meal-card styles (kept for backwards compatibility) */
+.meal-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.meal-card:last-child {
+    border-bottom: none;
+}
+
+.meal-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meal-card-name {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.meal-card-info {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.meal-card-calories {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-body);
+    text-align: right;
+}
+
+.meal-card-actions {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+.meal-action-link {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--primary);
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.meal-action-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.meal-action-delete {
+    color: var(--danger);
+}
+
+.meal-action-delete:hover {
+    color: var(--danger);
+}
+
+.meal-action-separator {
+    color: var(--text-muted);
+}
+
+/* Empty State Message */
+.empty-state-message {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 24px 16px;
+    font-style: italic;
+}
+
 /* ==================== Meal Planner Styles ==================== */
 
 .meal-planner-container {
     padding-top: 32px;
+    max-width: 1200px;
+}
+
+.page-header {
+    margin-bottom: 32px;
 }
 
 .page-title {
-    font-family: var(--font-heading);
-    font-size: 2rem;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
     font-weight: 600;
     color: var(--text-main);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+/* Meal Planner 2-Column Grid - matches entry screen mise-en-place style */
+.mise-planner-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 8px;
+}
+
+.mise-planner-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Saved meals list - consistent spacing */
+.saved-meals-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* When saved-meals-list only contains empty state, remove background */
+.saved-meals-list:has(.empty-state-message) {
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 .section-title {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-main);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
 }
 
-.composer-panel,
-.meals-panel {
+/* Meal Composer Panel - clean, no heavy box */
+.composer-panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 24px;
     height: fit-content;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
 }
 
-.ingredients-container,
-.meals-container {
-    min-height: 200px;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-    background: var(--background);
+/* Saved Meals Panel - minimal, paper-like */
+.meals-panel {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
-.ingredients-container:empty::before,
-.meals-container:empty::before {
-    content: "No items yet";
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-.totals-display {
-    background: var(--primary-light);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-top: 16px;
-}
-
-.totals-card h5 {
-    color: var(--primary);
-    margin-bottom: 16px;
-}
-
-.total-item {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    color: var(--text-body);
-    margin-bottom: 4px;
+/* Ingredients list in meal planner - matches daily entry style */
+.ingredients-list {
+    margin-top: 8px;
 }
 
 @media (max-width: 768px) {
@@ -1982,18 +2144,13 @@ input:disabled,
         padding-top: 16px;
     }
 
-    .composer-panel,
-    .meals-panel {
-        padding: 16px;
-        margin-bottom: 16px;
+    .mise-planner-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
     }
 
     .page-title {
         font-size: 1.5rem;
-    }
-
-    .section-title {
-        font-size: 1.1rem;
     }
 }
 
