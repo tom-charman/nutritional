@@ -9,6 +9,7 @@ from datetime import date, timedelta
 import numpy as np
 from dash import Input, Output, callback
 
+from nutritional.component_ids import ID, get_id
 from nutritional.data.loaders import filter_by_date_range, get_data_source
 from nutritional.plotting.calories_weight import create_calories_weight_figure
 from nutritional.plotting.macros import create_macro_breakdown_figure
@@ -21,6 +22,8 @@ from nutritional.plotting.transforms import (
 )
 from nutritional.plotting.utils import create_empty_figure
 from nutritional.settings import COLOR_PALETTE, RDI_GUIDELINES
+
+HOME_PREFIX = ""
 
 
 def serialize_data(raw_data: dict) -> dict:
@@ -70,8 +73,8 @@ def deserialize_data(stored_data: dict) -> dict:
 
 
 @callback(
-    Output("data-store", "data"),
-    Input("refresh-button", "n_clicks"),
+    Output(get_id(ID.DATA_STORE, HOME_PREFIX), "data"),
+    Input(get_id(ID.REFRESH_BUTTON, HOME_PREFIX), "n_clicks"),
     prevent_initial_call=False,
 )
 def load_data(n_clicks):
@@ -94,17 +97,17 @@ def load_data(n_clicks):
 
 @callback(
     [
-        Output("calories-weight-plot", "figure"),
-        Output("macro-breakdown-plot", "figure"),
-        Output("nutrients-rdi-plot", "figure"),
-        Output("avg-calories", "children"),
-        Output("avg-weight", "children"),
-        Output("avg-protein", "children"),
-        Output("data-points", "children"),
-        Output("data-source-info", "children"),
-        Output("loading-output", "children"),
+        Output(get_id(ID.CALORIES_WEIGHT_PLOT, HOME_PREFIX), "figure"),
+        Output(get_id(ID.MACRO_BREAKDOWN_PLOT, HOME_PREFIX), "figure"),
+        Output(get_id(ID.NUTRIENTS_RDI_PLOT, HOME_PREFIX), "figure"),
+        Output(get_id(ID.AVG_CALORIES, HOME_PREFIX), "children"),
+        Output(get_id(ID.AVG_WEIGHT, HOME_PREFIX), "children"),
+        Output(get_id(ID.AVG_PROTEIN, HOME_PREFIX), "children"),
+        Output(get_id(ID.DATA_POINTS, HOME_PREFIX), "children"),
+        Output(get_id(ID.DATA_SOURCE_INFO, HOME_PREFIX), "children"),
+        Output(get_id(ID.LOADING_OUTPUT, HOME_PREFIX), "children"),
     ],
-    [Input("data-store", "data")],
+    [Input(get_id(ID.DATA_STORE, HOME_PREFIX), "data")],
 )
 def update_dashboard(stored_data, start_date=None, end_date=None, rolling_window=None):
     """
