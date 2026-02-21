@@ -70,6 +70,8 @@ def get_entry_layout():
             dcc.Store(id="targets-updated-trigger", data=0),
             # Store for editing entry index
             dcc.Store(id="editing-entry-index", data=None),
+            # Store for expanded meal items
+            dcc.Store(id="expanded-meals", data=[]),
             # Unified Daily Log Header
             html.Div(
                 [
@@ -912,11 +914,17 @@ def add_entry(
         Input("persistent-entries", "data"),
         Input("page-load-trigger", "children"),
         Input("editing-entry-index", "data"),
+        Input("expanded-meals", "data"),
     ],
     prevent_initial_call=False,
 )
-def update_entries_list(entries, _, editing_index):
-    """Display list of current entries with clean ingredient format (no macro pills)."""
+def update_entries_list(entries, _, editing_index, expanded_meals):
+    """Display list of current entries with collapsible meals."""
+    if expanded_meals is not None:
+        expanded_meals = expanded_meals or []
+    else:
+        expanded_meals = []
+
     if not entries:
         return html.Div(
             html.P(
@@ -941,13 +949,14 @@ def update_entries_list(entries, _, editing_index):
             meal_name = meal_entry.get("meal_name", "Meal")
             portions = meal_entry.get("portions", 1.0)
             ingredients = meal_entry.get("ingredients", [])
+            is_expanded = meal_id in expanded_meals
 
             # Calculate total calories for the meal
             total_calories = sum(
                 ing.get("nutrients", {}).get("energy_kcal", 0) for ing in ingredients
             )
 
-            # Create meal header
+            # Create meal header - clean design with subtle visual feedback
             meal_header = html.Div(
                 [
                     html.Div(
@@ -989,55 +998,63 @@ def update_entries_list(entries, _, editing_index):
                 className="ingredient-item",
                 id={"type": "meal-header", "meal_id": meal_id},
                 n_clicks=0,
-                style={"cursor": "pointer"},
+                style={
+                    "cursor": "pointer",
+                    "borderBottom": (
+                        "2px solid var(--text-disabled)" if is_expanded else "2px solid transparent"
+                    ),
+                    "transition": "border-color 0.2s ease",
+                },
             )
 
-            # Create nested ingredients list
+            # Create nested ingredients list - only show if expanded
             nested_ingredients = []
-            for j, ingredient in enumerate(ingredients):
-                ing_calories = ingredient.get("nutrients", {}).get("energy_kcal", 0)
+            if is_expanded:
+                for j, ingredient in enumerate(ingredients):
+                    ing_calories = ingredient.get("nutrients", {}).get("energy_kcal", 0)
 
-                nested_item = html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    f"  └─ {ingredient.get('food_name', 'Unknown')}",
-                                    className="ingredient-name",
-                                    style={"paddingLeft": "12px"},
-                                ),
-                                dcc.Input(
-                                    id={
-                                        "type": "meal-ingredient-amount",
-                                        "meal_id": meal_id,
-                                        "index": j,
-                                    },
-                                    type="number",
-                                    value=ingredient.get("weight_g") or ingredient.get("quantity"),
-                                    min=0,
-                                    step=0.1,
-                                    size="sm",
-                                    style={
-                                        "width": "60px",
-                                        "padding": "4px",
-                                        "fontSize": "0.85em",
-                                    },
-                                    placeholder="Amount",
-                                ),
-                            ],
-                            className="ingredient-item-header",
-                        ),
-                        html.Span(
-                            f"{ing_calories:.0f} kcal",
-                            className="ingredient-calories",
-                            title="Calories",
-                        ),
-                    ],
-                    className="ingredient-item",
-                    style={"backgroundColor": "rgba(0,0,0,0.02)"},
-                    id={"type": "meal-ingredient-item", "meal_id": meal_id, "index": j},
-                )
-                nested_ingredients.append(nested_item)
+                    nested_item = html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.Div(
+                                        f"  └─ {ingredient.get('food_name', 'Unknown')}",
+                                        className="ingredient-name",
+                                        style={"paddingLeft": "12px"},
+                                    ),
+                                    dcc.Input(
+                                        id={
+                                            "type": "meal-ingredient-amount",
+                                            "meal_id": meal_id,
+                                            "index": j,
+                                        },
+                                        type="number",
+                                        value=ingredient.get("weight_g")
+                                        or ingredient.get("quantity"),
+                                        min=0,
+                                        step=0.1,
+                                        size="sm",
+                                        style={
+                                            "width": "60px",
+                                            "padding": "4px",
+                                            "fontSize": "0.85em",
+                                        },
+                                        placeholder="Amount",
+                                    ),
+                                ],
+                                className="ingredient-item-header",
+                            ),
+                            html.Span(
+                                f"{ing_calories:.0f} kcal",
+                                className="ingredient-calories",
+                                title="Calories",
+                            ),
+                        ],
+                        className="ingredient-item",
+                        style={"backgroundColor": "rgba(0,0,0,0.02)"},
+                        id={"type": "meal-ingredient-item", "meal_id": meal_id, "index": j},
+                    )
+                    nested_ingredients.append(nested_item)
 
             # Combine meal header and ingredients
             meal_div = html.Div(
@@ -1151,6 +1168,38 @@ def update_entries_list(entries, _, editing_index):
             entry_items.append(entry_div)
 
     return entry_items
+
+
+# Handle meal expand/collapse
+@callback(
+    Output("expanded-meals", "data"),
+    Input({"type": "meal-header", "meal_id": dash.ALL}, "n_clicks"),
+    State("expanded-meals", "data"),
+    prevent_initial_call=True,
+)
+def toggle_meal_expansion(n_clicks_list, expanded_meals):
+    """Toggle meal expansion when header is clicked."""
+    if not any(n_clicks_list):
+        raise PreventUpdate
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    # Get the meal_id from the triggered input
+    header_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    meal_id = eval(header_id)["meal_id"]
+
+    if expanded_meals is None:
+        expanded_meals = []
+
+    # Toggle the meal
+    if meal_id in expanded_meals:
+        expanded_meals.remove(meal_id)
+    else:
+        expanded_meals.append(meal_id)
+
+    return expanded_meals
 
 
 @callback(
