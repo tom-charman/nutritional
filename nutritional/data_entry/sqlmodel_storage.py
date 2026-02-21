@@ -125,7 +125,9 @@ class SQLModelStorage:
         """
         with get_db_session() as session:
             try:
-                item = session.get(FoodItemModel, UUID(food_id))
+                # Strip "food:" prefix if present
+                clean_id = food_id.replace("food:", "") if food_id.startswith("food:") else food_id
+                item = session.get(FoodItemModel, UUID(clean_id))
             except (ValueError, TypeError):
                 # If food_id is not a valid UUID format, return None
                 return None

@@ -183,6 +183,7 @@ def get_meal_planner_layout():
             dcc.Store(id="composer-ingredients", data=[]),
         ],
         fluid=True,
+        id="meal-planner-container",
         className="meal-planner-container",
     )
 
@@ -196,6 +197,25 @@ def layout():
 
 
 # Callbacks
+
+
+@callback(
+    Output("food-selector", "options", allow_duplicate=True),
+    Input("meal-planner-container", "id"),
+    prevent_initial_call="initial_duplicate",
+)
+def load_food_options(container_id):
+    """Load all available food options on page load."""
+    foods = storage.load_food_database()
+    options = []
+    for food in foods:
+        unit_label = (
+            "per 100g"
+            if food.unit_type == UnitType.PER_100G
+            else f"per {food.serving_size_g}g serving"
+        )
+        options.append({"label": f"{food.name} ({unit_label})", "value": food.id})
+    return options
 
 
 @callback(
@@ -241,6 +261,8 @@ def update_amount_unit(food_id):
     Output("composer-ingredients", "data", allow_duplicate=True),
     Output("ingredients-list", "children", allow_duplicate=True),
     Output("meal-totals", "children", allow_duplicate=True),
+    Output("food-selector", "value", allow_duplicate=True),
+    Output("ingredient-amount", "value", allow_duplicate=True),
     Input("add-ingredient-btn", "n_clicks"),
     Input("clear-composer-btn", "n_clicks"),
     State("food-selector", "value"),
@@ -255,20 +277,28 @@ def manage_ingredients(
     """Add or clear ingredients in the composer."""
     ctx = dash.callback_context
     if not ctx.triggered:
-        return current_ingredients, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if trigger_id == "clear-composer-btn":
-        return [], create_ingredients_list([]), create_totals_display(Nutrients())
+        return [], create_ingredients_list([]), create_totals_display(Nutrients()), None, None
 
     if trigger_id == "add-ingredient-btn":
-        if not food_id or not amount or amount <= 0:
-            return no_update, no_update, no_update
+        # Ensure current_ingredients is a list
+        if current_ingredients is None:
+            current_ingredients = []
+
+        # Validate inputs
+        if not food_id:
+            return no_update, no_update, no_update, no_update, no_update
+
+        if amount is None or amount <= 0:
+            return no_update, no_update, no_update, no_update, no_update
 
         food = storage.get_food_item(food_id)
         if not food:
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
 
         # Calculate nutrients based on amount
         if food.unit_type == UnitType.PER_100G:
@@ -302,9 +332,11 @@ def manage_ingredients(
             new_ingredients,
             create_ingredients_list(new_ingredients),
             create_totals_display(calculate_totals(new_ingredients)),
+            None,  # Clear food selector
+            None,  # Clear amount input
         )
 
-    return no_update, no_update, no_update
+    return no_update, no_update, no_update, no_update, no_update
 
 
 def create_ingredients_list(ingredients_data):
