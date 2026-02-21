@@ -12,6 +12,9 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
+from nutritional.component_ids import ID, PATTERN_TYPES, get_id
+
+ENTRY_PREFIX = "entry"
 from nutritional.components import create_nutrient_preview
 from nutritional.data_entry.calculator import calculate_nutrients
 from nutritional.data_entry.models import (
@@ -66,21 +69,24 @@ def get_entry_layout():
     return dbc.Container(
         [
             # Hidden trigger to reload data when page is visited
-            html.Div(id="page-load-trigger", className="hidden"),
+            html.Div(id=get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), className="hidden"),
             # Store to trigger refresh when targets are updated
-            dcc.Store(id="targets-updated-trigger", data=0),
+            dcc.Store(id=get_id(ID.TARGETS_UPDATED_TRIGGER, ENTRY_PREFIX), data=0),
             # Store for editing entry index
-            dcc.Store(id="editing-entry-index", data=None),
+            dcc.Store(id=get_id(ID.EDITING_ENTRY_INDEX, ENTRY_PREFIX), data=None),
             # Store for expanded meal items
-            dcc.Store(id="expanded-meals", data=[]),
+            dcc.Store(id=get_id(ID.EXPANDED_MEALS, ENTRY_PREFIX), data=[]),
             # Unified Daily Log Header
             html.Div(
                 [
                     html.Div(
                         [
-                            html.H1(id="current-date-display", className="margin-bottom-0"),
+                            html.H1(
+                                id=get_id(ID.CURRENT_DATE_DISPLAY, ENTRY_PREFIX),
+                                className="margin-bottom-0",
+                            ),
                             dcc.DatePickerSingle(
-                                id="entry-date-picker",
+                                id=get_id(ID.ENTRY_DATE_PICKER, ENTRY_PREFIX),
                                 date=date.today(),
                                 display_format="YYYY-MM-DD",
                                 max_date_allowed=date.today(),
@@ -92,13 +98,13 @@ def get_entry_layout():
                     html.Div(
                         [
                             html.Div(
-                                id="daily-summary-compact",
+                                id=get_id(ID.DAILY_SUMMARY_COMPACT, ENTRY_PREFIX),
                                 className="daily-summary-bar",
                                 style={"flex": "1"},
                             ),
                             dbc.Button(
                                 "Edit Targets",
-                                id="open-targets-modal",
+                                id=get_id(ID.OPEN_TARGETS_MODAL, ""),
                                 color="secondary",
                                 size="sm",
                                 className="ms-3",
@@ -121,7 +127,7 @@ def get_entry_layout():
                             html.Div(
                                 [
                                     dcc.Dropdown(
-                                        id="food-selector",
+                                        id=get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX),
                                         placeholder="Search foods or meals...",
                                         searchable=True,
                                         className="food-selector-full-width",
@@ -131,12 +137,15 @@ def get_entry_layout():
                                 style={"marginBottom": "0px"},
                             ),
                             # Unified Amount/Portions Input (appears when selection made)
-                            html.Div(id="food-input-container", style={"marginBottom": "0px"}),
+                            html.Div(
+                                id=get_id(ID.FOOD_INPUT_CONTAINER, ENTRY_PREFIX),
+                                style={"marginBottom": "0px"},
+                            ),
                             # Calculated nutrients preview
-                            html.Div(id="calculated-nutrients"),
+                            html.Div(id=get_id(ID.CALCULATED_NUTRIENTS, ENTRY_PREFIX)),
                             # Ingredient List (only name, weight, calories)
                             html.Div(
-                                id="entries-list",
+                                id=get_id(ID.ENTRIES_LIST, ENTRY_PREFIX),
                                 className="ingredients-list",
                             ),
                         ],
@@ -154,11 +163,11 @@ def get_entry_layout():
                                         className="calories-remaining-label",
                                     ),
                                     html.Div(
-                                        id="calories-remaining-display",
+                                        id=get_id(ID.CALORIES_REMAINING_DISPLAY, ENTRY_PREFIX),
                                         className="calories-remaining-number",
                                     ),
                                     html.Div(
-                                        id="calorie-status",
+                                        id=get_id(ID.CALORIE_STATUS, ENTRY_PREFIX),
                                         className="calorie-status-indicator",
                                     ),
                                 ],
@@ -167,7 +176,10 @@ def get_entry_layout():
                             # Macronutrient Visualization
                             html.Div(
                                 [
-                                    html.Div(id="daily-macros-display", className="macros-bars"),
+                                    html.Div(
+                                        id=get_id(ID.DAILY_MACROS_DISPLAY, ENTRY_PREFIX),
+                                        className="macros-bars",
+                                    ),
                                 ],
                                 className="macros-visualization",
                             ),
@@ -189,7 +201,7 @@ def get_entry_layout():
                                                         className="weight-input-group label",
                                                     ),
                                                     dbc.Input(
-                                                        id="morning-weight",
+                                                        id=get_id(ID.MORNING_WEIGHT, ENTRY_PREFIX),
                                                         type="number",
                                                         min=0,
                                                         step=0.1,
@@ -207,7 +219,7 @@ def get_entry_layout():
                                                         className="weight-input-group label",
                                                     ),
                                                     dbc.Input(
-                                                        id="evening-weight",
+                                                        id=get_id(ID.EVENING_WEIGHT, ENTRY_PREFIX),
                                                         type="number",
                                                         min=0,
                                                         step=0.1,
@@ -260,24 +272,29 @@ def get_entry_layout():
                         [
                             dbc.Button(
                                 "Copy from Previous Day",
-                                id="copy-previous-targets",
+                                id=get_id(ID.COPY_PREVIOUS_TARGETS, ""),
                                 color="secondary",
                                 className="me-auto",
                             ),
-                            dbc.Button("Cancel", id="close-targets-modal", className="ms-1"),
                             dbc.Button(
-                                "Save Targets", id="save-targets", color="primary", className="ms-1"
+                                "Cancel", id=get_id(ID.CLOSE_TARGETS_MODAL, ""), className="ms-1"
+                            ),
+                            dbc.Button(
+                                "Save Targets",
+                                id=get_id(ID.SAVE_TARGETS, ""),
+                                color="primary",
+                                className="ms-1",
                             ),
                         ]
                     ),
                 ],
-                id="targets-modal",
+                id=get_id(ID.TARGETS_MODAL, ""),
                 size="lg",
                 is_open=False,
             ),
             # Toast notification
             dbc.Toast(
-                id="entry-toast",
+                id=get_id(ID.ENTRY_TOAST, ENTRY_PREFIX),
                 is_open=False,
                 duration=3000,
             ),
@@ -297,8 +314,8 @@ def layout():
 
 # Display current date in header format
 @callback(
-    Output("selected-date-store", "data"),
-    Input("entry-date-picker", "date"),
+    Output(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
+    Input(get_id(ID.ENTRY_DATE_PICKER, ENTRY_PREFIX), "date"),
 )
 def update_selected_date(selected_date):
     """Update selected date store when date picker changes."""
@@ -308,8 +325,8 @@ def update_selected_date(selected_date):
 
 
 @callback(
-    Output("current-date-display", "children"),
-    Input("selected-date-store", "data"),
+    Output(get_id(ID.CURRENT_DATE_DISPLAY, ENTRY_PREFIX), "children"),
+    Input(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
 )
 def display_current_date(selected_date_str):
     """Display selected date in header format."""
@@ -323,13 +340,13 @@ def display_current_date(selected_date_str):
 # Load entries from file for selected date
 @callback(
     [
-        Output("persistent-entries", "data", allow_duplicate=True),
-        Output("persistent-morning-weight", "data", allow_duplicate=True),
-        Output("persistent-evening-weight", "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data", allow_duplicate=True),
     ],
     [
-        Input("page-load-trigger", "children"),
-        Input("selected-date-store", "data"),
+        Input(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
+        Input(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -353,7 +370,7 @@ def load_todays_entries(_, selected_date_str):
 
 # Trigger callback when page loads to ensure persistent data is displayed
 @callback(
-    Output("page-load-trigger", "children"),
+    Output(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
     Input("url", "pathname"),
 )
 def trigger_on_page_load(pathname):
@@ -364,8 +381,8 @@ def trigger_on_page_load(pathname):
 
 
 @callback(
-    Output("morning-weight", "value"),
-    Input("persistent-morning-weight", "data"),
+    Output(get_id(ID.MORNING_WEIGHT, ENTRY_PREFIX), "value"),
+    Input(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data"),
     prevent_initial_call=False,
 )
 def load_morning_weight(weight):
@@ -374,8 +391,8 @@ def load_morning_weight(weight):
 
 
 @callback(
-    Output("evening-weight", "value"),
-    Input("persistent-evening-weight", "data"),
+    Output(get_id(ID.EVENING_WEIGHT, ENTRY_PREFIX), "value"),
+    Input(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data"),
     prevent_initial_call=False,
 )
 def load_evening_weight(weight):
@@ -384,8 +401,8 @@ def load_evening_weight(weight):
 
 
 @callback(
-    Output("food-selector", "options"),
-    Input("food-selector", "search_value"),
+    Output(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "options"),
+    Input(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "search_value"),
 )
 def update_food_options(search_value):
     """Update dropdown options with both foods and meals."""
@@ -432,8 +449,8 @@ def update_food_options(search_value):
 
 
 @callback(
-    Output("food-input-container", "children"),
-    Input("food-selector", "value"),
+    Output(get_id(ID.FOOD_INPUT_CONTAINER, ENTRY_PREFIX), "children"),
+    Input(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "value"),
 )
 def update_input_fields(selection):
     """Update input fields based on selected food or meal."""
@@ -453,7 +470,7 @@ def update_input_fields(selection):
                     dbc.InputGroup(
                         [
                             dbc.Input(
-                                id={"type": "food-amount", "index": 0},
+                                id={"type": PATTERN_TYPES["food_amount"], "index": 0},
                                 type="number",
                                 min=0,
                                 step=0.1,
@@ -462,7 +479,7 @@ def update_input_fields(selection):
                             ),
                             dbc.Button(
                                 "Add Entry",
-                                id="add-entry-btn",
+                                id=get_id(ID.ADD_ENTRY_BTN, ENTRY_PREFIX),
                                 color="primary",
                                 size="sm",
                             ),
@@ -477,7 +494,7 @@ def update_input_fields(selection):
                     dbc.InputGroup(
                         [
                             dbc.Input(
-                                id={"type": "food-amount", "index": 0},
+                                id={"type": PATTERN_TYPES["food_amount"], "index": 0},
                                 type="number",
                                 min=0,
                                 step=0.1,
@@ -486,7 +503,7 @@ def update_input_fields(selection):
                             ),
                             dbc.Button(
                                 "Add Entry",
-                                id="add-entry-btn",
+                                id=get_id(ID.ADD_ENTRY_BTN, ENTRY_PREFIX),
                                 color="primary",
                                 size="sm",
                             ),
@@ -504,7 +521,7 @@ def update_input_fields(selection):
                 dbc.InputGroup(
                     [
                         dbc.Input(
-                            id={"type": "meal-portions", "index": 0},
+                            id={"type": PATTERN_TYPES["meal_portions"], "index": 0},
                             type="number",
                             min=0.1,
                             step=0.1,
@@ -514,7 +531,7 @@ def update_input_fields(selection):
                         ),
                         dbc.Button(
                             "Add Meal",
-                            id="add-entry-btn",
+                            id=get_id(ID.ADD_ENTRY_BTN, ENTRY_PREFIX),
                             color="primary",
                             size="sm",
                         ),
@@ -529,11 +546,11 @@ def update_input_fields(selection):
 
 
 @callback(
-    Output("calculated-nutrients", "children"),
+    Output(get_id(ID.CALCULATED_NUTRIENTS, ENTRY_PREFIX), "children"),
     [
-        Input("food-selector", "value"),
-        Input({"type": "food-amount", "index": dash.ALL}, "value"),
-        Input({"type": "meal-portions", "index": dash.ALL}, "value"),
+        Input(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "value"),
+        Input({"type": PATTERN_TYPES["food_amount"], "index": dash.ALL}, "value"),
+        Input({"type": PATTERN_TYPES["meal_portions"], "index": dash.ALL}, "value"),
     ],
 )
 def calculate_and_display_nutrients(food_id, amount_list, portions_list):
@@ -606,23 +623,23 @@ def calculate_and_display_nutrients(food_id, amount_list, portions_list):
 
 @callback(
     [
-        Output("persistent-entries", "data"),
-        Output("entry-toast", "is_open"),
-        Output("entry-toast", "children"),
-        Output("entry-toast", "style"),
-        Output("food-selector", "value"),
-        Output("persistent-morning-weight", "data", allow_duplicate=True),
-        Output("persistent-evening-weight", "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "is_open"),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "children"),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "style"),
+        Output(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "value"),
+        Output(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data", allow_duplicate=True),
     ],
-    Input("add-entry-btn", "n_clicks"),
+    Input(get_id(ID.ADD_ENTRY_BTN, ENTRY_PREFIX), "n_clicks"),
     [
-        State("food-selector", "value"),
-        State({"type": "food-amount", "index": dash.ALL}, "value"),
-        State({"type": "meal-portions", "index": dash.ALL}, "value"),
-        State("persistent-entries", "data"),
-        State("persistent-morning-weight", "data"),
-        State("persistent-evening-weight", "data"),
-        State("selected-date-store", "data"),
+        State(get_id(ID.FOOD_SELECTOR, ENTRY_PREFIX), "value"),
+        State({"type": PATTERN_TYPES["food_amount"], "index": dash.ALL}, "value"),
+        State({"type": PATTERN_TYPES["meal_portions"], "index": dash.ALL}, "value"),
+        State(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        State(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data"),
+        State(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data"),
+        State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -903,12 +920,12 @@ def add_entry(
 
 
 @callback(
-    Output("entries-list", "children"),
+    Output(get_id(ID.ENTRIES_LIST, ENTRY_PREFIX), "children"),
     [
-        Input("persistent-entries", "data"),
-        Input("page-load-trigger", "children"),
-        Input("editing-entry-index", "data"),
-        Input("expanded-meals", "data"),
+        Input(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        Input(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
+        Input(get_id(ID.EDITING_ENTRY_INDEX, ENTRY_PREFIX), "data"),
+        Input(get_id(ID.EXPANDED_MEALS, ENTRY_PREFIX), "data"),
     ],
     prevent_initial_call=False,
 )
@@ -1166,9 +1183,9 @@ def update_entries_list(entries, _, editing_index, expanded_meals):
 
 # Handle meal expand/collapse
 @callback(
-    Output("expanded-meals", "data"),
+    Output(get_id(ID.EXPANDED_MEALS, ENTRY_PREFIX), "data"),
     Input({"type": "meal-header", "meal_id": dash.ALL}, "n_clicks"),
-    State("expanded-meals", "data"),
+    State(get_id(ID.EXPANDED_MEALS, ENTRY_PREFIX), "data"),
     prevent_initial_call=True,
 )
 def toggle_meal_expansion(n_clicks_list, expanded_meals):
@@ -1197,13 +1214,13 @@ def toggle_meal_expansion(n_clicks_list, expanded_meals):
 
 
 @callback(
-    Output("persistent-entries", "data", allow_duplicate=True),
+    Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
     Input({"type": "remove-entry", "index": dash.ALL}, "n_clicks"),
     [
-        State("persistent-entries", "data"),
-        State("persistent-morning-weight", "data"),
-        State("persistent-evening-weight", "data"),
-        State("selected-date-store", "data"),
+        State(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        State(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data"),
+        State(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data"),
+        State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -1249,7 +1266,7 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
 
 
 @callback(
-    Output("editing-entry-index", "data"),
+    Output(get_id(ID.EDITING_ENTRY_INDEX, ENTRY_PREFIX), "data"),
     Input({"type": "edit-trigger", "index": dash.ALL}, "n_clicks"),
     prevent_initial_call=True,
 )
@@ -1270,8 +1287,8 @@ def start_edit(n_clicks):
 
 @callback(
     [
-        Output("persistent-entries", "data", allow_duplicate=True),
-        Output("editing-entry-index", "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.EDITING_ENTRY_INDEX, ENTRY_PREFIX), "data", allow_duplicate=True),
         Output("entry-toast", "is_open", allow_duplicate=True),
         Output("entry-toast", "children", allow_duplicate=True),
         Output("entry-toast", "style", allow_duplicate=True),
@@ -1282,10 +1299,10 @@ def start_edit(n_clicks):
     ],
     [
         State({"type": "edit-amount", "index": dash.ALL}, "value"),
-        State("persistent-entries", "data"),
-        State("persistent-morning-weight", "data"),
-        State("persistent-evening-weight", "data"),
-        State("selected-date-store", "data"),
+        State(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        State(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data"),
+        State(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data"),
+        State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -1407,7 +1424,7 @@ def save_edit(
 # Handle meal ingredient amount edits
 @callback(
     [
-        Output("persistent-entries", "data", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
         Output("entry-toast", "is_open", allow_duplicate=True),
         Output("entry-toast", "children", allow_duplicate=True),
         Output("entry-toast", "style", allow_duplicate=True),
@@ -1415,8 +1432,8 @@ def save_edit(
     Input({"type": "meal-ingredient-amount", "meal_id": dash.ALL, "index": dash.ALL}, "n_blur"),
     [
         State({"type": "meal-ingredient-amount", "meal_id": dash.ALL, "index": dash.ALL}, "value"),
-        State("persistent-entries", "data"),
-        State("selected-date-store", "data"),
+        State(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -1539,16 +1556,16 @@ def update_meal_ingredient_amount(n_blur_list, amount_list, entries, selected_da
 
 @callback(
     [
-        Output("calories-remaining-display", "children"),
-        Output("calories-remaining-display", "className"),
-        Output("calorie-status", "children"),
+        Output(get_id(ID.CALORIES_REMAINING_DISPLAY, ENTRY_PREFIX), "children"),
+        Output(get_id(ID.CALORIES_REMAINING_DISPLAY, ENTRY_PREFIX), "className"),
+        Output(get_id(ID.CALORIE_STATUS, ENTRY_PREFIX), "children"),
     ],
     [
-        Input("persistent-entries", "data"),
-        Input("page-load-trigger", "children"),
-        Input("targets-updated-trigger", "data"),
+        Input(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        Input(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
+        Input(get_id(ID.TARGETS_UPDATED_TRIGGER, ENTRY_PREFIX), "data"),
     ],
-    State("selected-date-store", "data"),
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=False,
 )
 def update_calories_remaining(entries, _, __, selected_date_str):
@@ -1592,13 +1609,13 @@ def update_calories_remaining(entries, _, __, selected_date_str):
 
 
 @callback(
-    Output("daily-macros-display", "children"),
+    Output(get_id(ID.DAILY_MACROS_DISPLAY, ENTRY_PREFIX), "children"),
     [
-        Input("persistent-entries", "data"),
-        Input("page-load-trigger", "children"),
-        Input("targets-updated-trigger", "data"),
+        Input(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        Input(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
+        Input(get_id(ID.TARGETS_UPDATED_TRIGGER, ENTRY_PREFIX), "data"),
     ],
-    State("selected-date-store", "data"),
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=False,
 )
 def update_daily_macros(entries, _, __, selected_date_str):
@@ -1776,13 +1793,13 @@ def update_daily_macros(entries, _, __, selected_date_str):
 
 
 @callback(
-    Output("daily-summary-compact", "children"),
+    Output(get_id(ID.DAILY_SUMMARY_COMPACT, ENTRY_PREFIX), "children"),
     [
-        Input("persistent-entries", "data"),
-        Input("page-load-trigger", "children"),
-        Input("targets-updated-trigger", "data"),
+        Input(get_id(ID.PERSISTENT_ENTRIES, ""), "data"),
+        Input(get_id(ID.PAGE_LOAD_TRIGGER, ENTRY_PREFIX), "children"),
+        Input(get_id(ID.TARGETS_UPDATED_TRIGGER, ENTRY_PREFIX), "data"),
     ],
-    State("selected-date-store", "data"),
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=False,
 )
 def update_daily_totals(entries, _, __, selected_date_str):
@@ -1850,13 +1867,13 @@ def update_daily_totals(entries, _, __, selected_date_str):
 
 # Targets Modal Callbacks
 @callback(
-    Output("targets-modal", "is_open"),
+    Output(get_id(ID.TARGETS_MODAL, ""), "is_open"),
     [
-        Input("open-targets-modal", "n_clicks"),
-        Input("close-targets-modal", "n_clicks"),
-        Input("save-targets", "n_clicks"),
+        Input(get_id(ID.OPEN_TARGETS_MODAL, ""), "n_clicks"),
+        Input(get_id(ID.CLOSE_TARGETS_MODAL, ""), "n_clicks"),
+        Input(get_id(ID.SAVE_TARGETS, ""), "n_clicks"),
     ],
-    [State("targets-modal", "is_open")],
+    [State(get_id(ID.TARGETS_MODAL, ""), "is_open")],
     prevent_initial_call=True,
 )
 def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
@@ -1868,10 +1885,10 @@ def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     # Only open if open button was clicked
-    if trigger_id == "open-targets-modal":
+    if trigger_id == get_id(ID.OPEN_TARGETS_MODAL, ""):
         return True
     # Close if close or save buttons were clicked
-    elif trigger_id in ["close-targets-modal", "save-targets"]:
+    elif trigger_id in [get_id(ID.CLOSE_TARGETS_MODAL, ""), get_id(ID.SAVE_TARGETS, "")]:  # noqa: E501
         return False
 
     return is_open
@@ -1898,8 +1915,11 @@ def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
         Output("mode-salt", "value"),
         Output("mode-calcium", "value"),
     ],
-    [Input("open-targets-modal", "n_clicks"), Input("copy-previous-targets", "n_clicks")],
-    State("selected-date-store", "data"),
+    [
+        Input(get_id(ID.OPEN_TARGETS_MODAL, ""), "n_clicks"),
+        Input(get_id(ID.COPY_PREVIOUS_TARGETS, ""), "n_clicks"),
+    ],
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=True,
 )
 def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
@@ -1916,7 +1936,7 @@ def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    if trigger_id == "copy-previous-targets":
+    if trigger_id == get_id(ID.COPY_PREVIOUS_TARGETS, ""):
         # Get previous day's targets
         targets = storage.get_previous_day_targets(current_date)
         if not targets:
@@ -1948,8 +1968,8 @@ def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
 
 
 @callback(
-    Output("targets-updated-trigger", "data"),
-    Input("save-targets", "n_clicks"),
+    Output(get_id(ID.TARGETS_UPDATED_TRIGGER, ENTRY_PREFIX), "data"),
+    Input(get_id(ID.SAVE_TARGETS, ENTRY_PREFIX), "n_clicks"),
     [
         State("target-energy", "value"),
         State("target-protein", "value"),
@@ -1969,7 +1989,7 @@ def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
         State("mode-fibre", "value"),
         State("mode-salt", "value"),
         State("mode-calcium", "value"),
-        State("selected-date-store", "data"),
+        State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -2037,11 +2057,11 @@ def save_targets_to_storage(
 
 @callback(
     [
-        Output("persistent-morning-weight", "data", allow_duplicate=True),
-        Output("morning-weight", "style", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_MORNING_WEIGHT, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.MORNING_WEIGHT, ENTRY_PREFIX), "style", allow_duplicate=True),
     ],
-    Input("morning-weight", "value"),
-    State("selected-date-store", "data"),
+    Input(get_id(ID.MORNING_WEIGHT, ENTRY_PREFIX), "value"),
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=True,
 )
 def save_morning_weight(morning_weight, selected_date_str):
@@ -2075,11 +2095,11 @@ def save_morning_weight(morning_weight, selected_date_str):
 
 @callback(
     [
-        Output("persistent-evening-weight", "data", allow_duplicate=True),
-        Output("evening-weight", "style", allow_duplicate=True),
+        Output(get_id(ID.PERSISTENT_EVENING_WEIGHT, ""), "data", allow_duplicate=True),
+        Output(get_id(ID.EVENING_WEIGHT, ENTRY_PREFIX), "style", allow_duplicate=True),
     ],
-    Input("evening-weight", "value"),
-    State("selected-date-store", "data"),
+    Input(get_id(ID.EVENING_WEIGHT, ENTRY_PREFIX), "value"),
+    State(get_id(ID.SELECTED_DATE_STORE, ""), "data"),
     prevent_initial_call=True,
 )
 def save_evening_weight(evening_weight, selected_date_str):

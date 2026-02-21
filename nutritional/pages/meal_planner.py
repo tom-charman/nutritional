@@ -9,6 +9,9 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
+from nutritional.component_ids import ID, get_id
+
+MEAL_PLANNER_PREFIX = "meal-planner"
 from nutritional.components import (
     create_empty_state,
     create_ingredients_list,
@@ -58,7 +61,7 @@ def get_meal_planner_layout():
                             html.Div(
                                 [
                                     dbc.Input(
-                                        id="meal-name",
+                                        id=get_id(ID.MEAL_NAME, MEAL_PLANNER_PREFIX),
                                         placeholder="Meal name (e.g., Breakfast Smoothie)",
                                         type="text",
                                     ),
@@ -70,7 +73,7 @@ def get_meal_planner_layout():
                             html.Div(
                                 [
                                     dcc.Dropdown(
-                                        id="food-selector",
+                                        id=get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX),
                                         placeholder="Search for a food...",
                                         searchable=True,
                                         className="food-selector-full-width",
@@ -83,7 +86,7 @@ def get_meal_planner_layout():
                             html.Div(
                                 [
                                     dbc.Input(
-                                        id="ingredient-amount",
+                                        id=get_id(ID.INGREDIENT_AMOUNT, MEAL_PLANNER_PREFIX),
                                         placeholder="Amount",
                                         type="number",
                                         min=0,
@@ -92,12 +95,12 @@ def get_meal_planner_layout():
                                     ),
                                     # Hidden element to store unit type
                                     html.Div(
-                                        id="amount-unit",
+                                        id=get_id(ID.AMOUNT_UNIT, MEAL_PLANNER_PREFIX),
                                         style={"display": "none"},
                                     ),
                                     dbc.Button(
                                         "Add",
-                                        id="add-ingredient-btn",
+                                        id=get_id(ID.ADD_INGREDIENT_BTN, MEAL_PLANNER_PREFIX),
                                         color="primary",
                                     ),
                                 ],
@@ -105,21 +108,21 @@ def get_meal_planner_layout():
                                 style={"marginBottom": "12px"},
                             ),
                             # Ingredients List - only shown when there are ingredients
-                            html.Div(id="ingredients-list"),
+                            html.Div(id=get_id(ID.INGREDIENTS_LIST, MEAL_PLANNER_PREFIX)),
                             # Totals Display - styled like entry screen nutrients preview
-                            html.Div(id="meal-totals"),
+                            html.Div(id=get_id(ID.MEAL_TOTALS, MEAL_PLANNER_PREFIX)),
                             # Action Buttons
                             html.Div(
                                 [
                                     dbc.Button(
                                         "Save Meal",
-                                        id="save-meal-btn",
+                                        id=get_id(ID.SAVE_MEAL_BTN, MEAL_PLANNER_PREFIX),
                                         color="success",
                                         className="me-2",
                                     ),
                                     dbc.Button(
                                         "Clear",
-                                        id="clear-composer-btn",
+                                        id=get_id(ID.CLEAR_COMPOSER_BTN, MEAL_PLANNER_PREFIX),
                                         color="secondary",
                                     ),
                                 ],
@@ -132,7 +135,10 @@ def get_meal_planner_layout():
                     html.Div(
                         [
                             html.Div("SAVED MEALS", className="section-label"),
-                            html.Div(id="meals-list", className="saved-meals-list"),
+                            html.Div(
+                                id=get_id(ID.MEALS_LIST, MEAL_PLANNER_PREFIX),
+                                className="saved-meals-list",
+                            ),
                         ],
                         className="mise-planner-column",
                     ),
@@ -140,11 +146,11 @@ def get_meal_planner_layout():
                 className="mise-planner-container",
             ),
             # Hidden stores
-            dcc.Store(id="current-meal-id", data=None),
-            dcc.Store(id="composer-ingredients", data=[]),
+            dcc.Store(id=get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), data=None),
+            dcc.Store(id=get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), data=[]),
         ],
         fluid=True,
-        id="meal-planner-container",
+        id=get_id(ID.MEAL_PLANNER_CONTAINER, MEAL_PLANNER_PREFIX),
         className="meal-planner-container",
     )
 
@@ -161,8 +167,8 @@ def layout():
 
 
 @callback(
-    Output("food-selector", "options", allow_duplicate=True),
-    Input("meal-planner-container", "id"),
+    Output(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "options", allow_duplicate=True),
+    Input(get_id(ID.MEAL_PLANNER_CONTAINER, MEAL_PLANNER_PREFIX), "id"),
     prevent_initial_call="initial_duplicate",
 )
 def load_food_options(container_id):
@@ -180,9 +186,9 @@ def load_food_options(container_id):
 
 
 @callback(
-    Output("food-selector", "options", allow_duplicate=True),
-    Input("food-selector", "search_value"),
-    State("food-selector", "value"),
+    Output(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "options", allow_duplicate=True),
+    Input(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "search_value"),
+    State(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "value"),
     prevent_initial_call=True,
 )
 def update_food_options(search_value, current_value):
@@ -204,9 +210,9 @@ def update_food_options(search_value, current_value):
 
 
 @callback(
-    Output("amount-unit", "children"),
-    Output("ingredient-amount", "placeholder"),
-    Input("food-selector", "value"),
+    Output(get_id(ID.AMOUNT_UNIT, MEAL_PLANNER_PREFIX), "children"),
+    Output(get_id(ID.INGREDIENT_AMOUNT, MEAL_PLANNER_PREFIX), "placeholder"),
+    Input(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "value"),
 )
 def update_amount_placeholder(food_id):
     """Update the amount input placeholder based on selected food."""
@@ -220,17 +226,17 @@ def update_amount_placeholder(food_id):
 
 
 @callback(
-    Output("composer-ingredients", "data", allow_duplicate=True),
-    Output("ingredients-list", "children", allow_duplicate=True),
-    Output("meal-totals", "children", allow_duplicate=True),
-    Output("food-selector", "value", allow_duplicate=True),
-    Output("ingredient-amount", "value", allow_duplicate=True),
-    Input("add-ingredient-btn", "n_clicks"),
-    Input("clear-composer-btn", "n_clicks"),
-    State("food-selector", "value"),
-    State("ingredient-amount", "value"),
-    State("composer-ingredients", "data"),
-    State("current-meal-id", "data"),
+    Output(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data", allow_duplicate=True),
+    Output(get_id(ID.INGREDIENTS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.MEAL_TOTALS, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "value", allow_duplicate=True),
+    Output(get_id(ID.INGREDIENT_AMOUNT, MEAL_PLANNER_PREFIX), "value", allow_duplicate=True),
+    Input(get_id(ID.ADD_INGREDIENT_BTN, MEAL_PLANNER_PREFIX), "n_clicks"),
+    Input(get_id(ID.CLEAR_COMPOSER_BTN, MEAL_PLANNER_PREFIX), "n_clicks"),
+    State(get_id(ID.FOOD_SELECTOR, MEAL_PLANNER_PREFIX), "value"),
+    State(get_id(ID.INGREDIENT_AMOUNT, MEAL_PLANNER_PREFIX), "value"),
+    State(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data"),
+    State(get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), "data"),
     prevent_initial_call=True,
 )
 def manage_ingredients(
@@ -243,10 +249,10 @@ def manage_ingredients(
 
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    if trigger_id == "clear-composer-btn":
+    if trigger_id == get_id(ID.CLEAR_COMPOSER_BTN, MEAL_PLANNER_PREFIX):
         return [], None, None, None, None
 
-    if trigger_id == "add-ingredient-btn":
+    if trigger_id == get_id(ID.ADD_INGREDIENT_BTN, MEAL_PLANNER_PREFIX):
         # Ensure current_ingredients is a list
         if current_ingredients is None:
             current_ingredients = []
@@ -330,9 +336,9 @@ def calculate_totals(ingredients_data):
 
 
 @callback(
-    Output("meals-list", "children", allow_duplicate=True),
-    Input("save-meal-btn", "n_clicks"),
-    Input("meals-list", "children"),  # Dummy input to trigger refresh
+    Output(get_id(ID.MEALS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Input(get_id(ID.SAVE_MEAL_BTN, MEAL_PLANNER_PREFIX), "n_clicks"),
+    Input(get_id(ID.MEALS_LIST, MEAL_PLANNER_PREFIX), "children"),  # Dummy input to trigger refresh
     prevent_initial_call="initial_duplicate",
 )
 def load_meals_list(save_clicks, current_list):
@@ -357,11 +363,11 @@ def load_meals_list(save_clicks, current_list):
 
 
 @callback(
-    Output("meal-name", "value"),
-    Output("composer-ingredients", "data"),
-    Output("ingredients-list", "children"),
-    Output("meal-totals", "children"),
-    Output("current-meal-id", "data"),
+    Output(get_id(ID.MEAL_NAME, MEAL_PLANNER_PREFIX), "value"),
+    Output(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data"),
+    Output(get_id(ID.INGREDIENTS_LIST, MEAL_PLANNER_PREFIX), "children"),
+    Output(get_id(ID.MEAL_TOTALS, MEAL_PLANNER_PREFIX), "children"),
+    Output(get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), "data"),
     Input({"type": "meal-card", "meal_id": dash.ALL}, "n_clicks"),
 )
 def load_meal_for_editing(meal_clicks):
@@ -391,13 +397,13 @@ def load_meal_for_editing(meal_clicks):
 
 
 @callback(
-    Output("meal-name", "value", allow_duplicate=True),
-    Output("composer-ingredients", "data", allow_duplicate=True),
-    Output("ingredients-list", "children", allow_duplicate=True),
-    Output("meal-totals", "children", allow_duplicate=True),
-    Output("current-meal-id", "data", allow_duplicate=True),
+    Output(get_id(ID.MEAL_NAME, MEAL_PLANNER_PREFIX), "value", allow_duplicate=True),
+    Output(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data", allow_duplicate=True),
+    Output(get_id(ID.INGREDIENTS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.MEAL_TOTALS, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), "data", allow_duplicate=True),
     Input({"type": "remove-ingredient", "index": dash.ALL}, "n_clicks"),
-    State("composer-ingredients", "data"),
+    State(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data"),
     prevent_initial_call=True,
 )
 def remove_ingredient(remove_clicks, current_ingredients):
@@ -423,16 +429,16 @@ def remove_ingredient(remove_clicks, current_ingredients):
 
 
 @callback(
-    Output("meal-name", "value", allow_duplicate=True),
-    Output("composer-ingredients", "data", allow_duplicate=True),
-    Output("ingredients-list", "children", allow_duplicate=True),
-    Output("meal-totals", "children", allow_duplicate=True),
-    Output("current-meal-id", "data", allow_duplicate=True),
-    Output("meals-list", "children", allow_duplicate=True),
-    Input("save-meal-btn", "n_clicks"),
-    State("meal-name", "value"),
-    State("composer-ingredients", "data"),
-    State("current-meal-id", "data"),
+    Output(get_id(ID.MEAL_NAME, MEAL_PLANNER_PREFIX), "value", allow_duplicate=True),
+    Output(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data", allow_duplicate=True),
+    Output(get_id(ID.INGREDIENTS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.MEAL_TOTALS, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Output(get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), "data", allow_duplicate=True),
+    Output(get_id(ID.MEALS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
+    Input(get_id(ID.SAVE_MEAL_BTN, MEAL_PLANNER_PREFIX), "n_clicks"),
+    State(get_id(ID.MEAL_NAME, MEAL_PLANNER_PREFIX), "value"),
+    State(get_id(ID.COMPOSER_INGREDIENTS, MEAL_PLANNER_PREFIX), "data"),
+    State(get_id(ID.CURRENT_MEAL_ID, MEAL_PLANNER_PREFIX), "data"),
     prevent_initial_call=True,
 )
 def save_meal(save_clicks, meal_name, ingredients_data, current_meal_id):
@@ -463,7 +469,7 @@ def save_meal(save_clicks, meal_name, ingredients_data, current_meal_id):
 
 
 @callback(
-    Output("meals-list", "children", allow_duplicate=True),
+    Output(get_id(ID.MEALS_LIST, MEAL_PLANNER_PREFIX), "children", allow_duplicate=True),
     Input({"type": "delete-meal", "meal_id": dash.ALL}, "n_clicks"),
     prevent_initial_call=True,
 )

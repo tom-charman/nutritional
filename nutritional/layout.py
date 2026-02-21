@@ -7,6 +7,10 @@ Defines the entire UI structure including header, controls, plots, and summary s
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from nutritional.component_ids import ID, get_id
+
+HOME_PREFIX = ""
+
 
 def get_layout():
     """
@@ -28,7 +32,7 @@ def get_layout():
                                     html.Div(
                                         [
                                             dcc.Graph(
-                                                id="calories-weight-plot",
+                                                id=get_id(ID.CALORIES_WEIGHT_PLOT, HOME_PREFIX),
                                                 config={
                                                     "displayModeBar": False,
                                                     "displaylogo": False,
@@ -47,7 +51,7 @@ def get_layout():
                                     html.Div(
                                         [
                                             dcc.Graph(
-                                                id="macro-breakdown-plot",
+                                                id=get_id(ID.MACRO_BREAKDOWN_PLOT, HOME_PREFIX),
                                                 config={
                                                     "displayModeBar": False,
                                                     "displaylogo": False,
@@ -66,7 +70,7 @@ def get_layout():
                                     html.Div(
                                         [
                                             dcc.Graph(
-                                                id="nutrients-rdi-plot",
+                                                id=get_id(ID.NUTRIENTS_RDI_PLOT, HOME_PREFIX),
                                                 config={
                                                     "displayModeBar": False,
                                                     "displaylogo": False,
@@ -89,22 +93,24 @@ def get_layout():
             ),
             # Loading indicator overlay
             dcc.Loading(
-                id="loading-overlay",
+                id=get_id(ID.LOADING_OVERLAY, HOME_PREFIX),
                 type="default",
-                children=[html.Div(id="loading-output")],
+                children=[html.Div(id=get_id(ID.LOADING_OUTPUT, HOME_PREFIX))],
                 overlay_style={"visibility": "visible", "opacity": 0.5},
             ),
             # Store for data (client-side caching)
-            dcc.Store(id="data-store"),
+            dcc.Store(id=get_id(ID.DATA_STORE, HOME_PREFIX)),
             # Hidden elements for removed components (keep callbacks working)
             html.Div(
                 [
-                    html.Div(id="avg-calories", className="hidden"),
-                    html.Div(id="avg-weight", className="hidden"),
-                    html.Div(id="avg-protein", className="hidden"),
-                    html.Div(id="data-points", className="hidden"),
-                    html.Div(id="data-source-info", className="hidden"),
-                    dbc.Button("Refresh", id="refresh-button", className="hidden"),
+                    html.Div(id=get_id(ID.AVG_CALORIES, HOME_PREFIX), className="hidden"),
+                    html.Div(id=get_id(ID.AVG_WEIGHT, HOME_PREFIX), className="hidden"),
+                    html.Div(id=get_id(ID.AVG_PROTEIN, HOME_PREFIX), className="hidden"),
+                    html.Div(id=get_id(ID.DATA_POINTS, HOME_PREFIX), className="hidden"),
+                    html.Div(id=get_id(ID.DATA_SOURCE_INFO, HOME_PREFIX), className="hidden"),
+                    dbc.Button(
+                        "Refresh", id=get_id(ID.REFRESH_BUTTON, HOME_PREFIX), className="hidden"
+                    ),
                 ],
                 className="hidden",
             ),

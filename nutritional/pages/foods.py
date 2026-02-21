@@ -10,6 +10,9 @@ from nutritional.auth_utils import (
     get_current_user_email,
     is_authorized,
 )
+from nutritional.component_ids import ID, get_id
+
+FOODS_PREFIX = ""
 from nutritional.data_entry.models import (
     NUTRIENT_FIELD_INFO,
     NUTRIENT_INPUT_ORDER,
@@ -33,7 +36,7 @@ def get_foods_layout():
                     html.Div(
                         [
                             dbc.Input(
-                                id="search-food",
+                                id=get_id(ID.SEARCH_FOOD, FOODS_PREFIX),
                                 placeholder="Search foods...",
                                 type="text",
                                 className="search-input-rounded",
@@ -46,7 +49,7 @@ def get_foods_layout():
                         [
                             dbc.Button(
                                 "+ New Food",
-                                id="new-food-btn",
+                                id=get_id(ID.NEW_FOOD_BTN, FOODS_PREFIX),
                                 color="primary",
                                 size="sm",
                             ),
@@ -63,7 +66,7 @@ def get_foods_layout():
                     html.Div(
                         [
                             html.Div(
-                                id="food-list",
+                                id=get_id(ID.FOOD_LIST, FOODS_PREFIX),
                                 className="master-list",
                             ),
                         ],
@@ -72,9 +75,9 @@ def get_foods_layout():
                     # Detail Panel - Editor
                     html.Div(
                         [
-                            dcc.Store(id="edit-food-id"),
+                            dcc.Store(id=get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX)),
                             html.Div(
-                                id="food-editor",
+                                id=get_id(ID.FOOD_EDITOR, FOODS_PREFIX),
                                 children=[
                                     html.P(
                                         "Select a food from the list or "
@@ -96,7 +99,7 @@ def get_foods_layout():
                                                         className="form-label-sm",
                                                     ),
                                                     dbc.Input(
-                                                        id="food-name",
+                                                        id=get_id(ID.FOOD_NAME, FOODS_PREFIX),
                                                         placeholder="e.g., Chicken Breast",
                                                         type="text",
                                                         size="sm",
@@ -111,7 +114,7 @@ def get_foods_layout():
                                                         className="form-label-sm",
                                                     ),
                                                     dbc.RadioItems(
-                                                        id="unit-type",
+                                                        id=get_id(ID.UNIT_TYPE, FOODS_PREFIX),
                                                         options=[
                                                             {
                                                                 "label": "Per 100g",
@@ -130,7 +133,7 @@ def get_foods_layout():
                                             ),
                                         ],
                                         className="editor-grid-2col hidden",
-                                        id="form-row-1",
+                                        id=get_id(ID.FORM_ROW_1, FOODS_PREFIX),
                                     ),
                                     # Serving Size
                                     html.Div(
@@ -140,7 +143,7 @@ def get_foods_layout():
                                                 className="form-label-sm",
                                             ),
                                             dbc.Input(
-                                                id="serving-size",
+                                                id=get_id(ID.SERVING_SIZE, FOODS_PREFIX),
                                                 placeholder="Required for per-item",
                                                 type="number",
                                                 min=0,
@@ -149,7 +152,7 @@ def get_foods_layout():
                                             ),
                                         ],
                                         className="form-row-mb hidden",
-                                        id="form-row-2",
+                                        id=get_id(ID.FORM_ROW_2, FOODS_PREFIX),
                                     ),
                                     # Nutritional Grid
                                     html.Div(
@@ -174,27 +177,27 @@ def get_foods_layout():
                                             for field in NUTRIENT_INPUT_ORDER
                                         ],
                                         className="editor-grid hidden",
-                                        id="form-grid",
+                                        id=get_id(ID.FORM_GRID, FOODS_PREFIX),
                                     ),
                                     # Editor Actions
                                     html.Div(
                                         [
                                             dbc.Button(
                                                 "Clear",
-                                                id="clear-food-form-btn",
+                                                id=get_id(ID.CLEAR_FOOD_FORM_BTN, FOODS_PREFIX),
                                                 color="secondary",
                                                 size="sm",
                                                 outline=True,
                                             ),
                                             dbc.Button(
                                                 "Save Food",
-                                                id="save-food-btn",
+                                                id=get_id(ID.SAVE_FOOD_BTN, FOODS_PREFIX),
                                                 color="primary",
                                                 size="sm",
                                             ),
                                         ],
                                         className="editor-actions hidden",
-                                        id="form-actions",
+                                        id=get_id(ID.FORM_ACTIONS, FOODS_PREFIX),
                                     ),
                                 ],
                             ),
@@ -205,7 +208,7 @@ def get_foods_layout():
                 className="master-detail",
             ),
             # Save message
-            html.Div(id="food-save-message", className="mt-3"),
+            html.Div(id=get_id(ID.FOOD_SAVE_MESSAGE, FOODS_PREFIX), className="mt-3"),
         ],
         fluid=True,
         className="page-content page-max-width-1400 page-padding-top-20",
@@ -223,30 +226,30 @@ def layout():
 # Callback to load food into editor or clear for new food
 @callback(
     [
-        Output("food-editor", "style"),
-        Output("form-row-1", "style"),
-        Output("form-row-2", "style"),
-        Output("form-grid", "style"),
-        Output("form-actions", "style"),
-        Output("edit-food-id", "data", allow_duplicate=True),
-        Output("food-name", "value", allow_duplicate=True),
-        Output("unit-type", "value", allow_duplicate=True),
-        Output("serving-size", "value", allow_duplicate=True),
-        Output("energy-kcal", "value", allow_duplicate=True),
-        Output("fat-g", "value", allow_duplicate=True),
-        Output("saturated-fat-g", "value", allow_duplicate=True),
-        Output("carbohydrates-g", "value", allow_duplicate=True),
-        Output("sugar-g", "value", allow_duplicate=True),
-        Output("protein-g", "value", allow_duplicate=True),
-        Output("fibre-g", "value", allow_duplicate=True),
-        Output("salt-g", "value", allow_duplicate=True),
-        Output("calcium-mg", "value", allow_duplicate=True),
+        Output(get_id(ID.FOOD_EDITOR, FOODS_PREFIX), "style"),
+        Output(get_id(ID.FORM_ROW_1, FOODS_PREFIX), "style"),
+        Output(get_id(ID.FORM_ROW_2, FOODS_PREFIX), "style"),
+        Output(get_id(ID.FORM_GRID, FOODS_PREFIX), "style"),
+        Output(get_id(ID.FORM_ACTIONS, FOODS_PREFIX), "style"),
+        Output(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data", allow_duplicate=True),
+        Output(get_id(ID.FOOD_NAME, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(get_id(ID.UNIT_TYPE, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["energy_kcal"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["saturated_fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["carbohydrates_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["sugar_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["protein_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fibre_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["salt_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["calcium_mg"]["id"], "value", allow_duplicate=True),
     ],
     [
-        Input("new-food-btn", "n_clicks"),
+        Input(get_id(ID.NEW_FOOD_BTN, FOODS_PREFIX), "n_clicks"),
         Input({"type": "select-food", "index": dash.ALL}, "n_clicks"),
     ],
-    [State("edit-food-id", "data")],
+    [State(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data")],
     prevent_initial_call=True,
 )
 def load_food_editor(new_btn_clicks, select_clicks, current_id):
@@ -258,7 +261,7 @@ def load_food_editor(new_btn_clicks, select_clicks, current_id):
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     # Check if "New Food" button was clicked
-    if trigger_id == "new-food-btn":
+    if trigger_id == get_id(ID.NEW_FOOD_BTN, FOODS_PREFIX):
         food_id = None
         food_item = None
     else:
@@ -300,8 +303,8 @@ def load_food_editor(new_btn_clicks, select_clicks, current_id):
 
 
 @callback(
-    Output("serving-size", "disabled"),
-    Input("unit-type", "value"),
+    Output(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "disabled"),
+    Input(get_id(ID.UNIT_TYPE, FOODS_PREFIX), "value"),
 )
 def toggle_serving_size(unit_type):
     """Enable serving size input only for per-item foods."""
@@ -310,35 +313,35 @@ def toggle_serving_size(unit_type):
 
 @callback(
     [
-        Output("food-save-message", "children"),
-        Output("food-name", "value", allow_duplicate=True),
-        Output("serving-size", "value", allow_duplicate=True),
-        Output("energy-kcal", "value", allow_duplicate=True),
-        Output("fat-g", "value", allow_duplicate=True),
-        Output("saturated-fat-g", "value", allow_duplicate=True),
-        Output("carbohydrates-g", "value", allow_duplicate=True),
-        Output("sugar-g", "value", allow_duplicate=True),
-        Output("protein-g", "value", allow_duplicate=True),
-        Output("fibre-g", "value", allow_duplicate=True),
-        Output("salt-g", "value", allow_duplicate=True),
-        Output("calcium-mg", "value", allow_duplicate=True),
-        Output("edit-food-id", "data", allow_duplicate=True),
+        Output(get_id(ID.FOOD_SAVE_MESSAGE, FOODS_PREFIX), "children"),
+        Output(get_id(ID.FOOD_NAME, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["energy_kcal"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["saturated_fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["carbohydrates_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["sugar_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["protein_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fibre_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["salt_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["calcium_mg"]["id"], "value", allow_duplicate=True),
+        Output(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data", allow_duplicate=True),
     ],
-    Input("save-food-btn", "n_clicks"),
+    Input(get_id(ID.SAVE_FOOD_BTN, FOODS_PREFIX), "n_clicks"),
     [
-        State("food-name", "value"),
-        State("unit-type", "value"),
-        State("serving-size", "value"),
-        State("energy-kcal", "value"),
-        State("fat-g", "value"),
-        State("saturated-fat-g", "value"),
-        State("carbohydrates-g", "value"),
-        State("sugar-g", "value"),
-        State("protein-g", "value"),
-        State("fibre-g", "value"),
-        State("salt-g", "value"),
-        State("calcium-mg", "value"),
-        State("edit-food-id", "data"),
+        State(get_id(ID.FOOD_NAME, FOODS_PREFIX), "value"),
+        State(get_id(ID.UNIT_TYPE, FOODS_PREFIX), "value"),
+        State(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "value"),
+        State(NUTRIENT_FIELD_INFO["energy_kcal"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["fat_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["saturated_fat_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["carbohydrates_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["sugar_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["protein_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["fibre_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["salt_g"]["id"], "value"),
+        State(NUTRIENT_FIELD_INFO["calcium_mg"]["id"], "value"),
+        State(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data"),
     ],
     prevent_initial_call=True,
 )
@@ -444,11 +447,11 @@ def save_food_item(n_clicks, name, unit_type, serving_size, *nutrients_and_id):
 
 
 @callback(
-    Output("food-list", "children"),
+    Output(get_id(ID.FOOD_LIST, FOODS_PREFIX), "children"),
     [
-        Input("search-food", "value"),
-        Input("save-food-btn", "n_clicks"),
-        Input("edit-food-id", "data"),
+        Input(get_id(ID.SEARCH_FOOD, FOODS_PREFIX), "value"),
+        Input(get_id(ID.SAVE_FOOD_BTN, FOODS_PREFIX), "n_clicks"),
+        Input(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data"),
     ],
 )
 def update_food_list(search_query, _, selected_id):
@@ -495,19 +498,19 @@ def update_food_list(search_query, _, selected_id):
 
 @callback(
     [
-        Output("food-name", "value", allow_duplicate=True),
-        Output("unit-type", "value"),
-        Output("serving-size", "value", allow_duplicate=True),
-        Output("energy-kcal", "value", allow_duplicate=True),
-        Output("fat-g", "value", allow_duplicate=True),
-        Output("saturated-fat-g", "value", allow_duplicate=True),
-        Output("carbohydrates-g", "value", allow_duplicate=True),
-        Output("sugar-g", "value", allow_duplicate=True),
-        Output("protein-g", "value", allow_duplicate=True),
-        Output("fibre-g", "value", allow_duplicate=True),
-        Output("salt-g", "value", allow_duplicate=True),
-        Output("calcium-mg", "value", allow_duplicate=True),
-        Output("edit-food-id", "data", allow_duplicate=True),
+        Output(get_id(ID.FOOD_NAME, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(get_id(ID.UNIT_TYPE, FOODS_PREFIX), "value"),
+        Output(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["energy_kcal"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["saturated_fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["carbohydrates_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["sugar_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["protein_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fibre_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["salt_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["calcium_mg"]["id"], "value", allow_duplicate=True),
+        Output(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data", allow_duplicate=True),
     ],
     Input({"type": "edit-food", "index": dash.ALL}, "n_clicks"),
     prevent_initial_call=True,
@@ -548,7 +551,7 @@ def edit_food_item(n_clicks):
 
 
 @callback(
-    Output("food-list", "children", allow_duplicate=True),
+    Output(get_id(ID.FOOD_LIST, FOODS_PREFIX), "children", allow_duplicate=True),
     Input({"type": "delete-food", "index": dash.ALL}, "n_clicks"),
     prevent_initial_call=True,
 )
@@ -676,20 +679,20 @@ def delete_food_item(n_clicks):
 
 @callback(
     [
-        Output("food-name", "value", allow_duplicate=True),
-        Output("serving-size", "value", allow_duplicate=True),
-        Output("energy-kcal", "value", allow_duplicate=True),
-        Output("fat-g", "value", allow_duplicate=True),
-        Output("saturated-fat-g", "value", allow_duplicate=True),
-        Output("carbohydrates-g", "value", allow_duplicate=True),
-        Output("sugar-g", "value", allow_duplicate=True),
-        Output("protein-g", "value", allow_duplicate=True),
-        Output("fibre-g", "value", allow_duplicate=True),
-        Output("salt-g", "value", allow_duplicate=True),
-        Output("calcium-mg", "value", allow_duplicate=True),
-        Output("edit-food-id", "data", allow_duplicate=True),
+        Output(get_id(ID.FOOD_NAME, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(get_id(ID.SERVING_SIZE, FOODS_PREFIX), "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["energy_kcal"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["saturated_fat_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["carbohydrates_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["sugar_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["protein_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["fibre_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["salt_g"]["id"], "value", allow_duplicate=True),
+        Output(NUTRIENT_FIELD_INFO["calcium_mg"]["id"], "value", allow_duplicate=True),
+        Output(get_id(ID.EDIT_FOOD_ID, FOODS_PREFIX), "data", allow_duplicate=True),
     ],
-    Input("clear-food-form-btn", "n_clicks"),
+    Input(get_id(ID.CLEAR_FOOD_FORM_BTN, FOODS_PREFIX), "n_clicks"),
     prevent_initial_call=True,
 )
 def clear_form(n_clicks):
