@@ -19,6 +19,7 @@ from nutritional.data_entry.models import (
     DailyData,
     DailyTargets,
     FoodEntry,
+    MealEntry,
     Measurements,
     TargetMode,
     UnitType,
@@ -112,13 +113,13 @@ def get_entry_layout():
                     # Column 1: The Ingredients (25%)
                     html.Div(
                         [
-                            html.Div("Food", className="section-label"),
-                            # Action Row - Search/Add Food
+                            html.Div("Food & Meals", className="section-label"),
+                            # Unified Food/Meal Selector
                             html.Div(
                                 [
                                     dcc.Dropdown(
                                         id="food-selector",
-                                        placeholder="Search foods...",
+                                        placeholder="Search foods or meals...",
                                         searchable=True,
                                         className="food-selector-full-width",
                                     ),
@@ -126,7 +127,7 @@ def get_entry_layout():
                                 className="action-row action-row-flex",
                                 style={"marginBottom": "0px"},
                             ),
-                            # Inline Amount Input (appears when food selected)
+                            # Unified Amount/Portions Input (appears when selection made)
                             html.Div(id="food-input-container", style={"marginBottom": "0px"}),
                             # Calculated nutrients preview
                             html.Div(id="calculated-nutrients"),
@@ -384,57 +385,132 @@ def load_evening_weight(weight):
     Input("food-selector", "search_value"),
 )
 def update_food_options(search_value):
-    """Update food dropdown options."""
-    if search_value:
-        items = storage.search_food_items(search_value)
-    else:
-        items = storage.load_food_database()
+    """Update dropdown options with both foods and meals."""
+    options = []
 
-    return [
-        {
-            "label": (
-                f"{item.name} ("
-                + (
-                    "per 100g"
-                    if item.unit_type == UnitType.PER_100G
-                    else f"per item, ~{item.serving_size_g}g"
-                )
-                + ")"
-            ),
-            "value": item.id,
-        }
-        for item in items
-    ]
+    # Load foods
+    if search_value:
+        food_items = storage.search_food_items(search_value)
+    else:
+        food_items = storage.load_food_database()
+
+    # Add food options
+    for item in food_items:
+        options.append(
+            {
+                "label": (
+                    f"{item.name} ("
+                    + (
+                        "per 100g"
+                        if item.unit_type == UnitType.PER_100G
+                        else f"per item, ~{item.serving_size_g}g"
+                    )
+                    + ")"
+                ),
+                "value": f"food:{item.id}",
+            }
+        )
+
+    # Load meals and filter by search if needed
+    meals = storage.load_meals()
+    if search_value:
+        meals = [m for m in meals if search_value.lower() in m.name.lower()]
+
+    # Add meal options
+    for meal in meals:
+        options.append(
+            {
+                "label": meal.name,
+                "value": f"meal:{meal.id}",
+            }
+        )
+
+    return options
 
 
 @callback(
     Output("food-input-container", "children"),
     Input("food-selector", "value"),
 )
-def update_input_fields(food_id):
-    """Update input fields based on selected food item and show add controls."""
-    if not food_id:
+def update_input_fields(selection):
+    """Update input fields based on selected food or meal."""
+    if not selection:
         return []
 
-    item = storage.get_food_item(food_id)
-    if not item:
-        return []
+    # Check if it's a food or meal
+    if selection.startswith("food:"):
+        food_id = selection.split(":", 1)[1]
+        item = storage.get_food_item(food_id)
+        if not item:
+            return []
 
-    if item.unit_type == UnitType.PER_100G:
+        if item.unit_type == UnitType.PER_100G:
+            input_fields = html.Div(
+                [
+                    dbc.InputGroup(
+                        [
+                            dbc.Input(
+                                id={"type": "food-amount", "index": 0},
+                                type="number",
+                                min=0,
+                                step=0.1,
+                                placeholder="Enter weight in grams",
+                                size="sm",
+                            ),
+                            dbc.Button(
+                                "Add Entry",
+                                id="add-entry-btn",
+                                color="primary",
+                                size="sm",
+                            ),
+                        ],
+                        style={"marginTop": "8px"},
+                    ),
+                ],
+            )
+        else:  # PER_ITEM
+            input_fields = html.Div(
+                [
+                    dbc.InputGroup(
+                        [
+                            dbc.Input(
+                                id={"type": "food-amount", "index": 0},
+                                type="number",
+                                min=0,
+                                step=0.1,
+                                placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
+                                size="sm",
+                            ),
+                            dbc.Button(
+                                "Add Entry",
+                                id="add-entry-btn",
+                                color="primary",
+                                size="sm",
+                            ),
+                        ],
+                        style={"marginTop": "8px"},
+                    ),
+                ],
+            )
+        return input_fields
+
+    elif selection.startswith("meal:"):
+        # Show portions input for meals
         input_fields = html.Div(
             [
                 dbc.InputGroup(
                     [
                         dbc.Input(
-                            id={"type": "food-amount", "index": 0},
+                            id="meal-portions",
                             type="number",
-                            min=0,
+                            min=0.1,
                             step=0.1,
-                            placeholder="Enter weight in grams",
+                            value=1.0,
+                            placeholder="Portions",
                             size="sm",
                         ),
                         dbc.Button(
-                            "Add Entry",
+                            "Add Meal",
                             id="add-entry-btn",
                             color="primary",
                             size="sm",
@@ -444,32 +520,9 @@ def update_input_fields(food_id):
                 ),
             ],
         )
-    else:  # PER_ITEM
-        input_fields = html.Div(
-            [
-                dbc.InputGroup(
-                    [
-                        dbc.Input(
-                            id={"type": "food-amount", "index": 0},
-                            type="number",
-                            min=0,
-                            step=0.1,
-                            placeholder=f"Enter quantity (1 item = {item.serving_size_g}g)",
-                            size="sm",
-                        ),
-                        dbc.Button(
-                            "Add Entry",
-                            id="add-entry-btn",
-                            color="primary",
-                            size="sm",
-                        ),
-                    ],
-                    style={"marginTop": "8px"},
-                ),
-            ],
-        )
+        return input_fields
 
-    return input_fields
+    return []
 
 
 @callback(
@@ -570,6 +623,7 @@ def calculate_and_display_nutrients(food_id, amount_list):
     [
         State("food-selector", "value"),
         State({"type": "food-amount", "index": dash.ALL}, "value"),
+        State("meal-portions", "value"),
         State("persistent-entries", "data"),
         State("persistent-morning-weight", "data"),
         State("persistent-evening-weight", "data"),
@@ -577,17 +631,18 @@ def calculate_and_display_nutrients(food_id, amount_list):
     ],
     prevent_initial_call=True,
 )
-def add_food_entry(
+def add_entry(
     n_clicks,
-    food_id,
+    selection,
     amount_list,
+    portions,
     current_entries,
     morning_weight,
     evening_weight,
     selected_date_str,
 ):
-    """Add a food entry to the selected day and save immediately."""
-    if not n_clicks or not food_id:
+    """Add a food or meal entry to the selected day and save immediately."""
+    if not n_clicks or not selection:
         raise PreventUpdate
 
     # Parse selected date
@@ -596,113 +651,259 @@ def add_food_entry(
     else:
         entry_date = date.fromisoformat(selected_date_str)
 
-    # Extract amount from list (it will be empty if input doesn't exist)
-    amount = amount_list[0] if amount_list and len(amount_list) > 0 else None
+    # Determine if it's a food or meal
+    if selection.startswith("food:"):
+        # Handle food entry
+        food_id = selection.split(":", 1)[1]
+        amount = amount_list[0] if amount_list and len(amount_list) > 0 else None
 
-    if not amount:
-        return (
-            no_update,
-            True,
-            "Please enter an amount",
-            {
-                "backgroundColor": "#A04000",
-                "color": "white",
-                "position": "fixed",
-                "bottom": "20px",
-                "right": "20px",
-                "zIndex": 1000,
-            },
-            no_update,
-            no_update,
-            no_update,
-        )
+        if not amount:
+            return (
+                no_update,
+                True,
+                "Please enter an amount",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
 
-    item = storage.get_food_item(food_id)
-    if not item:
-        return (
-            no_update,
-            True,
-            "Food item not found",
-            {
-                "backgroundColor": "#A04000",
-                "color": "white",
-                "position": "fixed",
-                "bottom": "20px",
-                "right": "20px",
-                "zIndex": 1000,
-            },
-            no_update,
-            no_update,
-            no_update,
-        )
+        item = storage.get_food_item(food_id)
+        if not item:
+            return (
+                no_update,
+                True,
+                "Food item not found",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
 
-    try:
-        # Calculate nutrients
-        if item.unit_type == UnitType.PER_100G:
-            nutrients = calculate_nutrients(item, weight_g=float(amount))
-            weight_g = float(amount)
-            quantity = None
-        else:
-            nutrients = calculate_nutrients(item, quantity=float(amount))
-            weight_g = None
-            quantity = float(amount)
+        try:
+            # Calculate nutrients
+            if item.unit_type == UnitType.PER_100G:
+                nutrients = calculate_nutrients(item, weight_g=float(amount))
+                weight_g = float(amount)
+                qty = None
+            else:
+                nutrients = calculate_nutrients(item, quantity=float(amount))
+                weight_g = None
+                qty = float(amount)
 
-        # Create entry
-        entry = FoodEntry(
-            timestamp=datetime.now(),
-            food_id=item.id,
-            food_name=item.name,
-            weight_g=weight_g,
-            quantity=quantity,
-            nutrients=nutrients,
-        )
+            # Create entry
+            entry = FoodEntry(
+                timestamp=datetime.now(),
+                food_id=item.id,
+                food_name=item.name,
+                weight_g=weight_g,
+                quantity=qty,
+                nutrients=nutrients,
+            )
 
-        # Add to current entries
-        current_entries.append(entry.model_dump(mode="json"))
+            # Add to current entries
+            current_entries.append(entry.model_dump(mode="json"))
 
-        # Save immediately to selected day
-        # NOTE: Weights managed independently by update_measurements()
-        food_entries = [FoodEntry(**e) for e in current_entries]
-        daily_data = DailyData(
-            date=entry_date,
-            entries=food_entries,
-            measurements=Measurements(),  # Empty measurements - weights are updated separately
-        )
-        storage.save_daily_entry(daily_data)
+            # Save immediately to selected day
+            food_entries = []
+            for e in current_entries:
+                if e.get("meal_id"):
+                    food_entries.append(MealEntry(**e))
+                else:
+                    food_entries.append(FoodEntry(**e))
 
-        return (
-            current_entries,
-            True,
-            f"Added {item.name}",
-            {
-                "backgroundColor": "#789440",
-                "color": "white",
-                "position": "fixed",
-                "bottom": "20px",
-                "right": "20px",
-                "zIndex": 1000,
-            },
-            None,  # Clear food selector (which will remove the amount input)
-            morning_weight,  # Save current morning weight to persistent store
-            evening_weight,  # Save current evening weight to persistent store
-        )
-    except Exception as e:
-        return (
-            no_update,
-            True,
-            f"Error adding entry: {str(e)}",
-            {
-                "backgroundColor": "#A04000",
-                "color": "white",
-                "position": "fixed",
-                "bottom": "20px",
-                "right": "20px",
-                "zIndex": 1000,
-            },
-            no_update,
-            no_update,
-            no_update,
-        )
+            daily_data = DailyData(
+                date=entry_date,
+                entries=food_entries,
+                measurements=Measurements(),
+            )
+            storage.save_daily_entry(daily_data)
+
+            return (
+                current_entries,
+                True,
+                f"Added {item.name}",
+                {
+                    "backgroundColor": "#789440",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                None,
+                morning_weight,
+                evening_weight,
+            )
+        except Exception as e:
+            return (
+                no_update,
+                True,
+                f"Error adding entry: {str(e)}",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
+
+    elif selection.startswith("meal:"):
+        # Handle meal entry
+        meal_id = selection.split(":", 1)[1]
+
+        if portions is None or portions <= 0:
+            return (
+                no_update,
+                True,
+                "Please enter valid portions",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
+
+        # Get the meal from storage
+        meal = storage.get_meal(meal_id)
+        if not meal:
+            return (
+                no_update,
+                True,
+                "Meal not found",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
+
+        try:
+            # Create food entries for each ingredient, scaled by portions
+            meal_ingredients = []
+            for ingredient in meal.ingredients:
+                food_item = storage.get_food_item(ingredient.food_id)
+                if not food_item:
+                    continue
+
+                # Scale the ingredient by portions
+                if ingredient.weight_g is not None:
+                    scaled_weight = ingredient.weight_g * portions
+                    nutrients = calculate_nutrients(food_item, weight_g=scaled_weight)
+                    entry = FoodEntry(
+                        timestamp=datetime.now(),
+                        food_id=ingredient.food_id,
+                        food_name=ingredient.food_name,
+                        weight_g=scaled_weight,
+                        quantity=None,
+                        nutrients=nutrients,
+                    )
+                else:
+                    scaled_quantity = ingredient.quantity * portions
+                    nutrients = calculate_nutrients(food_item, quantity=scaled_quantity)
+                    entry = FoodEntry(
+                        timestamp=datetime.now(),
+                        food_id=ingredient.food_id,
+                        food_name=ingredient.food_name,
+                        weight_g=None,
+                        quantity=scaled_quantity,
+                        nutrients=nutrients,
+                    )
+
+                meal_ingredients.append(entry)
+
+            # Create MealEntry with independent copies of ingredients
+            meal_entry = MealEntry(
+                meal_id=meal.id,
+                meal_name=meal.name,
+                portions=portions,
+                ingredients=meal_ingredients,
+            )
+
+            # Add to current entries
+            current_entries.append(meal_entry.model_dump(mode="json"))
+
+            # Save immediately
+            food_entries = []
+            for e in current_entries:
+                if e.get("meal_id"):
+                    food_entries.append(MealEntry(**e))
+                else:
+                    food_entries.append(FoodEntry(**e))
+
+            daily_data = DailyData(
+                date=entry_date,
+                entries=food_entries,
+                measurements=Measurements(),
+            )
+            storage.save_daily_entry(daily_data)
+
+            return (
+                current_entries,
+                True,
+                f"Added {meal.name} ({portions} portion{'s' if portions != 1 else ''})",
+                {
+                    "backgroundColor": "#789440",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                None,
+                morning_weight,
+                evening_weight,
+            )
+        except Exception as e:
+            return (
+                no_update,
+                True,
+                f"Error adding meal: {str(e)}",
+                {
+                    "backgroundColor": "#A04000",
+                    "color": "white",
+                    "position": "fixed",
+                    "bottom": "20px",
+                    "right": "20px",
+                    "zIndex": 1000,
+                },
+                no_update,
+                no_update,
+                no_update,
+            )
+
+    raise PreventUpdate
 
 
 @callback(
@@ -732,89 +933,42 @@ def update_entries_list(entries, _, editing_index):
 
     entry_items = []
     for i, entry in enumerate(entries):
-        if editing_index == i:
-            # Edit mode
-            item = storage.get_food_item(entry["food_id"])
-            if not item:
-                # Skip edit if item not found
-                continue
-            if item.unit_type == UnitType.PER_100G:
-                current_amount = entry["weight_g"]
-                placeholder = "weight in grams"
-            else:
-                current_amount = entry["quantity"]
-                placeholder = "quantity"
-            entry_div = html.Div(
-                [
-                    html.Div(
-                        [
-                            html.Div(
-                                entry["food_name"],
-                                className="ingredient-name",
-                            ),
-                            dcc.Input(
-                                id={"type": "edit-amount", "index": i},
-                                type="number",
-                                value=current_amount,
-                                placeholder=placeholder,
-                                min=0,
-                                step=0.1,
-                                size="sm",
-                                style={"width": "100px"},
-                            ),
-                        ],
-                        className="ingredient-item-header",
-                    ),
-                    html.Span(
-                        f"{entry['nutrients']['energy_kcal']:.0f} kcal",
-                        className="ingredient-calories",
-                        title="Calories",
-                    ),
-                    html.Span(
-                        "×",
-                        className="delete-icon",
-                        id={"type": "remove-entry", "index": i},
-                        n_clicks=0,
-                        title="Remove",
-                        style={
-                            "cursor": "pointer",
-                            "gridColumn": "3 / 4",
-                            "gridRow": "1 / 2",
-                            "display": "flex",
-                            "alignItems": "center",
-                            "justifyContent": "center",
-                        },
-                    ),
-                ],
-                className="ingredient-item",
+        # Check if this is a MealEntry (has meal_id) or FoodEntry
+        if "meal_id" in entry and entry.get("meal_id"):
+            # This is a MealEntry - display as collapsible meal with nested ingredients
+            meal_entry = entry
+            meal_id = meal_entry.get("meal_id")
+            meal_name = meal_entry.get("meal_name", "Meal")
+            portions = meal_entry.get("portions", 1.0)
+            ingredients = meal_entry.get("ingredients", [])
+
+            # Calculate total calories for the meal
+            total_calories = sum(
+                ing.get("nutrients", {}).get("energy_kcal", 0) for ing in ingredients
             )
-        else:
-            # Normal display
-            entry_div = html.Div(
+
+            # Create meal header
+            meal_header = html.Div(
                 [
                     html.Div(
                         [
                             html.Div(
-                                entry["food_name"],
+                                meal_name,
                                 className="ingredient-name",
+                                style={"fontWeight": "500"},
                             ),
                             html.Div(
-                                f"{entry['weight_g']:.1f}g"
-                                if entry["weight_g"]
-                                else f"{entry['quantity']:.1f}x",
+                                f"{portions} portion{'s' if portions != 1 else ''}",
                                 className="ingredient-weight",
-                                id={"type": "edit-trigger", "index": i},
-                                n_clicks=0,
-                                style={"cursor": "pointer"},
-                                title="Click to edit amount",
+                                style={"fontSize": "0.85em", "color": "var(--text-secondary)"},
                             ),
                         ],
                         className="ingredient-item-header",
                     ),
                     html.Span(
-                        f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                        f"{total_calories:.0f} kcal",
                         className="ingredient-calories",
-                        title="Calories",
+                        title="Total Calories",
                     ),
                     html.Span(
                         "×",
@@ -833,8 +987,168 @@ def update_entries_list(entries, _, editing_index):
                     ),
                 ],
                 className="ingredient-item",
+                id={"type": "meal-header", "meal_id": meal_id},
+                n_clicks=0,
+                style={"cursor": "pointer"},
             )
-        entry_items.append(entry_div)
+
+            # Create nested ingredients list
+            nested_ingredients = []
+            for j, ingredient in enumerate(ingredients):
+                ing_calories = ingredient.get("nutrients", {}).get("energy_kcal", 0)
+
+                nested_item = html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    f"  └─ {ingredient.get('food_name', 'Unknown')}",
+                                    className="ingredient-name",
+                                    style={"paddingLeft": "12px"},
+                                ),
+                                dcc.Input(
+                                    id={
+                                        "type": "meal-ingredient-amount",
+                                        "meal_id": meal_id,
+                                        "index": j,
+                                    },
+                                    type="number",
+                                    value=ingredient.get("weight_g") or ingredient.get("quantity"),
+                                    min=0,
+                                    step=0.1,
+                                    size="sm",
+                                    style={
+                                        "width": "60px",
+                                        "padding": "4px",
+                                        "fontSize": "0.85em",
+                                    },
+                                    placeholder="Amount",
+                                ),
+                            ],
+                            className="ingredient-item-header",
+                        ),
+                        html.Span(
+                            f"{ing_calories:.0f} kcal",
+                            className="ingredient-calories",
+                            title="Calories",
+                        ),
+                    ],
+                    className="ingredient-item",
+                    style={"backgroundColor": "rgba(0,0,0,0.02)"},
+                    id={"type": "meal-ingredient-item", "meal_id": meal_id, "index": j},
+                )
+                nested_ingredients.append(nested_item)
+
+            # Combine meal header and ingredients
+            meal_div = html.Div(
+                [meal_header] + nested_ingredients,
+                style={"marginBottom": "8px"},
+            )
+            entry_items.append(meal_div)
+        else:
+            # This is a FoodEntry - display normally
+            if editing_index == i:
+                # Edit mode
+                item = storage.get_food_item(entry["food_id"])
+                if not item:
+                    continue
+                if item.unit_type == UnitType.PER_100G:
+                    current_amount = entry["weight_g"]
+                    placeholder = "weight in grams"
+                else:
+                    current_amount = entry["quantity"]
+                    placeholder = "quantity"
+                entry_div = html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    entry["food_name"],
+                                    className="ingredient-name",
+                                ),
+                                dcc.Input(
+                                    id={"type": "edit-amount", "index": i},
+                                    type="number",
+                                    value=current_amount,
+                                    placeholder=placeholder,
+                                    min=0,
+                                    step=0.1,
+                                    size="sm",
+                                    style={"width": "100px"},
+                                ),
+                            ],
+                            className="ingredient-item-header",
+                        ),
+                        html.Span(
+                            f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                            className="ingredient-calories",
+                            title="Calories",
+                        ),
+                        html.Span(
+                            "×",
+                            className="delete-icon",
+                            id={"type": "remove-entry", "index": i},
+                            n_clicks=0,
+                            title="Remove",
+                            style={
+                                "cursor": "pointer",
+                                "gridColumn": "3 / 4",
+                                "gridRow": "1 / 2",
+                                "display": "flex",
+                                "alignItems": "center",
+                                "justifyContent": "center",
+                            },
+                        ),
+                    ],
+                    className="ingredient-item",
+                )
+            else:
+                # Normal display
+                entry_div = html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    entry["food_name"],
+                                    className="ingredient-name",
+                                ),
+                                html.Div(
+                                    f"{entry['weight_g']:.1f}g"
+                                    if entry["weight_g"]
+                                    else f"{entry['quantity']:.1f}x",
+                                    className="ingredient-weight",
+                                    id={"type": "edit-trigger", "index": i},
+                                    n_clicks=0,
+                                    style={"cursor": "pointer"},
+                                    title="Click to edit amount",
+                                ),
+                            ],
+                            className="ingredient-item-header",
+                        ),
+                        html.Span(
+                            f"{entry['nutrients']['energy_kcal']:.0f} kcal",
+                            className="ingredient-calories",
+                            title="Calories",
+                        ),
+                        html.Span(
+                            "×",
+                            className="delete-icon",
+                            id={"type": "remove-entry", "index": i},
+                            n_clicks=0,
+                            title="Remove",
+                            style={
+                                "cursor": "pointer",
+                                "gridColumn": "3 / 4",
+                                "gridRow": "1 / 2",
+                                "display": "flex",
+                                "alignItems": "center",
+                                "justifyContent": "center",
+                            },
+                        ),
+                    ],
+                    className="ingredient-item",
+                )
+            entry_items.append(entry_div)
 
     return entry_items
 
@@ -873,8 +1187,14 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
         entry_date = date.fromisoformat(selected_date_str)
 
     # Save immediately to selected day
-    # NOTE: Weights are NOT included here - they're managed independently via update_measurements()
-    food_entries = [FoodEntry(**e) for e in entries]
+    # Convert entries back to Pydantic models
+    food_entries = []
+    for e in entries:
+        if e.get("meal_id"):
+            food_entries.append(MealEntry(**e))
+        else:
+            food_entries.append(FoodEntry(**e))
+
     daily_data = DailyData(
         date=entry_date,
         entries=food_entries,
@@ -996,8 +1316,13 @@ def save_edit(
             entry_date = date.fromisoformat(selected_date_str)
 
         # Save immediately to selected day
-        # NOTE: Weights managed independently by update_measurements()
-        food_entries = [FoodEntry(**e) for e in entries]
+        # Convert entries back to Pydantic models
+        food_entries = []
+        for e in entries:
+            if e.get("meal_id"):
+                food_entries.append(MealEntry(**e))
+            else:
+                food_entries.append(FoodEntry(**e))
         daily_data = DailyData(
             date=entry_date,
             entries=food_entries,
@@ -1025,6 +1350,139 @@ def save_edit(
             None,
             True,
             f"Error updating entry: {str(e)}",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+
+
+# Handle meal ingredient amount edits
+@callback(
+    [
+        Output("persistent-entries", "data", allow_duplicate=True),
+        Output("entry-toast", "is_open", allow_duplicate=True),
+        Output("entry-toast", "children", allow_duplicate=True),
+        Output("entry-toast", "style", allow_duplicate=True),
+    ],
+    Input({"type": "meal-ingredient-amount", "meal_id": dash.ALL, "index": dash.ALL}, "n_blur"),
+    [
+        State({"type": "meal-ingredient-amount", "meal_id": dash.ALL, "index": dash.ALL}, "value"),
+        State("persistent-entries", "data"),
+        State("selected-date-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def update_meal_ingredient_amount(n_blur_list, amount_list, entries, selected_date_str):
+    """Update meal ingredient amounts when user edits them."""
+    if not any(n_blur_list):
+        raise PreventUpdate
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    # Get the triggered input ID
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    triggered_data = eval(triggered_id)
+    meal_id = triggered_data["meal_id"]
+    ingredient_index = triggered_data["index"]
+    new_amount = amount_list[0] if amount_list else None
+
+    if new_amount is None or new_amount <= 0:
+        return (
+            no_update,
+            True,
+            "Please enter a valid amount",
+            {
+                "backgroundColor": "#A04000",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+
+    try:
+        # Find the meal entry
+        meal_entry_idx = None
+        for i, entry in enumerate(entries):
+            if entry.get("meal_id") == meal_id:
+                meal_entry_idx = i
+                break
+
+        if meal_entry_idx is None:
+            raise ValueError("Meal entry not found")
+
+        meal_entry = entries[meal_entry_idx]
+        if ingredient_index >= len(meal_entry["ingredients"]):
+            raise ValueError("Ingredient index out of range")
+
+        ingredient = meal_entry["ingredients"][ingredient_index]
+        food_id = ingredient["food_id"]
+        food_item = storage.get_food_item(food_id)
+
+        if not food_item:
+            raise ValueError(f"Food item {food_id} not found")
+
+        # Update the ingredient amount and recalculate nutrients
+        if ingredient.get("weight_g") is not None:
+            # Per 100g food
+            nutrients = calculate_nutrients(food_item, weight_g=float(new_amount))
+            ingredient["weight_g"] = float(new_amount)
+            ingredient["quantity"] = None
+        else:
+            # Per-item food
+            nutrients = calculate_nutrients(food_item, quantity=float(new_amount))
+            ingredient["weight_g"] = None
+            ingredient["quantity"] = float(new_amount)
+
+        ingredient["nutrients"] = nutrients.model_dump(mode="json")
+
+        # Save immediately
+        if selected_date_str is None:
+            entry_date = date.today()
+        else:
+            entry_date = date.fromisoformat(selected_date_str)
+
+        # Convert entries back to Pydantic models for saving
+        food_entries = []
+        for e in entries:
+            if e.get("meal_id"):
+                food_entries.append(MealEntry(**e))
+            else:
+                food_entries.append(FoodEntry(**e))
+
+        daily_data = DailyData(
+            date=entry_date,
+            entries=food_entries,
+            measurements=Measurements(),
+        )
+        storage.save_daily_entry(daily_data)
+
+        return (
+            entries,
+            True,
+            f"Updated {ingredient.get('food_name', 'ingredient')}",
+            {
+                "backgroundColor": "#789440",
+                "color": "white",
+                "position": "fixed",
+                "bottom": "20px",
+                "right": "20px",
+                "zIndex": 1000,
+            },
+        )
+    except Exception as e:
+        return (
+            no_update,
+            True,
+            f"Error updating ingredient: {str(e)}",
             {
                 "backgroundColor": "#A04000",
                 "color": "white",
@@ -1065,7 +1523,13 @@ def update_calories_remaining(entries, _, __, selected_date_str):
     consumed_calories = 0.0
     if entries:
         for entry in entries:
-            consumed_calories += entry["nutrients"]["energy_kcal"]
+            if "meal_id" in entry and entry.get("meal_id"):
+                # This is a MealEntry - sum calories from ingredients
+                for ingredient in entry.get("ingredients", []):
+                    consumed_calories += ingredient.get("nutrients", {}).get("energy_kcal", 0)
+            else:
+                # This is a FoodEntry
+                consumed_calories += entry.get("nutrients", {}).get("energy_kcal", 0)
 
     # Calculate remaining
     remaining = targets.energy_kcal - consumed_calories
@@ -1134,8 +1598,15 @@ def update_daily_macros(entries, _, __, selected_date_str):
     }
 
     for entry in entries:
-        for nutrient in totals:
-            totals[nutrient] += entry["nutrients"][nutrient]
+        if "meal_id" in entry and entry.get("meal_id"):
+            # This is a MealEntry - sum nutrients from ingredients
+            for ingredient in entry.get("ingredients", []):
+                for nutrient in totals:
+                    totals[nutrient] += ingredient.get("nutrients", {}).get(nutrient, 0)
+        else:
+            # This is a FoodEntry
+            for nutrient in totals:
+                totals[nutrient] += entry.get("nutrients", {}).get(nutrient, 0)
 
     def create_macro_bar(label, value, target, color_class, mode="target", unit="g"):
         """Create a macro progress bar with indicator."""
@@ -1295,8 +1766,15 @@ def update_daily_totals(entries, _, __, selected_date_str):
     }
 
     for entry in entries:
-        for nutrient in totals:
-            totals[nutrient] += entry["nutrients"][nutrient]
+        if "meal_id" in entry and entry.get("meal_id"):
+            # This is a MealEntry - sum nutrients from ingredients
+            for ingredient in entry.get("ingredients", []):
+                for nutrient in totals:
+                    totals[nutrient] += ingredient.get("nutrients", {}).get(nutrient, 0)
+        else:
+            # This is a FoodEntry
+            for nutrient in totals:
+                totals[nutrient] += entry.get("nutrients", {}).get(nutrient, 0)
 
     # Compact Summary for Header
     compact_summary = html.Div(

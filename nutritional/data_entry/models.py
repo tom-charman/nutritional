@@ -44,15 +44,15 @@ class UnitType(str, Enum):
 class Nutrients(BaseModel):
     """Nutritional values."""
 
-    energy_kcal: float = Field(ge=0)
-    fat_g: float = Field(ge=0)
-    saturated_fat_g: float = Field(ge=0)
-    carbohydrates_g: float = Field(ge=0)
-    sugar_g: float = Field(ge=0)
-    protein_g: float = Field(ge=0)
-    fibre_g: float = Field(ge=0)
-    salt_g: float = Field(ge=0)
-    calcium_mg: float = Field(ge=0)
+    energy_kcal: float = Field(default=0, ge=0)
+    fat_g: float = Field(default=0, ge=0)
+    saturated_fat_g: float = Field(default=0, ge=0)
+    carbohydrates_g: float = Field(default=0, ge=0)
+    sugar_g: float = Field(default=0, ge=0)
+    protein_g: float = Field(default=0, ge=0)
+    fibre_g: float = Field(default=0, ge=0)
+    salt_g: float = Field(default=0, ge=0)
+    calcium_mg: float = Field(default=0, ge=0)
 
 
 class MealIngredient(BaseModel):
