@@ -208,6 +208,8 @@ class SQLModelStorage:
                 )
                 session.add(db_ingredient)
 
+            session.commit()
+
     def get_meal(self, meal_id: str) -> Meal | None:
         """Get a specific meal by ID.
 
@@ -242,6 +244,7 @@ class SQLModelStorage:
                 return False
             if meal:
                 session.delete(meal)
+                session.commit()
                 return True
             return False
 
