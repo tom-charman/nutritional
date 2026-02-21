@@ -503,7 +503,7 @@ def update_input_fields(selection):
                 dbc.InputGroup(
                     [
                         dbc.Input(
-                            id="meal-portions",
+                            id={"type": "meal-portions", "index": 0},
                             type="number",
                             min=0.1,
                             step=0.1,
@@ -529,26 +529,73 @@ def update_input_fields(selection):
 
 @callback(
     Output("calculated-nutrients", "children"),
-    [Input("food-selector", "value"), Input({"type": "food-amount", "index": dash.ALL}, "value")],
-    prevent_initial_call=True,
+    [
+        Input("food-selector", "value"),
+        Input({"type": "food-amount", "index": dash.ALL}, "value"),
+        Input({"type": "meal-portions", "index": dash.ALL}, "value"),
+    ],
 )
-def calculate_and_display_nutrients(food_id, amount_list):
+def calculate_and_display_nutrients(food_id, amount_list, portions_list):
     """Calculate and display nutrients based on amount."""
-    # Extract amount from list
-    amount = amount_list[0] if amount_list and len(amount_list) > 0 else None
-
-    if not food_id or not amount:
+    if not food_id:
         return []
 
-    item = storage.get_food_item(food_id)
-    if not item:
+    # Determine the amount based on food or meal selection
+    if food_id.startswith("meal:"):
+        amount = portions_list[0] if portions_list and len(portions_list) > 0 else None
+    else:
+        amount = amount_list[0] if amount_list and len(amount_list) > 0 else None
+
+    if not amount:
         return []
 
     try:
-        if item.unit_type == UnitType.PER_100G:
-            nutrients = calculate_nutrients(item, weight_g=float(amount))
-        else:
-            nutrients = calculate_nutrients(item, quantity=float(amount))
+        nutrients = None
+
+        # Get the appropriate item (food or meal)
+        if food_id.startswith("food:"):
+            food_id_str = food_id.split(":", 1)[1]
+            item = storage.get_food_item(food_id_str)
+            if item:
+                if item.unit_type == UnitType.PER_100G:
+                    nutrients = calculate_nutrients(item, weight_g=float(amount))
+                else:
+                    nutrients = calculate_nutrients(item, quantity=float(amount))
+        elif food_id.startswith("meal:"):
+            meal_id_str = food_id.split(":", 1)[1]
+            meal = storage.get_meal(meal_id_str)
+            if meal:
+                # For meals, sum up all ingredients' nutrients
+                total_nutrients = None
+                for ingredient in meal.ingredients:
+                    food_item = storage.get_food_item(ingredient.food_id)
+                    if not food_item:
+                        continue
+                    if ingredient.weight_g is not None:
+                        scaled_weight = ingredient.weight_g * float(amount)
+                        ing_nutrients = calculate_nutrients(food_item, weight_g=scaled_weight)
+                    elif ingredient.quantity is not None:
+                        scaled_quantity = ingredient.quantity * float(amount)
+                        ing_nutrients = calculate_nutrients(food_item, quantity=scaled_quantity)
+                    else:
+                        continue
+                    if total_nutrients is None:
+                        total_nutrients = ing_nutrients
+                    else:
+                        # Sum nutrients
+                        total_nutrients.energy_kcal += ing_nutrients.energy_kcal
+                        total_nutrients.fat_g += ing_nutrients.fat_g
+                        total_nutrients.saturated_fat_g += ing_nutrients.saturated_fat_g
+                        total_nutrients.carbohydrates_g += ing_nutrients.carbohydrates_g
+                        total_nutrients.sugar_g += ing_nutrients.sugar_g
+                        total_nutrients.protein_g += ing_nutrients.protein_g
+                        total_nutrients.fibre_g += ing_nutrients.fibre_g
+                        total_nutrients.salt_g += ing_nutrients.salt_g
+                        total_nutrients.calcium_mg += ing_nutrients.calcium_mg
+                nutrients = total_nutrients
+
+        if not nutrients:
+            return []
 
         # Create styled nutrient display
         nutrient_data = [
@@ -625,7 +672,7 @@ def calculate_and_display_nutrients(food_id, amount_list):
     [
         State("food-selector", "value"),
         State({"type": "food-amount", "index": dash.ALL}, "value"),
-        State("meal-portions", "value"),
+        State({"type": "meal-portions", "index": dash.ALL}, "value"),
         State("persistent-entries", "data"),
         State("persistent-morning-weight", "data"),
         State("persistent-evening-weight", "data"),
@@ -637,7 +684,7 @@ def add_entry(
     n_clicks,
     selection,
     amount_list,
-    portions,
+    portions_list,
     current_entries,
     morning_weight,
     evening_weight,
@@ -772,6 +819,7 @@ def add_entry(
     elif selection.startswith("meal:"):
         # Handle meal entry
         meal_id = selection.split(":", 1)[1]
+        portions = portions_list[0] if portions_list and len(portions_list) > 0 else None
 
         if portions is None or portions <= 0:
             return (

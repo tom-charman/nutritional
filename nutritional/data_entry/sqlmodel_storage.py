@@ -105,7 +105,10 @@ class SQLModelStorage:
             True if item was deleted, False if not found
         """
         with get_db_session() as session:
-            item = session.get(FoodItemModel, UUID(food_id))
+            try:
+                item = session.get(FoodItemModel, UUID(food_id))
+            except (ValueError, TypeError):
+                return False
             if item:
                 session.delete(item)
                 return True
@@ -121,7 +124,11 @@ class SQLModelStorage:
             FoodItem if found, None otherwise
         """
         with get_db_session() as session:
-            item = session.get(FoodItemModel, UUID(food_id))
+            try:
+                item = session.get(FoodItemModel, UUID(food_id))
+            except (ValueError, TypeError):
+                # If food_id is not a valid UUID format, return None
+                return None
             if not item:
                 return None
             return self._db_food_item_to_pydantic(item)
@@ -209,7 +216,10 @@ class SQLModelStorage:
             Meal if found, None otherwise
         """
         with get_db_session() as session:
-            meal = session.get(MealModel, UUID(meal_id))
+            try:
+                meal = session.get(MealModel, UUID(meal_id))
+            except (ValueError, TypeError):
+                return None
             if not meal:
                 return None
             return self._db_meal_to_pydantic(meal)
@@ -224,7 +234,10 @@ class SQLModelStorage:
             True if meal was deleted, False if not found
         """
         with get_db_session() as session:
-            meal = session.get(MealModel, UUID(meal_id))
+            try:
+                meal = session.get(MealModel, UUID(meal_id))
+            except (ValueError, TypeError):
+                return False
             if meal:
                 session.delete(meal)
                 return True
