@@ -1,7 +1,7 @@
 """Pydantic models for nutritional data validation."""
 
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 from typing import Union
 
@@ -80,8 +80,8 @@ class Meal(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str = Field(min_length=1, max_length=255)
     ingredients: list[MealIngredient] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def calculate_totals(self) -> Nutrients:
         """Calculate total nutrients from all ingredients."""

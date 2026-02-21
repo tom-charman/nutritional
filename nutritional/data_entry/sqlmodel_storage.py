@@ -3,7 +3,7 @@
 from datetime import UTC, date, datetime
 from uuid import UUID
 
-from sqlmodel import col, select
+from sqlmodel import col, delete, select
 
 from nutritional.data_entry.models import (
     DailyData,
@@ -185,8 +185,8 @@ class SQLModelStorage:
                 session.add(existing)
                 # Delete existing ingredients
                 session.exec(
-                    select(MealIngredientModel).where(MealIngredientModel.meal_id == UUID(meal.id))
-                ).delete()
+                    delete(MealIngredientModel).where(MealIngredientModel.meal_id == UUID(meal.id))
+                )
             else:
                 # Insert new
                 db_meal = MealModel(
