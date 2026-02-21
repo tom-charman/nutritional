@@ -189,6 +189,10 @@ class SQLModelStorage:
     def save_daily_entry(self, daily_data: DailyData) -> None:
         """Save daily entry to database.
 
+        This method saves food entries and updates nutrient totals.
+        If weights (measurements) are provided, they will also be updated.
+        To update weights independently of food entries, use update_measurements() instead.
+
         Args:
             daily_data: DailyData to save
         """
@@ -224,7 +228,7 @@ class SQLModelStorage:
                 )
                 session.add(db_entry)
 
-            # Upsert daily summary
+            # Upsert daily summary (nutrients only - weights are updated independently)
             summary_statement = select(DailySummaryModel).where(
                 DailySummaryModel.summary_date == daily_data.date
             )
@@ -233,7 +237,7 @@ class SQLModelStorage:
             totals = daily_data.totals
 
             if summary:
-                # Update existing
+                # Update existing - ONLY update nutrients, not weights
                 if totals is not None:
                     summary.energy_kcal = totals.energy_kcal
                     summary.fat_g = totals.fat_g
@@ -254,8 +258,8 @@ class SQLModelStorage:
                     summary.fibre_g = None
                     summary.salt_g = None
                     summary.calcium_mg = None
-                summary.morning_weight_kg = daily_data.measurements.morning_weight_kg
-                summary.evening_weight_kg = daily_data.measurements.evening_weight_kg
+                # NOTE: Weights (morning_weight_kg, evening_weight_kg) are NOT updated here
+                # They are managed independently by update_measurements() callback
                 summary.updated_at = datetime.now(UTC)
                 session.add(summary)
             else:
@@ -272,8 +276,8 @@ class SQLModelStorage:
                         fibre_g=totals.fibre_g,
                         salt_g=totals.salt_g,
                         calcium_mg=totals.calcium_mg,
-                        morning_weight_kg=daily_data.measurements.morning_weight_kg,
-                        evening_weight_kg=daily_data.measurements.evening_weight_kg,
+                        # NOTE: Weights are NOT set here either
+                        # They must be saved independently via update_measurements()
                     )
                 else:
                     summary = DailySummaryModel(
@@ -287,8 +291,7 @@ class SQLModelStorage:
                         fibre_g=None,
                         salt_g=None,
                         calcium_mg=None,
-                        morning_weight_kg=daily_data.measurements.morning_weight_kg,
-                        evening_weight_kg=daily_data.measurements.evening_weight_kg,
+                        # NOTE: Weights are NOT set here
                     )
                 session.add(summary)
 
@@ -300,51 +303,37 @@ class SQLModelStorage:
     ) -> None:
         """Update only weight measurements without touching food entries.
 
+        This method updates weight measurements independently of food entries.
+        It performs an upsert: if the date exists, only the specified weights are updated.
+        If the date doesn't exist, a new row is created with the weights and null nutrients.
+
         Args:
             entry_date: Date to update
             morning_weight_kg: Morning weight (or None to keep existing)
             evening_weight_kg: Evening weight (or None to keep existing)
         """
         with get_db_session() as session:
-            # Upsert the summary using PostgreSQL on_conflict
-            from sqlalchemy.dialects.postgresql import insert
+            # Check if summary exists for this date
+            existing = session.exec(
+                select(DailySummaryModel).where(DailySummaryModel.summary_date == entry_date)
+            ).first()
 
-            # Prepare the values
-            values = {
-                "summary_date": entry_date,
-                "energy_kcal": None,
-                "fat_g": None,
-                "saturated_fat_g": None,
-                "carbohydrates_g": None,
-                "sugar_g": None,
-                "protein_g": None,
-                "fibre_g": None,
-                "salt_g": None,
-                "calcium_mg": None,
-                "created_at": datetime.now(UTC),
-                "updated_at": datetime.now(UTC),
-            }
-            if morning_weight_kg is not None:
-                values["morning_weight_kg"] = morning_weight_kg
-            if evening_weight_kg is not None:
-                values["evening_weight_kg"] = evening_weight_kg
-
-            # Build the update dict
-            update_dict = {"updated_at": datetime.now(UTC)}
-            if morning_weight_kg is not None:
-                update_dict["morning_weight_kg"] = morning_weight_kg
-            if evening_weight_kg is not None:
-                update_dict["evening_weight_kg"] = evening_weight_kg
-
-            insert_stmt = (
-                insert(DailySummaryModel)
-                .values(**values)
-                .on_conflict_do_update(
-                    index_elements=["summary_date"],
-                    set_=update_dict,
+            if existing:
+                # Update only the weight fields
+                if morning_weight_kg is not None:
+                    existing.morning_weight_kg = morning_weight_kg
+                if evening_weight_kg is not None:
+                    existing.evening_weight_kg = evening_weight_kg
+                existing.updated_at = datetime.now(UTC)
+                session.add(existing)
+            else:
+                # Create new with weights only (nutrients will be null)
+                new_summary = DailySummaryModel(
+                    summary_date=entry_date,
+                    morning_weight_kg=morning_weight_kg,
+                    evening_weight_kg=evening_weight_kg,
                 )
-            )
-            session.exec(insert_stmt)
+                session.add(new_summary)
 
     def get_all_dates(self) -> list[date]:
         """Get all dates with entries.
