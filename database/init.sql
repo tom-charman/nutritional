@@ -120,18 +120,24 @@ CREATE TABLE meal_ingredients (
     )
 );
 
--- Indexes for performance
-CREATE INDEX idx_food_entries_entry_date ON food_entries(entry_date);
-CREATE INDEX idx_food_entries_food_id ON food_entries(food_id);
-CREATE INDEX idx_daily_summaries_summary_date ON daily_summaries(summary_date);
-CREATE INDEX idx_daily_targets_target_date ON daily_targets(target_date);
-CREATE INDEX idx_food_items_name ON food_items(name);
-CREATE INDEX idx_meals_name ON meals(name);
-CREATE INDEX idx_meal_ingredients_meal_id ON meal_ingredients(meal_id);
-CREATE INDEX idx_meal_ingredients_food_id ON meal_ingredients(food_id);
+-- Add meal_id column to food_entries for linking to meals (if not exists)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name='food_entries' AND column_name='meal_id') THEN
+        ALTER TABLE food_entries ADD COLUMN meal_id UUID REFERENCES meals(id);
+    END IF;
+END $$;
 
--- Add meal_id column to food_entries for linking to meals
-ALTER TABLE food_entries ADD COLUMN meal_id UUID REFERENCES meals(id);
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);
+CREATE INDEX IF NOT EXISTS idx_food_entries_food_id ON food_entries(food_id);
+CREATE INDEX IF NOT EXISTS idx_food_entries_meal_id ON food_entries(meal_id);
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_summary_date ON daily_summaries(summary_date);
+CREATE INDEX IF NOT EXISTS idx_daily_targets_target_date ON daily_targets(target_date);
+CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);
+CREATE INDEX IF NOT EXISTS idx_meals_name ON meals(name);
+CREATE INDEX IF NOT EXISTS idx_meal_ingredients_meal_id ON meal_ingredients(meal_id);
+CREATE INDEX IF NOT EXISTS idx_meal_ingredients_food_id ON meal_ingredients(food_id);
 
 -- Updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
