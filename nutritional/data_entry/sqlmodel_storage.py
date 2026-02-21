@@ -10,6 +10,9 @@ from nutritional.data_entry.models import (
     DailyTargets,
     FoodEntry,
     FoodItem,
+    Meal,
+    MealEntry,
+    MealIngredient,
     Measurements,
     Nutrients,
 )
@@ -19,6 +22,8 @@ from nutritional.database.models import (
     DailyTargetsModel,
     FoodEntryModel,
     FoodItemModel,
+    MealIngredientModel,
+    MealModel,
 )
 
 
@@ -100,7 +105,10 @@ class SQLModelStorage:
             True if item was deleted, False if not found
         """
         with get_db_session() as session:
-            item = session.get(FoodItemModel, UUID(food_id))
+            try:
+                item = session.get(FoodItemModel, UUID(food_id))
+            except (ValueError, TypeError):
+                return False
             if item:
                 session.delete(item)
                 return True
@@ -116,7 +124,13 @@ class SQLModelStorage:
             FoodItem if found, None otherwise
         """
         with get_db_session() as session:
-            item = session.get(FoodItemModel, UUID(food_id))
+            try:
+                # Strip "food:" prefix if present
+                clean_id = food_id.replace("food:", "") if food_id.startswith("food:") else food_id
+                item = session.get(FoodItemModel, UUID(clean_id))
+            except (ValueError, TypeError):
+                # If food_id is not a valid UUID format, return None
+                return None
             if not item:
                 return None
             return self._db_food_item_to_pydantic(item)
@@ -139,6 +153,97 @@ class SQLModelStorage:
             results = session.exec(statement).all()
 
             return [self._db_food_item_to_pydantic(item) for item in results]
+
+    # ============= Meals =============
+
+    def load_meals(self) -> list[Meal]:
+        """Load all meal templates from database.
+
+        Returns:
+            List of Meal objects
+        """
+        with get_db_session() as session:
+            statement = select(MealModel).order_by(MealModel.name)
+            results = session.exec(statement).all()
+
+            return [self._db_meal_to_pydantic(meal) for meal in results]
+
+    def save_meal(self, meal: Meal) -> None:
+        """Add or update a meal template in the database.
+
+        Args:
+            meal: Meal to save
+        """
+        with get_db_session() as session:
+            # Check if meal exists
+            existing = session.get(MealModel, UUID(meal.id))
+
+            if existing:
+                # Update existing
+                existing.name = meal.name
+                existing.updated_at = datetime.now(UTC)
+                session.add(existing)
+                # Delete existing ingredients
+                session.exec(
+                    select(MealIngredientModel).where(MealIngredientModel.meal_id == UUID(meal.id))
+                ).delete()
+            else:
+                # Insert new
+                db_meal = MealModel(
+                    id=UUID(meal.id),
+                    name=meal.name,
+                    created_at=meal.created_at,
+                    updated_at=meal.updated_at,
+                )
+                session.add(db_meal)
+                session.flush()  # Ensure meal is inserted before ingredients
+
+            # Insert ingredients (after meal is inserted/updated)
+            for ingredient in meal.ingredients:
+                db_ingredient = MealIngredientModel(
+                    meal_id=UUID(meal.id),
+                    food_id=UUID(ingredient.food_id),
+                    weight_g=ingredient.weight_g,
+                    quantity=ingredient.quantity,
+                )
+                session.add(db_ingredient)
+
+    def get_meal(self, meal_id: str) -> Meal | None:
+        """Get a specific meal by ID.
+
+        Args:
+            meal_id: ID of the meal
+
+        Returns:
+            Meal if found, None otherwise
+        """
+        with get_db_session() as session:
+            try:
+                meal = session.get(MealModel, UUID(meal_id))
+            except (ValueError, TypeError):
+                return None
+            if not meal:
+                return None
+            return self._db_meal_to_pydantic(meal)
+
+    def delete_meal(self, meal_id: str) -> bool:
+        """Delete a meal template from the database.
+
+        Args:
+            meal_id: ID of the meal to delete
+
+        Returns:
+            True if meal was deleted, False if not found
+        """
+        with get_db_session() as session:
+            try:
+                meal = session.get(MealModel, UUID(meal_id))
+            except (ValueError, TypeError):
+                return False
+            if meal:
+                session.delete(meal)
+                return True
+            return False
 
     # ============= Daily Entries =============
 
@@ -170,7 +275,38 @@ class SQLModelStorage:
             if not db_entries and not summary:
                 return None
 
-            entries = [self._db_food_entry_to_pydantic(entry) for entry in db_entries]
+            # Group entries by meal_id
+            individual_entries = []
+            meal_groups = {}
+
+            for db_entry in db_entries:
+                pydantic_entry = self._db_food_entry_to_pydantic(db_entry)
+                if db_entry.meal_id:
+                    # Part of a meal
+                    meal_id_str = str(db_entry.meal_id)
+                    if meal_id_str not in meal_groups:
+                        meal_groups[meal_id_str] = []
+                    meal_groups[meal_id_str].append(pydantic_entry)
+                else:
+                    # Individual entry
+                    individual_entries.append(pydantic_entry)
+
+            # Convert meal groups to MealEntry objects
+            meal_entries = []
+            for meal_id_str, ingredients in meal_groups.items():
+                # Get meal details
+                meal = session.get(MealModel, UUID(meal_id_str))
+                if meal:
+                    meal_entry = MealEntry(
+                        meal_id=meal_id_str,
+                        meal_name=meal.name,
+                        portions=1.0,  # Default, will be calculated if needed
+                        ingredients=ingredients,
+                    )
+                    meal_entries.append(meal_entry)
+
+            # Combine individual and meal entries
+            entries = individual_entries + meal_entries
 
             measurements = Measurements(
                 morning_weight_kg=summary.morning_weight_kg if summary else None,
@@ -209,24 +345,49 @@ class SQLModelStorage:
 
             # Insert food entries
             for entry in daily_data.entries:
-                db_entry = FoodEntryModel(
-                    id=UUID(entry.entry_id),
-                    entry_date=daily_data.date,
-                    timestamp=entry.timestamp,
-                    food_id=UUID(entry.food_id),
-                    weight_g=entry.weight_g,
-                    quantity=entry.quantity,
-                    energy_kcal=entry.nutrients.energy_kcal,
-                    fat_g=entry.nutrients.fat_g,
-                    saturated_fat_g=entry.nutrients.saturated_fat_g,
-                    carbohydrates_g=entry.nutrients.carbohydrates_g,
-                    sugar_g=entry.nutrients.sugar_g,
-                    protein_g=entry.nutrients.protein_g,
-                    fibre_g=entry.nutrients.fibre_g,
-                    salt_g=entry.nutrients.salt_g,
-                    calcium_mg=entry.nutrients.calcium_mg,
-                )
-                session.add(db_entry)
+                if isinstance(entry, FoodEntry):
+                    # Regular food entry
+                    db_entry = FoodEntryModel(
+                        id=UUID(entry.entry_id),
+                        entry_date=daily_data.date,
+                        timestamp=entry.timestamp,
+                        food_id=UUID(entry.food_id),
+                        weight_g=entry.weight_g,
+                        quantity=entry.quantity,
+                        energy_kcal=entry.nutrients.energy_kcal,
+                        fat_g=entry.nutrients.fat_g,
+                        saturated_fat_g=entry.nutrients.saturated_fat_g,
+                        carbohydrates_g=entry.nutrients.carbohydrates_g,
+                        sugar_g=entry.nutrients.sugar_g,
+                        protein_g=entry.nutrients.protein_g,
+                        fibre_g=entry.nutrients.fibre_g,
+                        salt_g=entry.nutrients.salt_g,
+                        calcium_mg=entry.nutrients.calcium_mg,
+                        meal_id=None,  # Not part of a meal
+                    )
+                    session.add(db_entry)
+                elif isinstance(entry, MealEntry):
+                    # Meal entry - store each ingredient as a FoodEntry with meal_id
+                    for ingredient in entry.ingredients:
+                        db_entry = FoodEntryModel(
+                            id=UUID(ingredient.entry_id),
+                            entry_date=daily_data.date,
+                            timestamp=ingredient.timestamp,
+                            food_id=UUID(ingredient.food_id),
+                            weight_g=ingredient.weight_g,
+                            quantity=ingredient.quantity,
+                            energy_kcal=ingredient.nutrients.energy_kcal,
+                            fat_g=ingredient.nutrients.fat_g,
+                            saturated_fat_g=ingredient.nutrients.saturated_fat_g,
+                            carbohydrates_g=ingredient.nutrients.carbohydrates_g,
+                            sugar_g=ingredient.nutrients.sugar_g,
+                            protein_g=ingredient.nutrients.protein_g,
+                            fibre_g=ingredient.nutrients.fibre_g,
+                            salt_g=ingredient.nutrients.salt_g,
+                            calcium_mg=ingredient.nutrients.calcium_mg,
+                            meal_id=UUID(entry.meal_id),  # Link to the meal
+                        )
+                        session.add(db_entry)
 
             # Upsert daily summary (nutrients only - weights are updated independently)
             summary_statement = select(DailySummaryModel).where(
@@ -591,4 +752,72 @@ class SQLModelStorage:
             fibre_mode=TargetMode(db_targets.fibre_mode) if db_targets.fibre_mode else None,
             salt_mode=TargetMode(db_targets.salt_mode) if db_targets.salt_mode else None,
             calcium_mode=TargetMode(db_targets.calcium_mode) if db_targets.calcium_mode else None,
+        )
+
+    def _db_meal_to_pydantic(self, db_meal: MealModel) -> Meal:
+        """Convert SQLModel MealModel to Pydantic Meal.
+
+        Args:
+            db_meal: SQLModel database object
+
+        Returns:
+            Pydantic Meal object
+        """
+        with get_db_session() as session:
+            # Load ingredients
+            ingredients_statement = select(MealIngredientModel).where(
+                MealIngredientModel.meal_id == db_meal.id
+            )
+            db_ingredients = session.exec(ingredients_statement).all()
+
+            ingredients = []
+            for db_ing in db_ingredients:
+                # Get food item details
+                food_item = session.get(FoodItemModel, db_ing.food_id)
+                if not food_item:
+                    continue  # Skip if food not found
+
+                # Calculate nutrients based on amount
+                if db_ing.weight_g is not None:
+                    # Scale nutrients by weight_g / 100 for per_100g items
+                    if food_item.unit_type == "per_100g":
+                        scale = db_ing.weight_g / 100.0
+                    else:
+                        # For per_item, weight_g should be serving_size_g * quantity
+                        scale = db_ing.weight_g / 100.0
+                else:
+                    # For quantity (per_item), use serving_size_g as base
+                    if food_item.unit_type == "per_item" and food_item.serving_size_g:
+                        scale = db_ing.quantity
+                    else:
+                        scale = 1.0  # Fallback
+
+                nutrients = Nutrients(
+                    energy_kcal=food_item.energy_kcal * scale,
+                    fat_g=food_item.fat_g * scale,
+                    saturated_fat_g=food_item.saturated_fat_g * scale,
+                    carbohydrates_g=food_item.carbohydrates_g * scale,
+                    sugar_g=food_item.sugar_g * scale,
+                    protein_g=food_item.protein_g * scale,
+                    fibre_g=food_item.fibre_g * scale,
+                    salt_g=food_item.salt_g * scale,
+                    calcium_mg=food_item.calcium_mg * scale,
+                )
+
+                ingredients.append(
+                    MealIngredient(
+                        food_id=str(db_ing.food_id),
+                        food_name=food_item.name,
+                        weight_g=db_ing.weight_g,
+                        quantity=db_ing.quantity,
+                        nutrients=nutrients,
+                    )
+                )
+
+        return Meal(
+            id=str(db_meal.id),
+            name=db_meal.name,
+            ingredients=ingredients,
+            created_at=db_meal.created_at,
+            updated_at=db_meal.updated_at,
         )

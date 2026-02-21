@@ -61,6 +61,9 @@ class FoodEntryModel(SQLModel, table=True):
     entry_date: date = Field(index=True)
     timestamp: datetime = Field(default_factory=now_utc)
     food_id: UUID = Field(foreign_key="food_items.id")
+    meal_id: UUID | None = Field(
+        default=None, foreign_key="meals.id"
+    )  # Link to meal if part of a meal
 
     # Quantity consumed (one of these should be set)
     weight_g: float | None = None
@@ -148,3 +151,32 @@ class DailyTargetsModel(SQLModel, table=True):
     __table_args__ = (
         CheckConstraint("default_mode IN ('target', 'limit')", name="check_default_mode"),
     )
+
+
+class MealModel(SQLModel, table=True):
+    """Meal template with name and creation date."""
+
+    __tablename__ = "meals"
+
+    id: UUID | None = Field(default_factory=uuid4, primary_key=True)
+    name: str = Field(max_length=255, unique=True, index=True)
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
+class MealIngredientModel(SQLModel, table=True):
+    """Ingredient in a meal template."""
+
+    __tablename__ = "meal_ingredients"
+
+    id: UUID | None = Field(default_factory=uuid4, primary_key=True)
+    meal_id: UUID = Field(foreign_key="meals.id")
+    food_id: UUID = Field(foreign_key="food_items.id")
+
+    # Amount consumed (one of these should be set, like FoodEntryModel)
+    weight_g: float | None = None
+    quantity: float | None = None
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)

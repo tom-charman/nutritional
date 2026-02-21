@@ -96,12 +96,42 @@ CREATE TABLE daily_targets (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Meal templates
+CREATE TABLE meals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Meal ingredients (links meals to foods with amounts)
+CREATE TABLE meal_ingredients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meal_id UUID REFERENCES meals(id) ON DELETE CASCADE,
+    food_id UUID REFERENCES food_items(id),
+    -- Amount consumed (one of these should be set)
+    weight_g DECIMAL(8,2),
+    quantity DECIMAL(8,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_meal_ingredient_amount CHECK (
+        (weight_g IS NOT NULL AND quantity IS NULL) OR
+        (weight_g IS NULL AND quantity IS NOT NULL)
+    )
+);
+
 -- Indexes for performance
 CREATE INDEX idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX idx_food_entries_food_id ON food_entries(food_id);
 CREATE INDEX idx_daily_summaries_summary_date ON daily_summaries(summary_date);
 CREATE INDEX idx_daily_targets_target_date ON daily_targets(target_date);
 CREATE INDEX idx_food_items_name ON food_items(name);
+CREATE INDEX idx_meals_name ON meals(name);
+CREATE INDEX idx_meal_ingredients_meal_id ON meal_ingredients(meal_id);
+CREATE INDEX idx_meal_ingredients_food_id ON meal_ingredients(food_id);
+
+-- Add meal_id column to food_entries for linking to meals
+ALTER TABLE food_entries ADD COLUMN meal_id UUID REFERENCES meals(id);
 
 -- Updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -123,4 +153,10 @@ CREATE TRIGGER update_daily_summaries_updated_at BEFORE UPDATE ON daily_summarie
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_daily_targets_updated_at BEFORE UPDATE ON daily_targets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_meals_updated_at BEFORE UPDATE ON meals
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_meal_ingredients_updated_at BEFORE UPDATE ON meal_ingredients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
