@@ -210,14 +210,15 @@ def update_food_options(search_value, current_value):
         return no_update
 
     foods = storage.load_food_database()
-    options = [
-        {
-            "label": f"{food.name} ({'per 100g' if food.unit_type == UnitType.PER_100G else f'per {food.serving_size_g}g serving'})",
-            "value": food.id,
-        }
-        for food in foods
-        if search_value.lower() in food.name.lower()
-    ]
+    options = []
+    for food in foods:
+        if search_value.lower() in food.name.lower():
+            unit_label = (
+                "per 100g"
+                if food.unit_type == UnitType.PER_100G
+                else f"per {food.serving_size_g}g serving"
+            )
+            options.append({"label": f"{food.name} ({unit_label})", "value": food.id})
     return options[:10]  # Limit to 10 results
 
 

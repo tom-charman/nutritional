@@ -4,12 +4,28 @@ Shared pytest fixtures for nutritional app tests.
 This module contains reusable fixtures that can be used across multiple test files.
 """
 
+from __future__ import annotations
+
 import csv
 import tempfile
+from datetime import date, datetime
 from pathlib import Path
 
 import numpy as np
 import pytest
+
+from nutritional.data_entry.models import (
+    DailyData,
+    DailyTargets,
+    FoodEntry,
+    FoodItem,
+    Meal,
+    MealEntry,
+    MealIngredient,
+    Measurements,
+    Nutrients,
+    UnitType,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -220,3 +236,215 @@ def color_palette():
         "warning": "#ff9896",
         "info": "#9467bd",
     }
+
+
+# ============================================================================
+# Meal Planner Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def sample_food_item_per_100g() -> FoodItem:
+    """Create a sample food item with per 100g unit type."""
+    return FoodItem(
+        id="chicken_breast",
+        name="Chicken Breast",
+        unit_type=UnitType.PER_100G,
+        serving_size_g=None,
+        energy_kcal=165.0,
+        fat_g=3.6,
+        saturated_fat_g=1.0,
+        carbohydrates_g=0.0,
+        sugar_g=0.0,
+        protein_g=31.0,
+        fibre_g=0.0,
+        salt_g=0.1,
+        calcium_mg=15.0,
+    )
+
+
+@pytest.fixture
+def sample_food_item_per_item() -> FoodItem:
+    """Create a sample food item with per item unit type."""
+    return FoodItem(
+        id="apple",
+        name="Apple",
+        unit_type=UnitType.PER_ITEM,
+        serving_size_g=150.0,
+        energy_kcal=52.0,
+        fat_g=0.2,
+        saturated_fat_g=0.0,
+        carbohydrates_g=13.8,
+        sugar_g=10.4,
+        protein_g=0.3,
+        fibre_g=2.4,
+        salt_g=0.0,
+        calcium_mg=6.0,
+    )
+
+
+@pytest.fixture
+def sample_nutrients_values() -> Nutrients:
+    """Create sample nutrient values for testing."""
+    return Nutrients(
+        energy_kcal=500.0,
+        fat_g=20.0,
+        saturated_fat_g=5.0,
+        carbohydrates_g=60.0,
+        sugar_g=15.0,
+        protein_g=30.0,
+        fibre_g=8.0,
+        salt_g=1.0,
+        calcium_mg=200.0,
+    )
+
+
+@pytest.fixture
+def sample_meal_ingredient(sample_food_item_per_100g) -> MealIngredient:
+    """Create a sample meal ingredient."""
+    return MealIngredient(
+        food_id=sample_food_item_per_100g.id,
+        food_name=sample_food_item_per_100g.name,
+        weight_g=150.0,
+        quantity=None,
+        nutrients=sample_food_item_per_100g.get_nutrients(),
+    )
+
+
+@pytest.fixture
+def sample_meal_with_single_ingredient(sample_meal_ingredient) -> Meal:
+    """Create a sample meal with one ingredient."""
+    return Meal(
+        id="meal_single",
+        name="Single Ingredient Meal",
+        ingredients=[sample_meal_ingredient],
+    )
+
+
+@pytest.fixture
+def sample_meal_with_multiple_ingredients(
+    sample_food_item_per_100g, sample_food_item_per_item
+) -> Meal:
+    """Create a sample meal with multiple ingredients."""
+    ingredients = [
+        MealIngredient(
+            food_id=sample_food_item_per_100g.id,
+            food_name=sample_food_item_per_100g.name,
+            weight_g=150.0,
+            quantity=None,
+            nutrients=sample_food_item_per_100g.get_nutrients(),
+        ),
+        MealIngredient(
+            food_id=sample_food_item_per_item.id,
+            food_name=sample_food_item_per_item.name,
+            weight_g=None,
+            quantity=1.0,
+            nutrients=sample_food_item_per_item.get_nutrients(),
+        ),
+    ]
+
+    return Meal(
+        id="meal_multiple",
+        name="Multi-Ingredient Meal",
+        ingredients=ingredients,
+    )
+
+
+@pytest.fixture
+def sample_food_entry(sample_food_item_per_100g) -> FoodEntry:
+    """Create a sample food entry."""
+    return FoodEntry(
+        entry_id="entry_food_1",
+        timestamp=datetime.now(),
+        food_id=sample_food_item_per_100g.id,
+        food_name=sample_food_item_per_100g.name,
+        weight_g=150.0,
+        quantity=None,
+        nutrients=sample_food_item_per_100g.get_nutrients(),
+    )
+
+
+@pytest.fixture
+def sample_meal_entry(sample_meal_with_single_ingredient, sample_food_item_per_100g) -> MealEntry:
+    """Create a sample meal entry."""
+    meal_ingredients = [
+        FoodEntry(
+            entry_id="entry_meal_ing_1",
+            timestamp=datetime.now(),
+            food_id=sample_food_item_per_100g.id,
+            food_name=sample_food_item_per_100g.name,
+            weight_g=150.0,
+            quantity=None,
+            nutrients=sample_food_item_per_100g.get_nutrients(),
+        )
+    ]
+
+    return MealEntry(
+        meal_id=sample_meal_with_single_ingredient.id,
+        meal_name=sample_meal_with_single_ingredient.name,
+        portions=1.0,
+        ingredients=meal_ingredients,
+    )
+
+
+@pytest.fixture
+def sample_meal_entry_with_portions(
+    sample_meal_with_single_ingredient, sample_food_item_per_100g
+) -> MealEntry:
+    """Create a sample meal entry with multiple portions."""
+    # Scaled by 2.5 portions
+    portions_factor = 2.5
+    scaled_weight = 150.0 * portions_factor
+
+    # Calculate scaled nutrients
+    base_nutrients = sample_food_item_per_100g.get_nutrients()
+    scaled_nutrients = Nutrients(
+        energy_kcal=base_nutrients.energy_kcal * portions_factor,
+        fat_g=base_nutrients.fat_g * portions_factor,
+        saturated_fat_g=base_nutrients.saturated_fat_g * portions_factor,
+        carbohydrates_g=base_nutrients.carbohydrates_g * portions_factor,
+        sugar_g=base_nutrients.sugar_g * portions_factor,
+        protein_g=base_nutrients.protein_g * portions_factor,
+        fibre_g=base_nutrients.fibre_g * portions_factor,
+        salt_g=base_nutrients.salt_g * portions_factor,
+        calcium_mg=base_nutrients.calcium_mg * portions_factor,
+    )
+
+    meal_ingredients = [
+        FoodEntry(
+            entry_id="entry_meal_ing_scaled_1",
+            timestamp=datetime.now(),
+            food_id=sample_food_item_per_100g.id,
+            food_name=sample_food_item_per_100g.name,
+            weight_g=scaled_weight,
+            quantity=None,
+            nutrients=scaled_nutrients,
+        )
+    ]
+
+    return MealEntry(
+        meal_id=sample_meal_with_single_ingredient.id,
+        meal_name=sample_meal_with_single_ingredient.name,
+        portions=portions_factor,
+        ingredients=meal_ingredients,
+    )
+
+
+@pytest.fixture
+def sample_daily_data_with_meals(sample_food_entry, sample_meal_entry) -> DailyData:
+    """Create a sample daily data with both food and meal entries."""
+    return DailyData(
+        date=date(2025, 1, 15),
+        entries=[sample_food_entry, sample_meal_entry],
+        measurements=Measurements(),
+    )
+
+
+@pytest.fixture
+def sample_daily_data_meal_only(sample_meal_entry) -> DailyData:
+    """Create a sample daily data with only meal entries."""
+    return DailyData(
+        date=date(2025, 1, 16),
+        entries=[sample_meal_entry],
+        measurements=Measurements(),
+    )

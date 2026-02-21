@@ -600,7 +600,10 @@ def test_daily_data_deserialization() -> None:
 
     assert daily_data.date == date(2025, 12, 28)
     assert len(daily_data.entries) == 1
-    assert daily_data.entries[0].food_name == "Test Food"
+    # Type guard: verify it's a FoodEntry before accessing food_name
+    entry = daily_data.entries[0]
+    assert isinstance(entry, FoodEntry)
+    assert entry.food_name == "Test Food"
     assert daily_data.measurements.morning_weight_kg == 70.0
 
 
@@ -769,8 +772,9 @@ def test_daily_data_mixed_entries(
     # Test totals calculation with mixed entries
     totals = daily_data.calculate_totals()
     # Should be sum of both entries
+    first_ingredient = sample_meal_entry.ingredients[0]
     expected_energy = (
-        sample_food_entry.nutrients.energy_kcal
-        + sample_meal_entry.ingredients[0].nutrients.energy_kcal
+        sample_food_entry.nutrients.energy_kcal + first_ingredient.nutrients.energy_kcal
     )
+    assert totals is not None
     assert totals.energy_kcal == expected_energy
