@@ -131,7 +131,9 @@ def create_calories_weight_figure(
 
     fig.update_yaxes(
         title_text=f"Calories {rolling_window}-day average (kcal)",
-        range=[y1_min, y1_max + 1e-6],
+        tickvals=[2000, 2200, 2400, 2600, 2800, 3000, 3200],
+        ticktext=["2000", "2200", "2400", "2600", "2800", "3000", "3200"],
+        range=[1900, 3300],  # Slightly wider range to accommodate fixed ticks
         gridcolor="#D4C5B0",
         gridwidth=1,
         showgrid=True,
@@ -145,8 +147,10 @@ def create_calories_weight_figure(
     )
 
     fig.update_yaxes(
-        title_text=f"Weight {rolling_window}-day average (kg)",
-        range=[y2_min, y2_max + 1e-6],
+        title_text="Weight (kg)",
+        tickvals=[58, 60, 62, 64, 66, 68, 70],
+        ticktext=["58", "60", "62", "64", "66", "68", "70"],
+        range=[57, 71],  # Slightly wider range to accommodate fixed ticks
         showgrid=False,
         showline=True,
         linewidth=0.5,

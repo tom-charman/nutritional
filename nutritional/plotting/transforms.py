@@ -55,11 +55,12 @@ def prepare_calories_weight_data(raw_data: dict, rolling_window: int) -> dict:
     cal_dates, cal_interp = interpolate_daily(dates, calories)
     calories_avg = rolling_average(cal_interp, rolling_window)
 
+    # For weight: interpolate only, no rolling average (show actual weight trend)
     wm_dates, wm_interp = interpolate_daily(dates, weight_morning)
-    weight_morning_avg = rolling_average(wm_interp, rolling_window)
+    weight_morning_avg = wm_interp  # Use raw interpolated data, no rolling average
 
     we_dates, we_interp = interpolate_daily(dates, weight_evening)
-    weight_evening_avg = rolling_average(we_interp, rolling_window)
+    weight_evening_avg = we_interp  # Use raw interpolated data, no rolling average
 
     # Use common date range (all should be the same after interpolation)
     common_dates = cal_dates
