@@ -745,8 +745,9 @@ def add_entry(
             )
             storage.save_daily_entry(daily_data)
 
+            # Return a new list instance to ensure Dash detects the change
             return (
-                current_entries,
+                [dict(e) for e in current_entries],  # Create new list with new dict instances
                 True,
                 f"Added {item.name}",
                 {
@@ -882,8 +883,9 @@ def add_entry(
             )
             storage.save_daily_entry(daily_data)
 
+            # Return a new list instance to ensure Dash detects the change
             return (
-                current_entries,
+                [dict(e) for e in current_entries],  # Create new list with new dict instances
                 True,
                 f"Added {meal.name} ({portions} portion{'s' if portions != 1 else ''})",
                 {
@@ -1262,7 +1264,8 @@ def remove_entry(n_clicks, entries, morning_weight, evening_weight, selected_dat
     )
     storage.save_daily_entry(daily_data)
 
-    return entries
+    # Return a new list instance to ensure Dash detects the change
+    return [dict(e) for e in entries]
 
 
 @callback(
@@ -1289,9 +1292,9 @@ def start_edit(n_clicks):
     [
         Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
         Output(get_id(ID.EDITING_ENTRY_INDEX, ENTRY_PREFIX), "data", allow_duplicate=True),
-        Output("entry-toast", "is_open", allow_duplicate=True),
-        Output("entry-toast", "children", allow_duplicate=True),
-        Output("entry-toast", "style", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "is_open", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "children", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "style", allow_duplicate=True),
     ],
     [
         Input({"type": "edit-amount", "index": dash.ALL}, "n_blur"),
@@ -1390,8 +1393,9 @@ def save_edit(
         )
         storage.save_daily_entry(daily_data)
 
+        # Return a new list instance to ensure Dash detects the change
         return (
-            entries,
+            [dict(e) for e in entries],  # Create new list with new dict instances
             None,
             True,
             f"Updated {item.name}",
@@ -1425,9 +1429,9 @@ def save_edit(
 @callback(
     [
         Output(get_id(ID.PERSISTENT_ENTRIES, ""), "data", allow_duplicate=True),
-        Output("entry-toast", "is_open", allow_duplicate=True),
-        Output("entry-toast", "children", allow_duplicate=True),
-        Output("entry-toast", "style", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "is_open", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "children", allow_duplicate=True),
+        Output(get_id(ID.ENTRY_TOAST, ENTRY_PREFIX), "style", allow_duplicate=True),
     ],
     Input({"type": "meal-ingredient-amount", "meal_id": dash.ALL, "index": dash.ALL}, "n_blur"),
     [
@@ -1525,8 +1529,11 @@ def update_meal_ingredient_amount(n_blur_list, amount_list, entries, selected_da
         )
         storage.save_daily_entry(daily_data)
 
+        # Return a deep copy to ensure Dash detects the change in nested structures
+        import copy
+
         return (
-            entries,
+            copy.deepcopy(entries),  # Return deep copy for meal ingredient changes
             True,
             f"Updated {ingredient.get('food_name', 'ingredient')}",
             {
@@ -1923,7 +1930,12 @@ def toggle_targets_modal(open_clicks, close_clicks, save_clicks, is_open):
     prevent_initial_call=True,
 )
 def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
-    """Load current or previous day's targets into the modal."""
+    """Load most recent targets into the modal and pre-fill form.
+
+    On modal open: Load most recently used targets (from current date or any past date).
+    On "Copy Previous Targets" click: Explicitly load most recent targets from past dates.
+    Targets are pre-filled automatically without requiring user action.
+    """
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
@@ -1934,16 +1946,9 @@ def load_targets_into_modal(open_clicks, copy_clicks, selected_date_str):
     else:
         current_date = date.fromisoformat(selected_date_str)
 
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if trigger_id == get_id(ID.COPY_PREVIOUS_TARGETS, ""):
-        # Get previous day's targets
-        targets = storage.get_previous_day_targets(current_date)
-        if not targets:
-            targets = storage.get_or_create_daily_targets(current_date)
-    else:
-        # Load selected day's targets
-        targets = storage.get_or_create_daily_targets(current_date)
+    # Always load the most recent targets (from current date or any past date)
+    # This implements "sticky" targets that carry forward until changed
+    targets = storage.get_or_create_daily_targets(current_date)
 
     return (
         targets.energy_kcal,
