@@ -1,0 +1,1650 @@
+/* Nutritional Tracker - Artisan Design System (2026) */
+/* Brand: Kaolin Paper, Sumi Iron Ink, Oxidized Brass, Matcha Stone, Baked Terracotta */
+/* Ported from nutritional/assets/style.css (Dash) — fonts now via next/font. */
+
+/* ==================== CSS Variables (Design Tokens) ==================== */
+:root {
+    /* Foundation Colors - Brand Palette (2026) */
+    --background: #F2F0EB;           /* Kaolin White - paper base */
+    --surface: #FFFFFF;              /* Pure white - cards and panels (whiter for contrast) */
+    --border: #D4C5B0;               /* Lighter warm gray - edges and dividers */
+    --border-hover: #A0937D;         /* Darker warm gray - interactive states */
+
+    /* Brand & Actions - Pigments */
+    --primary: #2C3E50;              /* Aizome Indigo - primary actions */
+    --primary-hover: #1F2A37;        /* Indigo darker - hover states */
+    --primary-light: #E8EEF5;        /* Indigo tinted - subtle backgrounds */
+
+    /* Text Hierarchy - Ink */
+    --text-main: #1A1A1A;            /* Sumi Iron - darker, higher contrast headings */
+    --text-body: #2B2B2B;            /* Sumi Iron - darker body text */
+    --text-muted: #6B6B6B;           /* Graphite - labels, helper text */
+    --text-disabled: #A0A0A0;        /* Graphite lighter - disabled states */
+
+    /* Semantic Colors - Brand pigments */
+    --success: #789440;              /* Wakatake Bamboo - success states */
+    --success-bg: #E9F0E0;           /* Bamboo tinted - success backgrounds */
+    --danger: #A04000;               /* Bengara Rust - destructive actions */
+    --danger-bg: #F5E6D3;            /* Rust tinted - error backgrounds */
+    --warning: #A04000;              /* Bengara Rust - warnings */
+    --warning-bg: #F5E6D3;           /* Rust light - warning backgrounds */
+
+    /* Nihonga Data Palette */
+    --nihonga-indigo: #2C3E50;
+    --nihonga-persimmon: #E87722;
+    --nihonga-pine: #3D5941;
+    --nihonga-wisteria: #7B5FB8;
+    --nihonga-mustard: #B8A900;
+    --nihonga-teal: #4A9B8E;
+
+    /* Macro Nutrient Colors - Brand pigment remapping */
+    --protein-text: #2C4C5B;
+    --protein-bg: #E8EEF5;
+    --carbs-text: #C8963E;
+    --carbs-bg: #F5F0E3;
+    --fat-text: #BF6B59;
+    --fat-bg: #F0E6E0;
+    --sugar-text: #EBC374;
+    --sugar-bg: #FBF7E8;
+    --saturated-fat-text: #E09F91;
+    --saturated-fat-bg: #F9F0ED;
+    --fibre-text: #4F6D46;
+    --fibre-bg: #E8F0E6;
+    --salt-text: #7C6A88;
+    --salt-bg: #F0ECF2;
+    --calcium-text: #6B7F82;
+    --calcium-bg: #ECF0F1;
+    --calories-text: #2B2B2B;
+    --calories-bg: #F2F0EB;
+
+    /* Spacing Scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 32px;
+
+    /* Border Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* Shadows - Flatter, more subtle (inking on paper, not drop shadows) */
+    --shadow-sm: 0 0.5px 1px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+    --shadow-lg: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    /* Typography - Brand fonts (self-hosted via next/font in app/layout.tsx) */
+    --font-display: var(--font-crimson), 'Georgia', serif;
+    --font-mono: var(--font-jetbrains), monospace;
+    --font-primary: var(--font-crimson), 'Georgia', serif;
+    --font-size-tiny: 11px;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 15px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-2xl: 28px;
+    --font-size-3xl: 32px;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+}
+
+/* ==================== Global Styles ==================== */
+html {
+    margin: 0;
+    padding: 0;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--background);
+    background-image: url('/textures/kaolin-paper.png');
+    background-size: 120px;
+    background-attachment: fixed;
+    font-family: var(--font-primary);
+    color: var(--text-body);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+/* Paper grain overlay */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/textures/kaolin-paper.png');
+    background-size: 120px;
+    background-attachment: fixed;
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* App container (replaces Bootstrap .container-fluid) */
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+    padding-top: 4px;
+}
+
+/* Section Labels - Subtle, uppercase */
+.section-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 12px;
+}
+
+/* Toolbar Pattern - Clean action bars */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.toolbar-left {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+}
+
+.toolbar-right {
+    text-align: right;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* ==================== Typography ==================== */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-main);
+    font-weight: var(--font-weight-semibold);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
+}
+
+h1 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+}
+
+h2 {
+    font-size: var(--font-size-lg);
+}
+
+h3 {
+    font-size: var(--font-size-md);
+}
+
+h4 {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+}
+
+p {
+    color: var(--text-body);
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+/* ==================== Navigation Bar ==================== */
+/* "Book Binding" Header - Full-bleed anchoring */
+.navbar {
+    background-color: #E8E5D8;  /* Kraft paper tone */
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+    padding: 0.35rem 0;
+    min-height: 44px;
+    width: 100%;
+}
+
+.navbar-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--space-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.navbar-brand {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    letter-spacing: 0.05em;
+}
+
+.navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.navbar .nav-link {
+    color: var(--text-body);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    margin: 0 2px;
+    text-decoration: none;
+}
+
+.navbar .nav-link:hover {
+    background-color: var(--background);
+}
+
+.navbar .nav-link.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: var(--font-weight-medium);
+}
+
+/* ==================== Cards ==================== */
+.card {
+    background-color: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border);
+    margin-bottom: var(--space-xl);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-lg) var(--space-xl);
+    font-weight: var(--font-weight-medium);
+}
+
+.card-header h4 {
+    margin-bottom: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+.card-body {
+    padding: var(--space-xl);
+}
+
+/* Summary Statistics Cards */
+.summary-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.summary-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card h3 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--space-sm);
+    color: var(--text-main);
+    line-height: 1;
+    font-family: var(--font-mono);
+}
+
+.summary-card p {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-bottom: 0;
+    font-weight: var(--font-weight-medium);
+}
+
+/* ==================== Buttons ==================== */
+button, .btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-primary);
+    letter-spacing: 0;
+    transition: all 0.15s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Primary Button - Aizome Indigo style */
+.btn-primary {
+    background-color: var(--primary);
+    border: 1px solid var(--primary-hover);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Success Button */
+.btn-success {
+    background-color: var(--success);
+    border: 1px solid var(--border);
+    color: white;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+}
+
+.btn-success:hover {
+    background-color: #657A36;
+}
+
+/* Danger Button */
+.btn-danger {
+    background-color: var(--danger);
+    border: 1px solid var(--border);
+    color: white;
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger:hover {
+    background-color: #8B3400;
+}
+
+/* Secondary/Ghost Button */
+.btn-secondary, .btn-ghost {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-body);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover, .btn-ghost:hover {
+    background-color: var(--background);
+    border-color: var(--border-hover);
+    color: var(--text-body);
+}
+
+/* Small buttons */
+.btn-sm {
+    height: 32px;
+    padding: 0 12px;
+    font-size: var(--font-size-xs);
+}
+
+/* ==================== Form Controls ==================== */
+label, .form-label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+    font-size: var(--font-size-sm);
+    display: inline-block;
+}
+
+/* Modern input style - debossed logbook lines */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="search"],
+textarea,
+select,
+.form-control {
+    height: 36px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-mono);
+    color: var(--text-body);
+    transition: all 0.15s ease;
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05);
+    width: 100%;
+}
+
+textarea {
+    height: auto;
+    min-height: 80px;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.form-control:focus {
+    background-color: var(--surface);
+    border-color: var(--border-hover);
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(191, 166, 125, 0.3);
+    outline: none;
+}
+
+input::placeholder {
+    color: var(--text-disabled);
+}
+
+/* Disabled inputs */
+input:disabled,
+.form-control:disabled {
+    background-color: var(--background);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Form row layout for inline inputs */
+.form-row {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.form-row > * {
+    flex: 1;
+}
+
+/* Macro grid layout */
+.macro-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+    .macro-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ==================== Radio Buttons ==================== */
+input[type="radio"] {
+    appearance: none;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0 0;
+    padding: 0;
+    box-shadow: none;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+input[type="radio"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 3px var(--surface);
+}
+
+input[type="radio"]:focus {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.2);
+}
+
+.radio-label {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--text-body);
+    margin-left: 6px;
+    margin-bottom: 0;
+    font-weight: var(--font-weight-normal);
+    cursor: pointer;
+}
+
+.radio-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+/* ==================== Combobox (food selector) ==================== */
+.combobox {
+    position: relative;
+    width: 100%;
+}
+
+.combobox input {
+    width: 100%;
+}
+
+.combobox-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 0.5px solid var(--border);
+    font-family: var(--font-mono);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.combobox-option {
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-mono);
+    cursor: pointer;
+}
+
+.combobox-option:hover,
+.combobox-option.focused {
+    background-color: var(--background);
+}
+
+.combobox-option.selected {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ==================== Input Groups ==================== */
+.input-group {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    align-items: stretch;
+}
+
+.input-group .form-control {
+    flex: 1;
+    min-width: 0;
+}
+
+.input-group .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    height: 36px;
+}
+
+/* ==================== Tabs ==================== */
+.nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--space-xl);
+    padding: 0;
+    list-style: none;
+}
+
+.nav-tabs .tab-link {
+    border: none;
+    background: transparent;
+    color: var(--text-body);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-primary);
+    padding: var(--space-md) var(--space-xl);
+    margin-bottom: -1px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    height: auto;
+    border-radius: 0;
+}
+
+.nav-tabs .tab-link:hover {
+    background-color: var(--background);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.nav-tabs .tab-link.active {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    background-color: transparent;
+}
+
+/* ==================== Chart Containers ==================== */
+.graph-container {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+.graph-wrapper {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 16px;
+    border: 0.5px solid var(--border);
+}
+
+.chart-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-mono);
+}
+
+.chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-body);
+    z-index: 50;
+    white-space: nowrap;
+}
+
+.chart-tooltip .tooltip-date {
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+/* ==================== Lists & Tables ==================== */
+.data-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.data-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    transition: background 0.1s ease;
+}
+
+.data-row:last-child {
+    border-bottom: none;
+}
+
+.data-row:hover {
+    background: var(--background);
+}
+
+/* Macro Badges - Brand pigments */
+.macro-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    margin: 0 4px;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+}
+
+.badge-protein { background-color: var(--protein-bg); color: var(--protein-text); }
+.badge-carbs { background-color: var(--carbs-bg); color: var(--carbs-text); }
+.badge-fat { background-color: var(--fat-bg); color: var(--fat-text); }
+.badge-calories { background-color: var(--calories-bg); color: var(--calories-text); }
+
+/* ==================== Progress Bars ==================== */
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--border);
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Nutrient-specific progress bars - brand pigments */
+.progress-protein .progress-bar { background: var(--protein-text); }
+.progress-carbs .progress-bar { background: var(--carbs-text); }
+.progress-fat .progress-bar { background: var(--fat-text); }
+.progress-calories .progress-bar { background: var(--text-main); }
+.progress-fibre .progress-bar { background: var(--fibre-text); }
+.progress-sugar .progress-bar { background: var(--sugar-text); }
+.progress-saturated-fat .progress-bar { background: var(--saturated-fat-text); }
+.progress-salt .progress-bar { background: var(--salt-text); }
+.progress-calcium .progress-bar { background: var(--calcium-text); }
+
+/* Target/Limit Indicators - brand colors */
+.target-met {
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.target-warning {
+    color: var(--warning);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.target-exceeded {
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ==================== Alerts & Messages ==================== */
+.alert {
+    border-radius: var(--radius-sm);
+    border: none;
+    padding: var(--space-md) var(--space-lg);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-md);
+}
+
+.alert-success {
+    background-color: var(--success-bg);
+    color: #065F46;
+}
+
+.alert-danger {
+    background-color: var(--danger-bg);
+    color: #991B1B;
+}
+
+.alert-warning {
+    background-color: var(--warning-bg);
+    color: #78350F;
+}
+
+.alert-info {
+    background-color: var(--primary-light);
+    color: #1E40AF;
+}
+
+/* ==================== Toasts ==================== */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    color: white;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.2s ease;
+}
+
+.toast-success { background-color: var(--success); }
+.toast-error { background-color: var(--danger); }
+
+/* ==================== Unified Daily Log ==================== */
+.daily-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.daily-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.daily-header-left h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    margin-bottom: 0;
+}
+
+.daily-summary-bar {
+    display: flex;
+    gap: 16px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.daily-summary-bar .summary-item {
+    white-space: nowrap;
+}
+
+/* Receipt Style List */
+.receipt-list {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.receipt-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s ease;
+}
+
+.receipt-item:last-child {
+    border-bottom: none;
+}
+
+.receipt-item:hover {
+    background: var(--background);
+}
+
+.receipt-item:hover .delete-icon {
+    color: var(--danger);
+}
+
+.delete-icon {
+    color: var(--text-disabled);
+    cursor: pointer;
+    font-size: 16px;
+    font-family: 'Georgia', serif;
+    padding: 4px;
+    transition: color 0.2s ease;
+    font-weight: bold;
+    background: transparent;
+    border: none;
+    height: auto;
+}
+
+.ingredient-item:hover .delete-icon {
+    color: var(--danger);
+}
+
+/* ==================== Master-Detail Layout ==================== */
+.master-detail {
+    display: flex;
+    gap: 24px;
+    height: calc(100vh - 200px);
+}
+
+.master-panel {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-panel {
+    width: 60%;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.master-list {
+    flex: 1;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.master-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.master-list-item:last-child {
+    border-bottom: none;
+}
+
+.master-list-item:hover {
+    background: var(--background);
+}
+
+.master-list-item.selected {
+    background: #E8EEF5;
+    border-left: 3px solid var(--primary);
+}
+
+.master-list-item-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-main);
+    font-family: var(--font-mono);
+}
+
+.master-list-item-badge {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+}
+
+/* Detail Editor Grid */
+.editor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.editor-grid-2col {
+    display: grid;
+    grid-template-columns: 70% 30%;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 0.5px solid var(--border);
+}
+
+/* ==================== Compact Inputs ==================== */
+.compact-input .form-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: var(--font-weight-medium);
+    font-family: var(--font-mono);
+}
+
+.compact-input input {
+    height: 36px;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-mono);
+}
+
+/* ==================== Search Inputs ==================== */
+.search-input-rounded {
+    width: 300px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+}
+
+/* ==================== Modal ==================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: var(--space-xl);
+}
+
+.modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+    max-width: 720px;
+    width: 100%;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin-bottom: 0;
+}
+
+.modal-body {
+    padding: var(--space-xl);
+}
+
+.modal-footer {
+    padding: var(--space-lg) var(--space-xl);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Targets grid in modal */
+.targets-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .targets-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== Animations ==================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card, .summary-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Icon hover effects */
+.icon-button {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.icon-button:hover {
+    background-color: var(--background);
+}
+
+.icon-button--edit:hover {
+    color: var(--primary);
+}
+
+.icon-button--delete:hover,
+.icon-button--remove:hover {
+    color: var(--danger);
+    background-color: var(--danger-bg);
+}
+
+/* ==================== Custom Scrollbar ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-disabled);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ==================== Layout Utility Classes ==================== */
+.visualizations-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-top: 40px;
+}
+
+.graph-height {
+    height: 600px;
+}
+
+.hidden {
+    display: none;
+}
+
+.flex-row {
+    display: flex;
+    align-items: center;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+/* ==================== Entry & Food Item Classes ==================== */
+.entry-name {
+    font-size: 15px;
+}
+
+.entry-meta {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.macro-badges-container {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ==================== Form Labels ==================== */
+.form-label-sm {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+}
+
+.form-label-xs {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+}
+
+/* ==================== Page Specific ==================== */
+.page-max-width-1200 {
+    max-width: 1200px;
+}
+
+.action-row-flex {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+}
+
+.action-row-flex > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-row-mb {
+    margin-bottom: 16px;
+}
+
+/* ==================== Mise-en-place 3-Column Layout ==================== */
+.mise-en-place-container {
+    display: grid;
+    grid-template-columns: 37.5% 37.5% 25%;  /* Ingredients | Summary | Logbook */
+    gap: 20px;
+    width: 100%;
+}
+
+.mise-en-place-container .section-label {
+    margin-bottom: 0;
+}
+
+/* Column 1: The Ingredients (Input & Edit) */
+.mise-ingredients-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ingredients-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.ingredient-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s ease;
+    gap: 12px;
+    row-gap: 0;
+}
+
+.ingredient-item:last-child {
+    border-bottom: none;
+}
+
+.ingredient-item:hover {
+    padding-left: 4px;
+    padding-right: 4px;
+    background: var(--background);
+    border-radius: var(--radius-sm);
+}
+
+.ingredient-item-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.ingredient-name {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-body);
+    font-weight: 500;
+    line-height: 1.3;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.ingredient-item-weight {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.ingredient-weight {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.ingredient-weight.editable {
+    cursor: pointer;
+}
+
+.ingredient-weight.editable:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.ingredient-calories {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-body);
+    font-weight: 600;
+    min-width: 65px;
+    text-align: right;
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+/* Inline edit input for entry amounts */
+.inline-edit-input {
+    width: 80px;
+    height: 26px;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+}
+
+/* Column 2: The Summary (The Focus) */
+.mise-summary-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calories-remaining-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.calories-remaining-label {
+    font-size: 11px;
+    color: var(--text-body);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.calories-remaining-number {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.calorie-status-indicator {
+    font-size: 12px;
+    color: var(--text-body);
+    font-weight: 600;
+}
+
+.calories-remaining-number.target-exceeded {
+    color: var(--danger);
+    font-size: 3.5rem;
+}
+
+.calories-remaining-number.target-met {
+    color: var(--success);
+    font-size: 3.5rem;
+}
+
+.macros-visualization {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.macros-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.macro-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.macro-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.macro-bar-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-body);
+    font-family: var(--font-mono);
+}
+
+.macro-bar-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-main);
+    font-family: var(--font-mono);
+}
+
+.macro-bar-indicator {
+    font-size: 12px;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* Column 3: The Logbook (Context) */
+.mise-logbook-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.weight-entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.weight-entry-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.weight-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.weight-input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.weight-input-group label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    flex: 1;
+}
+
+.weight-input-group input {
+    width: 80px;
+    flex: none;
+    font-family: var(--font-mono);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .mise-en-place-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .calories-remaining-number {
+        font-size: 3rem;
+    }
+}
+
+/* ==================== Shared Components ==================== */
+
+/* Nutrient Preview Card - entry page live preview */
+.nutrient-preview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.nutrient-preview-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.nutrient-preview-item:last-child {
+    margin-bottom: 0;
+}
+
+.nutrient-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.nutrient-label {
+    color: var(--text-body);
+    font-weight: 500;
+}
+
+.nutrient-value {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+/* Meal entry collapsible header */
+.meal-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    gap: 12px;
+}
+
+.meal-entry-name {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.meal-entry-info {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.meal-entry-ingredients {
+    margin-left: 16px;
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+}
+
+/* Empty State Message */
+.empty-state-message,
+.empty-state {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 24px 16px;
+    font-style: italic;
+}
+
+/* ==================== Page header ==================== */
+.page-header {
+    margin-bottom: 32px;
+}
+
+.page-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 768px) {
+    .app-container {
+        padding-left: var(--space-lg);
+        padding-right: var(--space-lg);
+    }
+
+    h1 {
+        font-size: var(--font-size-lg);
+    }
+
+    .navbar {
+        min-height: 52px;
+    }
+
+    .card-body {
+        padding: var(--space-lg);
+    }
+
+    .summary-card h3 {
+        font-size: var(--font-size-xl);
+    }
+
+    .master-detail {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .master-panel,
+    .detail-panel {
+        width: 100%;
+    }
+
+    .editor-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mise-en-place-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .calories-remaining-number {
+        font-size: 2rem;
+    }
+
+    .ingredient-item:hover {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}

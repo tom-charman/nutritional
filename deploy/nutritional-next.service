@@ -1,0 +1,35 @@
+# Systemd unit for the Next.js nutritional tracker.
+# Install: sudo cp deploy/nutritional-next.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable nutritional-next
+#
+# Replace YOUR_USER with the VM user. App lives at:
+#   /home/YOUR_USER/apps/nutritional/current   -> releases/<sha> (symlink)
+#   /home/YOUR_USER/apps/nutritional/shared/.env (chmod 600)
+
+[Unit]
+Description=Nutritional Tracker (Next.js)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/home/YOUR_USER/apps/nutritional/current
+EnvironmentFile=/home/YOUR_USER/apps/nutritional/shared/.env
+Environment=NODE_ENV=production
+Environment=PORT=8050
+Environment=HOSTNAME=127.0.0.1
+Environment=NODE_OPTIONS=--max-old-space-size=192
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+
+# Memory caps: a node leak gets killed before it can OOM postgres.
+MemoryHigh=320M
+MemoryMax=448M
+
+StandardOutput=append:/var/log/nutritional/app.log
+StandardError=append:/var/log/nutritional/error.log
+
+[Install]
+WantedBy=multi-user.target

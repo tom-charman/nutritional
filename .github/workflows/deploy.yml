@@ -1,0 +1,62 @@
+name: Deploy
+
+# Manual trigger only — deploys the standalone build to the VM over SSH.
+# Required repo secrets:
+#   DEPLOY_SSH_KEY   - private key authorized on the VM
+#   DEPLOY_HOST      - e.g. 1.2.3.4
+#   DEPLOY_USER      - VM username
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build standalone
+        run: npm run build
+
+      - name: Assemble artifact
+        run: |
+          mkdir -p artifact
+          cp -R .next/standalone/. artifact/
+          mkdir -p artifact/.next
+          cp -R .next/static artifact/.next/static
+          cp -R public artifact/public
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload release
+        run: |
+          SHA="${GITHUB_SHA::7}"
+          HOST="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          ssh "$HOST" "mkdir -p apps/nutritional/releases/$SHA"
+          rsync -az --delete artifact/ "$HOST:apps/nutritional/releases/$SHA/"
+
+      - name: Activate and smoke-check
+        run: |
+          SHA="${GITHUB_SHA::7}"
+          HOST="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          ssh "$HOST" "
+            set -e
+            ln -sfn \$HOME/apps/nutritional/releases/$SHA \$HOME/apps/nutritional/current
+            sudo systemctl restart nutritional-next
+            sleep 3
+            curl -sf -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:8050/api/auth/providers
+            ls -dt \$HOME/apps/nutritional/releases/*/ | tail -n +4 | xargs -r rm -rf
+          "

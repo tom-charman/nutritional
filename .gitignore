@@ -2,6 +2,14 @@ local_data
 plots
 plots_interactive
 
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
 # Database backups and exports
 database/backups/
 database/.db_password
@@ -13,9 +21,10 @@ database/.db_password
 !database/init.sql
 !database/create_db.sql
 
-# Google Sheets Credentials & Secrets
+# Credentials & Secrets
 credentials/
-*.json
+service-account*.json
+client_secret*.json
 !.gitkeep
 
 # Environment variables
@@ -42,7 +51,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
