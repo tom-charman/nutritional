@@ -6,7 +6,15 @@ import { NextResponse } from "next/server";
  * assets. Unauthenticated → Google sign-in; authenticated but not
  * allowlisted → /denied.
  */
+/**
+ * Local-only auth bypass for development and e2e testing (AUTH_DISABLED=true).
+ * Refuses to activate in production builds.
+ */
+const AUTH_DISABLED =
+  process.env.AUTH_DISABLED === "true" && process.env.NODE_ENV !== "production";
+
 export default auth((req) => {
+  if (AUTH_DISABLED) return NextResponse.next();
   const { pathname } = req.nextUrl;
 
   if (

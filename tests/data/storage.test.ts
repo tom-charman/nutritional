@@ -5,9 +5,11 @@ import { createTestDb } from "./harness";
 import type { DB } from "@/lib/data/storage";
 import {
   deleteFoodItem,
+  deleteMeal,
   getAllDates,
   getFoodItem,
   getMeal,
+  saveMeal,
   getOrCreateDailyTargets,
   loadDailyEntry,
   loadDailyTargets,
@@ -267,6 +269,84 @@ describe("target stickiness chain", () => {
     const loaded = await loadDailyTargets(db, "2024-01-15");
     expect(loaded?.values.protein_g).toBe(180);
     expect(loaded?.values.energy_kcal).toBe(2500);
+  });
+});
+
+describe("meal template CRUD", () => {
+  it("saveMeal round-trip: upsert + ingredient replacement", async () => {
+    const oats = makeFood({ name: "Crud Oats", energy_kcal: 400 });
+    const milk = makeFood({ name: "Crud Milk", energy_kcal: 60 });
+    await saveFoodItem(db, oats);
+    await saveFoodItem(db, milk);
+
+    const mealId = randomUUID();
+    await saveMeal(db, {
+      id: mealId,
+      name: "Crud Breakfast",
+      ingredients: [
+        { food_id: oats.id, food_name: oats.name, weight_g: 50, quantity: null, nutrients: ZERO_NUTRIENTS },
+      ],
+    });
+    let loaded = await getMeal(db, mealId);
+    expect(loaded?.name).toBe("Crud Breakfast");
+    expect(loaded?.ingredients).toHaveLength(1);
+    expect(loaded?.ingredients[0].nutrients.energy_kcal).toBeCloseTo(200);
+
+    // update: rename + replace ingredients
+    await saveMeal(db, {
+      id: mealId,
+      name: "Crud Breakfast v2",
+      ingredients: [
+        { food_id: oats.id, food_name: oats.name, weight_g: 30, quantity: null, nutrients: ZERO_NUTRIENTS },
+        { food_id: milk.id, food_name: milk.name, weight_g: 200, quantity: null, nutrients: ZERO_NUTRIENTS },
+      ],
+    });
+    loaded = await getMeal(db, mealId);
+    expect(loaded?.name).toBe("Crud Breakfast v2");
+    expect(loaded?.ingredients).toHaveLength(2);
+    expect(loaded?.ingredients[0].nutrients.energy_kcal).toBeCloseTo(120);
+  });
+
+  it("deleteMeal preserves logged entries as individual rows", async () => {
+    const food = makeFood({ name: "Crud Toast" });
+    await saveFoodItem(db, food);
+    const mealId = randomUUID();
+    await saveMeal(db, {
+      id: mealId,
+      name: "Crud Logged Meal",
+      ingredients: [
+        { food_id: food.id, food_name: food.name, weight_g: 40, quantity: null, nutrients: ZERO_NUTRIENTS },
+      ],
+    });
+    // log the meal on a day
+    const date = "2024-08-01";
+    await saveDailyEntry(db, {
+      date,
+      entries: [
+        {
+          kind: "meal",
+          entry: {
+            meal_id: mealId,
+            meal_name: "Crud Logged Meal",
+            portions: 1,
+            ingredients: [makeEntry(food.id, { entry_id: randomUUID(), weight_g: 40 })],
+          },
+        },
+      ],
+      measurements: { morning_weight_kg: null, evening_weight_kg: null },
+    });
+
+    expect(await deleteMeal(db, mealId)).toBe(true);
+    expect(await getMeal(db, mealId)).toBeNull();
+
+    // the day's entry survives, now as an individual food entry
+    const day = await loadDailyEntry(db, date);
+    expect(day?.entries).toHaveLength(1);
+    expect(day?.entries[0].kind).toBe("food");
+  });
+
+  it("deleteMeal returns false for unknown id", async () => {
+    expect(await deleteMeal(db, randomUUID())).toBe(false);
   });
 });
 

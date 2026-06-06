@@ -4,6 +4,7 @@ const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/entry", label: "Daily Entry" },
   { href: "/foods", label: "Food Database" },
+  { href: "/meals", label: "Meal Planner" },
 ];
 
 export default function Navbar() {

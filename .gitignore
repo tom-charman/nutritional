@@ -242,3 +242,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 auth.txt
+tests/e2e/screenshots/
+test-results/
+playwright-report/

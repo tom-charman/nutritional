@@ -19,6 +19,7 @@ import { ZERO_NUTRIENTS } from "@/lib/constants";
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
 import type { DailyData, DailyTargets, FoodItem, Meal } from "@/lib/domain/types";
+import Combobox from "@/components/ui/Combobox";
 import EntriesList from "./EntriesList";
 import MacroProgressBars from "./MacroProgressBars";
 import NutrientPreview from "./NutrientPreview";
@@ -59,11 +60,8 @@ export default function EntryClient({
   const [isPending, startTransition] = useTransition();
 
   // --- selector state ---
-  const [query, setQuery] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selection, setSelection] = useState<Selection>(null);
   const [amount, setAmount] = useState("");
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- toasts / modal ---
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -82,26 +80,33 @@ export default function EntryClient({
 
   // --- selector options: foods + meals combined (entry.py update_food_options) ---
   const options = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const foodOpts = foods
-      .filter((f) => !q || f.name.toLowerCase().includes(q))
-      .map((f) => ({
-        key: `food:${f.id}`,
-        label:
-          f.unit_type === "per_100g"
-            ? `${f.name} (per 100g)`
-            : `${f.name} (per item, ~${f.serving_size_g}g)`,
-        select: () => setSelection({ kind: "food", food: f }),
-      }));
-    const mealOpts = meals
-      .filter((m) => !q || m.name.toLowerCase().includes(q))
-      .map((m) => ({
-        key: `meal:${m.id}`,
-        label: `${m.name} (meal)`,
-        select: () => setSelection({ kind: "meal", meal: m }),
-      }));
-    return [...foodOpts, ...mealOpts].slice(0, 50);
-  }, [foods, meals, query]);
+    const foodOpts = foods.map((f) => ({
+      key: `food:${f.id}`,
+      label:
+        f.unit_type === "per_100g"
+          ? `${f.name} (per 100g)`
+          : `${f.name} (per item, ~${f.serving_size_g}g)`,
+    }));
+    const mealOpts = meals.map((m) => ({
+      key: `meal:${m.id}`,
+      label: `${m.name} (meal)`,
+    }));
+    return [...foodOpts, ...mealOpts];
+  }, [foods, meals]);
+
+  const handleSelect = useCallback(
+    (key: string) => {
+      setAmount("");
+      if (key.startsWith("food:")) {
+        const food = foods.find((f) => f.id === key.slice(5));
+        if (food) setSelection({ kind: "food", food });
+      } else {
+        const meal = meals.find((m) => m.id === key.slice(5));
+        if (meal) setSelection({ kind: "meal", meal });
+      }
+    },
+    [foods, meals],
+  );
 
   // --- live nutrient preview (shared pure domain code) ---
   const preview = useMemo(() => {
@@ -156,7 +161,6 @@ export default function EntryClient({
       refreshAfter(result);
       if (result.ok) {
         setSelection(null);
-        setQuery("");
         setAmount("");
       }
     });
@@ -204,6 +208,7 @@ export default function EntryClient({
           <h1>{formatHeaderDate(date)}</h1>
           <input
             type="date"
+            data-testid="date-picker"
             value={date}
             max={today}
             style={{ width: 170 }}
@@ -232,57 +237,23 @@ export default function EntryClient({
         <div className="mise-ingredients-column">
           <div className="section-label">Food &amp; Meals</div>
 
-          <div className="combobox">
-            <input
-              type="text"
-              placeholder="Search foods and meals..."
-              value={selection ? "" : query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSelection(null);
-                setMenuOpen(true);
-              }}
-              onFocus={() => setMenuOpen(true)}
-              onBlur={() => {
-                blurTimer.current = setTimeout(() => setMenuOpen(false), 150);
-              }}
-            />
-            {selection && (
-              <div className="data-row" style={{ marginTop: 4, padding: "6px 12px" }}>
-                <span className="ingredient-name">
-                  {selection.kind === "food" ? selection.food.name : `${selection.meal.name} (meal)`}
-                </span>
-                <button
-                  className="delete-icon"
-                  onClick={() => {
-                    setSelection(null);
-                    setAmount("");
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            {menuOpen && !selection && options.length > 0 && (
-              <div className="combobox-menu">
-                {options.map((opt) => (
-                  <div
-                    key={opt.key}
-                    className="combobox-option"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (blurTimer.current) clearTimeout(blurTimer.current);
-                      opt.select();
-                      setMenuOpen(false);
-                      setAmount("");
-                    }}
-                  >
-                    {opt.label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <Combobox
+            options={options}
+            placeholder="Search foods and meals..."
+            testId="food-search"
+            selectedLabel={
+              selection === null
+                ? null
+                : selection.kind === "food"
+                  ? selection.food.name
+                  : `${selection.meal.name} (meal)`
+            }
+            onSelect={handleSelect}
+            onClear={() => {
+              setSelection(null);
+              setAmount("");
+            }}
+          />
 
           {amountConfig && (
             <div className="compact-input">
@@ -290,6 +261,7 @@ export default function EntryClient({
               <div className="input-group">
                 <input
                   type="number"
+                  data-testid="amount-input"
                   className="form-control"
                   min={amountConfig.min}
                   step={amountConfig.step}
@@ -301,7 +273,12 @@ export default function EntryClient({
                     if (e.key === "Enter") handleAdd();
                   }}
                 />
-                <button className="btn-primary" onClick={handleAdd} disabled={isPending}>
+                <button
+                  className="btn-primary"
+                  data-testid="add-button"
+                  onClick={handleAdd}
+                  disabled={isPending}
+                >
                   Add
                 </button>
               </div>
@@ -348,6 +325,7 @@ export default function EntryClient({
                 <label>Morning</label>
                 <input
                   type="number"
+                  data-testid="weight-morning"
                   min={0}
                   step={0.1}
                   defaultValue={initialDay.measurements.morning_weight_kg ?? ""}
@@ -358,6 +336,7 @@ export default function EntryClient({
                 <label>Evening</label>
                 <input
                   type="number"
+                  data-testid="weight-evening"
                   min={0}
                   step={0.1}
                   defaultValue={initialDay.measurements.evening_weight_kg ?? ""}

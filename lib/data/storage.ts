@@ -224,6 +224,49 @@ export async function getMeal(db: DB, mealId: string): Promise<Meal | null> {
   return rows.length ? mealWithIngredients(db, rows[0]) : null;
 }
 
+/**
+ * save_meal (sqlmodel_storage.py:171-211): upsert the meal row, then
+ * delete-and-reinsert its ingredients.
+ */
+export async function saveMeal(db: DB, meal: Meal): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(meals)
+      .values({ id: meal.id, name: meal.name })
+      .onConflictDoUpdate({ target: meals.id, set: { name: meal.name } });
+    await tx.delete(mealIngredients).where(eq(mealIngredients.mealId, meal.id));
+    if (meal.ingredients.length > 0) {
+      await tx.insert(mealIngredients).values(
+        meal.ingredients.map((ing) => ({
+          mealId: meal.id,
+          foodId: ing.food_id,
+          weightG: decOrNull(ing.weight_g),
+          quantity: decOrNull(ing.quantity),
+        })),
+      );
+    }
+  });
+}
+
+/**
+ * delete_meal (sqlmodel_storage.py:231-249): ingredients cascade via FK.
+ * food_entries referencing the meal keep their data but lose the grouping —
+ * clear meal_id first so history stays intact (entries become individual).
+ */
+export async function deleteMeal(db: DB, mealId: string): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    await tx
+      .update(foodEntries)
+      .set({ mealId: null })
+      .where(eq(foodEntries.mealId, mealId));
+    const deleted = await tx
+      .delete(meals)
+      .where(eq(meals.id, mealId))
+      .returning({ id: meals.id });
+    return deleted.length > 0;
+  });
+}
+
 // ============= Daily Entries =============
 
 export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | null> {
