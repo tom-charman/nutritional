@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { TargetMode } from "@/lib/constants";
 import {
   windowCaloriesWeight,
   windowMacroBreakdown,
@@ -41,10 +42,12 @@ export default function DashboardTabs({
   caloriesWeight,
   macroBreakdown,
   nutrientsRdi,
+  rdiModes,
 }: {
   caloriesWeight: CaloriesWeightData;
   macroBreakdown: MacroBreakdownData;
   nutrientsRdi: NutrientsRdiData;
+  rdiModes: Record<string, TargetMode>;
 }) {
   const [active, setActive] = useState(0);
   // Default 3M: the daily question is "how am I trending lately?" —
@@ -109,7 +112,7 @@ export default function DashboardTabs({
       <div className="graph-wrapper" key={`${active}-${range}`}>
         {active === 0 && <CaloriesWeightChart data={windowed.caloriesWeight} />}
         {active === 1 && <MacroBreakdownChart data={windowed.macroBreakdown} />}
-        {active === 2 && <NutrientsRdiChart data={windowed.nutrientsRdi} />}
+        {active === 2 && <NutrientsRdiChart data={windowed.nutrientsRdi} modes={rdiModes} />}
       </div>
     </div>
   );

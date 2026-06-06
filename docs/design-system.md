@@ -104,8 +104,13 @@ zeroes everything (global block at the bottom of globals.css).
   wash (0.55) filled to the value, `ink`-tone pooling (0.45) where it
   crosses the datum, `line`-tone inked top edge, engraved current % at the
   strip's end. Values past 150% peg flat — a pinned needle, honestly read
-  via the deep pigment and the % readout. Rationale: a well-fed person
-  lives near 100% on all five, so overlapping lines always tangle.
+  via the deep pigment and the % readout. The datum carries the CURRENT
+  target-mode semantics like an engineering drawing hatches the solid side
+  of a boundary: LIMIT → hatch strokes rise above the line (a ceiling);
+  TARGET → strokes hang below (a floor). Caption carries the word; the
+  engraved % gains the entry-channel ✓/⚠ verdict when meaningful.
+  Rationale: a well-fed person lives near 100% on all five, so overlapping
+  lines always tangle.
 
 ## 6. Component inventory (selectors are an e2e contract)
 

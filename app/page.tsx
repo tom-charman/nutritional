@@ -1,7 +1,8 @@
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
-import { ROLLING_WINDOW_DAYS } from "@/lib/constants";
+import { ROLLING_WINDOW_DAYS, type NutrientKey, type TargetMode } from "@/lib/constants";
 import { db } from "@/lib/db/client";
-import { loadAllSummaries } from "@/lib/data/storage";
+import { getOrCreateDailyTargets, loadAllSummaries } from "@/lib/data/storage";
+import { getNutrientMode } from "@/lib/domain/targets";
 import {
   prepareCaloriesWeight,
   prepareMacroBreakdown,
@@ -11,7 +12,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const all = await loadAllSummaries(db);
+  const today = new Date().toISOString().slice(0, 10);
+  const [all, targets] = await Promise.all([
+    loadAllSummaries(db),
+    // current target modes drive the RDI strips' floor/ceiling semantics
+    getOrCreateDailyTargets(db, today),
+  ]);
 
   // Cap the range to yesterday — today is usually incomplete (callbacks.py:148-151)
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -21,12 +27,20 @@ export default async function DashboardPage() {
   const macroBreakdown = prepareMacroBreakdown(summaries, ROLLING_WINDOW_DAYS);
   const nutrientsRdi = prepareNutrientsRdi(summaries, ROLLING_WINDOW_DAYS);
 
+  const rdiModes = Object.fromEntries(
+    (Object.keys(nutrientsRdi.series) as NutrientKey[]).map((key) => [
+      key,
+      getNutrientMode(targets, key),
+    ]),
+  ) as Record<NutrientKey, TargetMode>;
+
   return (
     <div className="visualizations-container">
       <DashboardTabs
         caloriesWeight={caloriesWeight}
         macroBreakdown={macroBreakdown}
         nutrientsRdi={nutrientsRdi}
+        rdiModes={rdiModes}
       />
     </div>
   );

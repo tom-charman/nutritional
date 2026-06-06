@@ -10,6 +10,11 @@
  * the pigment deepens (ink dilution) — overage is visible at a glance
  * without a single overlapping line. The inked top edge carries precision;
  * the engraved % at each strip's end is the instrument's reading.
+ *
+ * The datum carries the CURRENT target semantics like an engineering
+ * drawing hatches the solid side of a boundary: a LIMIT is a ceiling
+ * (hatch strokes rise above the line — the wall you shouldn't cross);
+ * a TARGET is a floor (strokes hang below — the shelf you stand on).
  */
 import { useCallback } from "react";
 import { area, curveMonotoneX, line } from "d3-shape";
@@ -18,7 +23,9 @@ import {
   NUTRIENT_SHORT_NAMES,
   RDI_GUIDELINES,
   type NutrientKey,
+  type TargetMode,
 } from "@/lib/constants";
+import { macroIndicator } from "@/lib/domain/targets";
 import type { NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import {
   AXIS_COLOR,
@@ -49,7 +56,13 @@ const STRIP_GAP = 18;
 const BOTTOM = 30; // shared date axis
 const READOUT_W = 64; // engraved % gutter at the right
 
-export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) {
+export default function NutrientsRdiChart({
+  data,
+  modes,
+}: {
+  data: NutrientsRdiData;
+  modes?: Record<string, TargetMode>;
+}) {
   const [containerRef, width] = useMeasuredWidth();
   const narrow = width <= 560;
   const stripH = narrow ? 48 : 76;
@@ -128,6 +141,15 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
             const last = lastDefined(values);
             const stripTop = si * (STRIP_LABEL_H + stripH + STRIP_GAP) + STRIP_LABEL_H;
             const hoverValue = hover ? values[hover.index] : null;
+            const mode = modes?.[s.key];
+            // verdict per the entry-channel grammar (value vs the 100% rule)
+            const verdict = last && mode ? macroIndicator(last.value, 100, mode) : null;
+            // ceiling/floor hatching: strokes on the forbidden/solid side
+            const hatchDir = mode === "limit" ? -1 : 1;
+            const hatches: number[] = [];
+            if (mode) {
+              for (let hx = 10; hx < innerWidth - 110; hx += 30) hatches.push(hx);
+            }
 
             return (
               <g key={s.key} transform={`translate(0,${stripTop})`}>
@@ -135,6 +157,11 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                 <text x={0} y={-7} fontSize={10} fill={AXIS_COLOR} letterSpacing="0.06em">
                   {NUTRIENT_SHORT_NAMES[s.key].toUpperCase()}
                   <tspan fill="#A0A0A0"> · {RDI_GUIDELINES[s.key]}{s.unit}</tspan>
+                  {mode && (
+                    <tspan fill="#A0A0A0" letterSpacing="0.1em">
+                      {"  "}{mode === "limit" ? "LIMIT" : "TARGET"}
+                    </tspan>
+                  )}
                 </text>
 
                 <path d={washArea(pts) ?? undefined} fill={tones.area} fillOpacity={0.55} />
@@ -167,6 +194,18 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                   strokeWidth={0.5}
                   strokeOpacity={0.1}
                 />
+                {hatches.map((hx) => (
+                  <line
+                    key={hx}
+                    x1={hx}
+                    y1={yScale(100)}
+                    x2={hx + 4}
+                    y2={yScale(100) + hatchDir * 4.5}
+                    stroke="#2B2B2B"
+                    strokeWidth={0.75}
+                    strokeOpacity={0.3}
+                  />
+                ))}
                 {si === 0 && (
                   <g>
                     <rect
@@ -200,6 +239,12 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                     fill={tones.ink}
                   >
                     {Math.round(last.value)}%
+                    {verdict === "met" && (
+                      <tspan fill="#789440" fontSize={11}> ✓</tspan>
+                    )}
+                    {(verdict === "warning" || verdict === "exceeded") && (
+                      <tspan fill="#A04000" fontSize={11}> ⚠</tspan>
+                    )}
                   </text>
                 )}
 
