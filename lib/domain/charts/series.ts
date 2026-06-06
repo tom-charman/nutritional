@@ -32,10 +32,16 @@ export function createDateRange(startIso: string, endIso: string): string[] {
  * interpolate_daily (preprocessing.py:6-78):
  * resample to a contiguous daily range; linear-fill gaps ONLY between the
  * first and last known points (no extrapolation). Single point → no fill.
+ *
+ * Deviation from python: gaps longer than `maxGapDays` are NOT bridged —
+ * the python version drew a straight line across arbitrarily long data
+ * voids, presenting fabricated values as data. Long gaps stay null and the
+ * chart line breaks (d3 `.defined`).
  */
 export function interpolateDaily(
   dates: string[],
   values: Series,
+  maxGapDays = 7,
 ): { dates: string[]; values: Series } {
   if (dates.length === 0) return { dates: [], values: [] };
 
@@ -70,6 +76,7 @@ export function interpolateDaily(
     }
     const prevIdx = validIndices[prevValidPos];
     const nextIdx = validIndices[prevValidPos + 1];
+    if (nextIdx - prevIdx > maxGapDays) continue; // void too wide — stay null
     const weight = (i - prevIdx) / (nextIdx - prevIdx);
     const prev = newValues[prevIdx] as number;
     const next = newValues[nextIdx] as number;

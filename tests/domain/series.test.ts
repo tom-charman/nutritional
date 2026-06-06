@@ -61,6 +61,34 @@ describe("interpolateDaily (preprocessing.py port)", () => {
     expect(values).toEqual([]);
   });
 
+  it("does NOT bridge gaps wider than maxGapDays (no fabricated lines)", () => {
+    const { values } = interpolateDaily(
+      ["2024-01-01", "2024-01-12"], // 11-day gap > default 7
+      [100, 200],
+    );
+    expect(values[0]).toBe(100);
+    expect(values[11]).toBe(200);
+    // the void stays null — chart line breaks instead of inventing data
+    expect(values.slice(1, 11)).toEqual(new Array(10).fill(null));
+  });
+
+  it("bridges gaps at exactly maxGapDays", () => {
+    const { values } = interpolateDaily(
+      ["2024-01-01", "2024-01-08"], // 7-day gap = default limit
+      [0, 70],
+    );
+    expect(values).toEqual([0, 10, 20, 30, 40, 50, 60, 70]);
+  });
+
+  it("custom maxGapDays widens the bridge", () => {
+    const { values } = interpolateDaily(
+      ["2024-01-01", "2024-01-12"],
+      [100, 200],
+      30,
+    );
+    expect(values[5]).toBeCloseTo(100 + (500 / 11));
+  });
+
   it("multiple gaps interpolate against nearest neighbours", () => {
     const { values } = interpolateDaily(
       [
