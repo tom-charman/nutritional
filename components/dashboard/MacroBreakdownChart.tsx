@@ -24,13 +24,16 @@ import {
 
 const HEIGHT = 480;
 
-/** Layer colors come from the canonical per-nutrient palette. */
-const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; color: string; opacity?: number }[] = [
-  { key: "protein_cal", label: "Protein", color: NUTRIENT_COLORS.protein_g },
-  { key: "other_carbs_cal", label: "Other Carbs", color: NUTRIENT_COLORS.carbohydrates_g },
-  { key: "sugar_cal", label: "Sugar", color: NUTRIENT_COLORS.sugar_g },
-  { key: "other_fat_cal", label: "Other Fat", color: NUTRIENT_COLORS.fat_g },
-  { key: "saturated_fat_cal", label: "Sat Fat", color: NUTRIENT_COLORS.saturated_fat_g, opacity: 0.7 },
+/**
+ * Layer fills use the soft `area` dilution; tooltip bullets use `ink` — the
+ * identity tone a user recognizes from dots/bars everywhere else.
+ */
+const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; area: string; ink: string }[] = [
+  { key: "protein_cal", label: "Protein", area: NUTRIENT_COLORS.protein_g.area, ink: NUTRIENT_COLORS.protein_g.ink },
+  { key: "other_carbs_cal", label: "Other Carbs", area: NUTRIENT_COLORS.carbohydrates_g.area, ink: NUTRIENT_COLORS.carbohydrates_g.ink },
+  { key: "sugar_cal", label: "Sugar", area: NUTRIENT_COLORS.sugar_g.area, ink: NUTRIENT_COLORS.sugar_g.ink },
+  { key: "other_fat_cal", label: "Other Fat", area: NUTRIENT_COLORS.fat_g.area, ink: NUTRIENT_COLORS.fat_g.ink },
+  { key: "saturated_fat_cal", label: "Sat Fat", area: NUTRIENT_COLORS.saturated_fat_g.area, ink: NUTRIENT_COLORS.saturated_fat_g.ink },
 ];
 
 export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData }) {
@@ -78,7 +81,7 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
         return {
           label: layer.label,
           value: v === null ? "—" : `${Math.round(v)} kcal`,
-          color: layer.color,
+          color: layer.ink,
         };
       }).reverse(),
     [data],
@@ -93,9 +96,8 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
       <Legend
         items={LAYERS.map((l) => ({
           label: l.label,
-          color: l.color,
+          color: l.area,
           kind: "area" as const,
-          opacity: l.opacity,
         }))}
       />
       <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
@@ -114,8 +116,7 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
               <path
                 key={layer.key}
                 d={areaGen(pts) ?? undefined}
-                fill={layer.color}
-                fillOpacity={layer.opacity ?? 1}
+                fill={layer.area}
                 stroke="none"
               />
             );

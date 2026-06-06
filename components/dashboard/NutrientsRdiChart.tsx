@@ -61,7 +61,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
         return {
           label: NUTRIENT_SHORT_NAMES[s.key],
           value: v === null ? "—" : `${v.toFixed(1)}% of RDI`,
-          color: NUTRIENT_COLORS[s.key],
+          color: NUTRIENT_COLORS[s.key].ink,
         };
       }),
     [data],
@@ -76,7 +76,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
       <Legend
         items={SERIES.map((s) => ({
           label: `${NUTRIENT_SHORT_NAMES[s.key]} (${RDI_GUIDELINES[s.key]}${s.unit})`,
-          color: NUTRIENT_COLORS[s.key],
+          color: NUTRIENT_COLORS[s.key].line,
         }))}
       />
       <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
@@ -116,7 +116,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                 key={s.key}
                 d={lineGen(pts) ?? undefined}
                 fill="none"
-                stroke={NUTRIENT_COLORS[s.key]}
+                stroke={NUTRIENT_COLORS[s.key].line}
                 strokeWidth={1.5}
               />
             );

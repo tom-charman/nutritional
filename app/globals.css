@@ -24,10 +24,14 @@
     /* Semantic Colors - Brand pigments */
     --success: #789440;              /* Wakatake Bamboo - success states */
     --success-bg: #E9F0E0;           /* Bamboo tinted - success backgrounds */
+    --success-text: #3F5C38;         /* Pine-dark ink on success washes */
     --danger: #A04000;               /* Bengara Rust - destructive actions */
     --danger-bg: #F5E6D3;            /* Rust tinted - error backgrounds */
-    --warning: #A04000;              /* Bengara Rust - warnings */
-    --warning-bg: #F5E6D3;           /* Rust light - warning backgrounds */
+    --danger-text: #7A2E00;          /* Rust-dark ink on danger washes */
+    /* warning deliberately ≡ danger: "warning without alarmism" (brand) */
+    --warning: #A04000;
+    --warning-bg: #F5E6D3;
+    --info-text: #2C3E50;            /* Indigo ink on info washes */
 
     /* Nihonga Data Palette */
     --nihonga-indigo: #2C3E50;
@@ -37,26 +41,29 @@
     --nihonga-mustard: #B8A900;
     --nihonga-teal: #4A9B8E;
 
-    /* Macro Nutrient Colors — MUST match NUTRIENT_COLORS in lib/constants.ts
-       (one color per nutrient everywhere in the app) */
-    --protein-text: #2C4C5B;
-    --protein-bg: #E8EEF5;
-    --carbs-text: #C8963E;
-    --carbs-bg: #F5F0E3;
-    --fat-text: #BF6B59;
-    --fat-bg: #F0E6E0;
-    --sugar-text: #B8A900;
-    --sugar-bg: #F7F4DC;
-    --saturated-fat-text: #E87722;
-    --saturated-fat-bg: #FDEEDF;
-    --fibre-text: #4F6D46;
-    --fibre-bg: #E8F0E6;
-    --salt-text: #7B5FB8;
-    --salt-bg: #EFEAF7;
-    --calcium-text: #4A9B8E;
-    --calcium-bg: #E6F1EF;
-    --calories-text: #2B2B2B;
-    --calories-bg: #F2F0EB;
+    /* Nutrient pigment system — MUST match NUTRIENT_COLORS in lib/constants.ts.
+       One HUE per nutrient, four dilutions: ink (identity: dots/bars/text),
+       line (chart strokes), area (stacked fills), wash (bg tints). */
+    --protein-ink: #2C4C5B;  --protein-line: #2C4C5B;  --protein-area: #5E7C88;  --protein-wash: #E6ECEE;
+    --carbs-ink: #B07D2B;    --carbs-line: #9A6A1E;    --carbs-area: #E3C07A;    --carbs-wash: #F5EEDD;
+    --sugar-ink: #9A8E1A;    --sugar-line: #8A8000;    --sugar-area: #EBD487;    --sugar-wash: #F7F3D9;
+    --fat-ink: #BF6B59;      --fat-line: #A8503D;      --fat-area: #E5A593;      --fat-wash: #F3E6E0;
+    --saturated-fat-ink: #C8531C; --saturated-fat-line: #B5440F; --saturated-fat-area: #EFB48C; --saturated-fat-wash: #FBEADD;
+    --fibre-ink: #4F6D46;    --fibre-line: #3F5C38;    --fibre-area: #8FA587;    --fibre-wash: #E7EFE5;
+    --salt-ink: #6E54A8;     --salt-line: #5B4196;     --salt-area: #B4A4D6;     --salt-wash: #EFEAF7;
+    --calcium-ink: #3F8C80;  --calcium-line: #2F7468;  --calcium-area: #9CC7BF;  --calcium-wash: #E4F0ED;
+    --calories-ink: #2B2B2B; --calories-wash: #F2F0EB;
+
+    /* legacy aliases (migration) */
+    --protein-text: var(--protein-ink);           --protein-bg: var(--protein-wash);
+    --carbs-text: var(--carbs-ink);               --carbs-bg: var(--carbs-wash);
+    --sugar-text: var(--sugar-ink);               --sugar-bg: var(--sugar-wash);
+    --fat-text: var(--fat-ink);                   --fat-bg: var(--fat-wash);
+    --saturated-fat-text: var(--saturated-fat-ink); --saturated-fat-bg: var(--saturated-fat-wash);
+    --fibre-text: var(--fibre-ink);               --fibre-bg: var(--fibre-wash);
+    --salt-text: var(--salt-ink);                 --salt-bg: var(--salt-wash);
+    --calcium-text: var(--calcium-ink);           --calcium-bg: var(--calcium-wash);
+    --calories-text: var(--calories-ink);         --calories-bg: var(--calories-wash);
 
     /* Spacing Scale */
     --space-xs: 4px;
@@ -820,22 +827,22 @@ input[type="radio"]:focus {
 
 .alert-success {
     background-color: var(--success-bg);
-    color: #065F46;
+    color: var(--success-text);
 }
 
 .alert-danger {
     background-color: var(--danger-bg);
-    color: #991B1B;
+    color: var(--danger-text);
 }
 
 .alert-warning {
     background-color: var(--warning-bg);
-    color: #78350F;
+    color: var(--danger-text);
 }
 
 .alert-info {
     background-color: var(--primary-light);
-    color: #1E40AF;
+    color: var(--info-text);
 }
 
 /* ==================== Toasts ==================== */

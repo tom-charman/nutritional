@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  NUTRIENT_COLORS,
+  NUTRIENT_INK,
   NUTRIENT_KEYS,
   NUTRIENT_SHORT_NAMES,
   NUTRIENT_UNITS,
@@ -18,7 +18,7 @@ export default function NutrientPreview({ nutrients }: { nutrients: Nutrients })
     <div className="nutrient-preview-card">
       {NUTRIENT_KEYS.map((key) => (
         <div key={key} className="nutrient-preview-item">
-          <span className="nutrient-dot" style={{ background: NUTRIENT_COLORS[key] }} />
+          <span className="nutrient-dot" style={{ background: NUTRIENT_INK[key] }} />
           <span className="nutrient-label">{NUTRIENT_SHORT_NAMES[key]}:&nbsp;</span>
           <span className="nutrient-value">
             {fmt(nutrients[key])} {NUTRIENT_UNITS[key]}

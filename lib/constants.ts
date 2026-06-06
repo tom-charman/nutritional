@@ -79,24 +79,57 @@ export const RDI_GUIDELINES: Partial<Record<NutrientKey, number>> = {
 };
 
 /**
- * THE canonical per-nutrient palette — one color per nutrient, used
- * EVERYWHERE that nutrient appears (preview dots, progress bars, both
- * dashboard charts). Every color must survive being a 1.5px line on the
- * Kaolin background, so the five nutrients that appear in the RDI chart
- * use the high-contrast Nihonga data pigments (brand doc §B); the rest
- * keep their original artisan pigments.
+ * THE canonical per-nutrient pigment system — each nutrient owns one HUE
+ * IDENTITY, rendered in four context tones like a single pigment applied
+ * thick or thin (ink dilution):
+ *
+ *   ink  — identity markers: dots, progress bars, tooltip bullets, accent
+ *          text. ≥4.5:1 on white surface. This is "the nutrient's color"
+ *          a user recognizes everywhere.
+ *   line — chart strokes. Deep enough for a 2.25px line on Kaolin #F2F0EB
+ *          (≥3:1 — sugar at 3.2:1 is the tightest).
+ *   area — stacked-area fills. Soft mineral tones; the stack must sing as
+ *          one composition (cool iron base → warm sunrise top).
+ *   wash — faint background tints behind badges/rows.
+ *
+ * CSS custom properties in globals.css (--<nutrient>-{ink,line,area,wash})
+ * MUST mirror these values.
  */
-export const NUTRIENT_COLORS: Record<NutrientKey, string> = {
-  energy_kcal: "#2B2B2B", // Sumi Iron
-  fat_g: "#BF6B59", // Baked Clay
-  saturated_fat_g: "#E87722", // Persimmon
-  carbohydrates_g: "#C8963E", // Antique Gold
-  sugar_g: "#B8A900", // Mustard
-  protein_g: "#2C4C5B", // Iron Blue
-  fibre_g: "#4F6D46", // Aged Pine
-  salt_g: "#7B5FB8", // Wisteria
-  calcium_mg: "#4A9B8E", // Teal/Verdigris
+export interface NutrientTones {
+  ink: string;
+  line: string;
+  area: string;
+  wash: string;
+}
+
+export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
+  // Sumi ink — energy is never tinted
+  energy_kcal: { ink: "#2B2B2B", line: "#2B2B2B", area: "#2B2B2B", wash: "#F2F0EB" },
+  // Baked Clay — the soft terracotta-rose that made the old stack beautiful
+  fat_g: { ink: "#BF6B59", line: "#A8503D", area: "#E5A593", wash: "#F3E6E0" },
+  // Persimmon — fat's deeper kin, rotated orange; brightest band at stack top
+  saturated_fat_g: { ink: "#C8531C", line: "#B5440F", area: "#EFB48C", wash: "#FBEADD" },
+  // Antique Gold — the dominant stack mass, honeyed ochre
+  carbohydrates_g: { ink: "#B07D2B", line: "#9A6A1E", area: "#E3C07A", wash: "#F5EEDD" },
+  // Mustard / pale amber — sugar is carved out of carbs: kin, green-shifted, lighter
+  sugar_g: { ink: "#9A8E1A", line: "#8A8000", area: "#EBD487", wash: "#F7F3D9" },
+  // Iron Blue — the anchor; cool base under the warm stack
+  protein_g: { ink: "#2C4C5B", line: "#2C4C5B", area: "#5E7C88", wash: "#E6ECEE" },
+  // Aged Pine — held distinct from Bamboo success green
+  fibre_g: { ink: "#4F6D46", line: "#3F5C38", area: "#8FA587", wash: "#E7EFE5" },
+  // Wisteria — the separation pigment, one cool note among the warms
+  salt_g: { ink: "#6E54A8", line: "#5B4196", area: "#B4A4D6", wash: "#EFEAF7" },
+  // Verdigris — mineral patina bridging blue and green
+  calcium_mg: { ink: "#3F8C80", line: "#2F7468", area: "#9CC7BF", wash: "#E4F0ED" },
 };
+
+/** Convenience: the recognizable identity tone per nutrient. */
+export const NUTRIENT_INK: Record<NutrientKey, string> = Object.fromEntries(
+  (Object.keys(NUTRIENT_COLORS) as NutrientKey[]).map((k) => [
+    k,
+    NUTRIENT_COLORS[k].ink,
+  ]),
+) as Record<NutrientKey, string>;
 
 /** Short display names — the one label set used wherever nutrients are listed. */
 export const NUTRIENT_SHORT_NAMES: Record<NutrientKey, string> = {
