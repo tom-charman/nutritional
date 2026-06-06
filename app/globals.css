@@ -37,23 +37,24 @@
     --nihonga-mustard: #B8A900;
     --nihonga-teal: #4A9B8E;
 
-    /* Macro Nutrient Colors - Brand pigment remapping */
+    /* Macro Nutrient Colors — MUST match NUTRIENT_COLORS in lib/constants.ts
+       (one color per nutrient everywhere in the app) */
     --protein-text: #2C4C5B;
     --protein-bg: #E8EEF5;
     --carbs-text: #C8963E;
     --carbs-bg: #F5F0E3;
     --fat-text: #BF6B59;
     --fat-bg: #F0E6E0;
-    --sugar-text: #EBC374;
-    --sugar-bg: #FBF7E8;
-    --saturated-fat-text: #E09F91;
-    --saturated-fat-bg: #F9F0ED;
+    --sugar-text: #B8A900;
+    --sugar-bg: #F7F4DC;
+    --saturated-fat-text: #E87722;
+    --saturated-fat-bg: #FDEEDF;
     --fibre-text: #4F6D46;
     --fibre-bg: #E8F0E6;
-    --salt-text: #7C6A88;
-    --salt-bg: #F0ECF2;
-    --calcium-text: #6B7F82;
-    --calcium-bg: #ECF0F1;
+    --salt-text: #7B5FB8;
+    --salt-bg: #EFEAF7;
+    --calcium-text: #4A9B8E;
+    --calcium-bg: #E6F1EF;
     --calories-text: #2B2B2B;
     --calories-bg: #F2F0EB;
 
@@ -563,7 +564,7 @@ input[type="radio"]:focus {
     background: var(--surface);
     border-radius: var(--radius-sm);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);
     font-family: var(--font-mono);
     max-height: 280px;
     overflow-y: auto;
@@ -685,9 +686,9 @@ input[type="radio"]:focus {
 
 .graph-wrapper {
     background: var(--surface);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 16px;
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--border);
 }
 
 .chart-svg {
@@ -1072,7 +1073,7 @@ input[type="radio"]:focus {
     gap: 8px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 0.5px solid var(--border);
+    border-top: 1px solid var(--border);
 }
 
 /* ==================== Compact Inputs ==================== */
@@ -1101,8 +1102,6 @@ input[type="radio"] {
 /* ==================== Search Inputs ==================== */
 .search-input-rounded {
     width: 300px;
-    border-radius: 20px;
-    font-family: var(--font-mono);
 }
 
 /* ==================== Modal ==================== */
@@ -1816,39 +1815,11 @@ input[type="radio"] {
     color: var(--text-muted);
 }
 
-.meal-card-calories {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-body);
-    text-align: right;
-}
 
-.meal-card-actions {
-    grid-column: 1 / -1;
-    margin-top: 4px;
-}
 
-.meal-action-link {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--primary);
-    cursor: pointer;
-    transition: color 0.15s ease;
-}
 
-.meal-action-link:hover {
-    color: var(--primary-hover);
-    text-decoration: underline;
-}
 
-.meal-action-delete {
-    color: var(--danger);
-}
 
-.meal-action-separator {
-    color: var(--text-muted);
-}
 
 @media (max-width: 768px) {
     .meal-planner-container {

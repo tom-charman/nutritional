@@ -5,19 +5,20 @@
  * 8 nutrients (all but energy), capped at 100%, with ✓/⚠ per mode.
  * Value formats match production: g → "12.3g / 67g", mg → "800mg / 700mg".
  */
-import { type NutrientKey, type Nutrients } from "@/lib/constants";
+import { NUTRIENT_SHORT_NAMES, type NutrientKey, type Nutrients } from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
 import type { DailyTargets } from "@/lib/domain/types";
 
-const BARS: { key: NutrientKey; label: string; cssClass: string; unit: "g" | "mg" }[] = [
-  { key: "fat_g", label: "Fat", cssClass: "progress-fat", unit: "g" },
-  { key: "saturated_fat_g", label: "Saturated Fat", cssClass: "progress-saturated-fat", unit: "g" },
-  { key: "carbohydrates_g", label: "Carbohydrates", cssClass: "progress-carbs", unit: "g" },
-  { key: "sugar_g", label: "Sugar", cssClass: "progress-sugar", unit: "g" },
-  { key: "protein_g", label: "Protein", cssClass: "progress-protein", unit: "g" },
-  { key: "fibre_g", label: "Fibre", cssClass: "progress-fibre", unit: "g" },
-  { key: "salt_g", label: "Salt", cssClass: "progress-salt", unit: "g" },
-  { key: "calcium_mg", label: "Calcium", cssClass: "progress-calcium", unit: "mg" },
+/** Labels come from the one canonical short-name set (NUTRIENT_SHORT_NAMES). */
+const BARS: { key: NutrientKey; cssClass: string; unit: "g" | "mg" }[] = [
+  { key: "fat_g", cssClass: "progress-fat", unit: "g" },
+  { key: "saturated_fat_g", cssClass: "progress-saturated-fat", unit: "g" },
+  { key: "carbohydrates_g", cssClass: "progress-carbs", unit: "g" },
+  { key: "sugar_g", cssClass: "progress-sugar", unit: "g" },
+  { key: "protein_g", cssClass: "progress-protein", unit: "g" },
+  { key: "fibre_g", cssClass: "progress-fibre", unit: "g" },
+  { key: "salt_g", cssClass: "progress-salt", unit: "g" },
+  { key: "calcium_mg", cssClass: "progress-calcium", unit: "mg" },
 ];
 
 const INDICATOR: Record<string, { symbol: string; cls: string; title: string }> = {
@@ -38,7 +39,8 @@ export default function MacroProgressBars({
   return (
     <div className="macros-visualization">
       <div className="macros-bars">
-        {BARS.map(({ key, label, cssClass, unit }) => {
+        {BARS.map(({ key, cssClass, unit }) => {
+          const label = NUTRIENT_SHORT_NAMES[key];
           const value = consumed[key];
           const target = targets.values[key];
           const mode = getNutrientMode(targets, key);

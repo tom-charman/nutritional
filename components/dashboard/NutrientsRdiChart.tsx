@@ -7,7 +7,12 @@
  */
 import { useCallback } from "react";
 import { curveCatmullRom, line } from "d3-shape";
-import { RDI_CHART_COLORS, RDI_GUIDELINES, type NutrientKey } from "@/lib/constants";
+import {
+  NUTRIENT_COLORS,
+  NUTRIENT_SHORT_NAMES,
+  RDI_GUIDELINES,
+  type NutrientKey,
+} from "@/lib/constants";
 import type { NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import {
   ChartTooltip,
@@ -25,12 +30,13 @@ import {
 
 const HEIGHT = 480;
 
-const SERIES: { key: NutrientKey; label: string; unit: string }[] = [
-  { key: "saturated_fat_g", label: "Saturated Fat", unit: "g" },
-  { key: "sugar_g", label: "Sugar", unit: "g" },
-  { key: "fibre_g", label: "Fibre", unit: "g" },
-  { key: "salt_g", label: "Salt", unit: "g" },
-  { key: "calcium_mg", label: "Calcium", unit: "mg" },
+/** Labels come from the one canonical short-name set. */
+const SERIES: { key: NutrientKey; unit: string }[] = [
+  { key: "saturated_fat_g", unit: "g" },
+  { key: "sugar_g", unit: "g" },
+  { key: "fibre_g", unit: "g" },
+  { key: "salt_g", unit: "g" },
+  { key: "calcium_mg", unit: "mg" },
 ];
 
 export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) {
@@ -53,9 +59,9 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
       SERIES.filter((s) => data.series[s.key]).map((s) => {
         const v = data.series[s.key][i];
         return {
-          label: s.label,
+          label: NUTRIENT_SHORT_NAMES[s.key],
           value: v === null ? "—" : `${v.toFixed(1)}% of RDI`,
-          color: RDI_CHART_COLORS[s.key]!,
+          color: NUTRIENT_COLORS[s.key],
         };
       }),
     [data],
@@ -69,8 +75,8 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
     <div ref={containerRef} style={{ position: "relative" }}>
       <Legend
         items={SERIES.map((s) => ({
-          label: `${s.label} (${RDI_GUIDELINES[s.key]}${s.unit})`,
-          color: RDI_CHART_COLORS[s.key]!,
+          label: `${NUTRIENT_SHORT_NAMES[s.key]} (${RDI_GUIDELINES[s.key]}${s.unit})`,
+          color: NUTRIENT_COLORS[s.key],
         }))}
       />
       <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
@@ -110,7 +116,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                 key={s.key}
                 d={lineGen(pts) ?? undefined}
                 fill="none"
-                stroke={RDI_CHART_COLORS[s.key]!}
+                stroke={NUTRIENT_COLORS[s.key]}
                 strokeWidth={1.5}
               />
             );

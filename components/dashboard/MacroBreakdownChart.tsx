@@ -6,6 +6,7 @@
  */
 import { useCallback } from "react";
 import { area, curveCatmullRom } from "d3-shape";
+import { NUTRIENT_COLORS } from "@/lib/constants";
 import type { MacroBreakdownData } from "@/lib/domain/charts/prepare";
 import {
   ChartTooltip,
@@ -23,12 +24,13 @@ import {
 
 const HEIGHT = 480;
 
+/** Layer colors come from the canonical per-nutrient palette. */
 const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; color: string; opacity?: number }[] = [
-  { key: "protein_cal", label: "Protein", color: "#2C4C5B" },
-  { key: "other_carbs_cal", label: "Other Carbohydrates", color: "#C8963E" },
-  { key: "sugar_cal", label: "Sugar", color: "#EBC374" },
-  { key: "other_fat_cal", label: "Other Fat", color: "#BF6B59" },
-  { key: "saturated_fat_cal", label: "Saturated Fat", color: "#E09F91", opacity: 0.7 },
+  { key: "protein_cal", label: "Protein", color: NUTRIENT_COLORS.protein_g },
+  { key: "other_carbs_cal", label: "Other Carbs", color: NUTRIENT_COLORS.carbohydrates_g },
+  { key: "sugar_cal", label: "Sugar", color: NUTRIENT_COLORS.sugar_g },
+  { key: "other_fat_cal", label: "Other Fat", color: NUTRIENT_COLORS.fat_g },
+  { key: "saturated_fat_cal", label: "Sat Fat", color: NUTRIENT_COLORS.saturated_fat_g, opacity: 0.7 },
 ];
 
 export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData }) {

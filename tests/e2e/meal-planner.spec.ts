@@ -98,7 +98,7 @@ test.describe("meal planner (template CRUD)", () => {
   test("delete a meal", async ({ page }) => {
     const meals = new MealsPage(page);
     await meals.goto();
-    await meals.mealCard("E2E Mistake Meal").locator(".meal-action-delete").click();
+    await meals.mealCard("E2E Mistake Meal").locator(".delete-icon").click();
     await expectToast(page, "Meal deleted");
     await expect(meals.mealCard("E2E Mistake Meal")).toHaveCount(0);
   });

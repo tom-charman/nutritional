@@ -24,7 +24,7 @@ import EntriesList from "./EntriesList";
 import MacroProgressBars from "./MacroProgressBars";
 import NutrientPreview from "./NutrientPreview";
 import TargetsModal from "./TargetsModal";
-import ToastContainer, { type ToastMessage } from "./Toast";
+import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
 type Selection =
   | { kind: "food"; food: FoodItem }

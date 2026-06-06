@@ -5,15 +5,16 @@
  * Left: meal composer (name, food selector, amount, ingredients, totals).
  * Right: saved meals (click to load for editing, delete link).
  */
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteMealAction, saveMealAction } from "@/app/actions/meals";
-import { ZERO_NUTRIENTS, type Nutrients } from "@/lib/constants";
+import { type Nutrients } from "@/lib/constants";
 import { calculateNutrients, sumNutrients } from "@/lib/domain/nutrients";
 import type { FoodItem, Meal, MealIngredient } from "@/lib/domain/types";
 import Combobox from "@/components/ui/Combobox";
+import EditableAmount from "@/components/ui/EditableAmount";
 import NutrientPreview from "@/components/entry/NutrientPreview";
-import ToastContainer, { type ToastMessage } from "@/components/entry/Toast";
+import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
 export default function MealsClient({
   foods,
@@ -31,6 +32,16 @@ export default function MealsClient({
   const [ingredients, setIngredients] = useState<MealIngredient[]>([]);
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [amount, setAmount] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const focusSearchAfterRender = useRef(false);
+  useEffect(() => {
+    // Meals have several ingredients — after adding one, the cursor goes
+    // back where the next one starts (same pattern as the daily-entry page).
+    if (selectedFood === null && focusSearchAfterRender.current) {
+      focusSearchAfterRender.current = false;
+      searchRef.current?.focus();
+    }
+  });
 
   // --- toasts ---
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -78,8 +89,30 @@ export default function MealsClient({
         nutrients,
       },
     ]);
+    focusSearchAfterRender.current = true;
     setSelectedFood(null);
     setAmount("");
+  }
+
+  /** Inline-edit an ingredient amount (same interaction as the daily log). */
+  function editIngredientAmount(index: number, newAmount: number) {
+    setIngredients((prev) =>
+      prev.map((ing, i) => {
+        if (i !== index) return ing;
+        const food = foods.find((f) => f.id === ing.food_id);
+        if (!food) return ing;
+        const isPerItem = food.unit_type === "per_item";
+        return {
+          ...ing,
+          weight_g: isPerItem ? null : newAmount,
+          quantity: isPerItem ? newAmount : null,
+          nutrients: calculateNutrients(food, {
+            weight_g: isPerItem ? null : newAmount,
+            quantity: isPerItem ? newAmount : null,
+          }),
+        };
+      }),
+    );
   }
 
   function clearComposer() {
@@ -166,6 +199,7 @@ export default function MealsClient({
             options={options}
             placeholder="Search for a food..."
             testId="meal-food-search"
+            inputRef={searchRef}
             selectedLabel={selectedFood?.name ?? null}
             onSelect={(key) => {
               const food = foods.find((f) => f.id === key);
@@ -215,9 +249,11 @@ export default function MealsClient({
                 <div key={`${ing.food_id}-${i}`} className="ingredient-item">
                   <div className="ingredient-item-header">
                     <span className="ingredient-name">{ing.food_name}</span>
-                    <span className="ingredient-weight">
-                      {ing.weight_g !== null ? `${ing.weight_g} g` : `× ${ing.quantity}`}
-                    </span>
+                    <EditableAmount
+                      display={ing.weight_g !== null ? `${ing.weight_g} g` : `× ${ing.quantity}`}
+                      value={ing.weight_g ?? ing.quantity ?? 0}
+                      onSave={(n) => editIngredientAmount(i, n)}
+                    />
                   </div>
                   <span className="ingredient-calories">
                     {Math.round(ing.nutrients.energy_kcal)} kcal
@@ -272,34 +308,26 @@ export default function MealsClient({
                     <div
                       className="meal-card-header"
                       role="button"
+                      title="Click to edit"
                       onClick={() => loadMealForEditing(meal)}
                     >
                       <span className="meal-card-name">{meal.name}</span>
                       <span className="meal-card-info">
                         {meal.ingredients.length} ingredient
-                        {meal.ingredients.length === 1 ? "" : "s"}
+                        {meal.ingredients.length === 1 ? "" : "s"} ·{" "}
+                        {Math.round(mealTotals.energy_kcal)} kcal
                       </span>
                     </div>
-                    <span className="meal-card-calories">
-                      {Math.round(mealTotals.energy_kcal)} kcal
-                    </span>
-                    <div className="meal-card-actions">
-                      <span
-                        className="meal-action-link"
-                        role="button"
-                        onClick={() => loadMealForEditing(meal)}
-                      >
-                        Edit
-                      </span>
-                      <span className="meal-action-separator"> · </span>
-                      <span
-                        className="meal-action-link meal-action-delete"
-                        role="button"
-                        onClick={() => handleDelete(meal)}
-                      >
-                        Delete
-                      </span>
-                    </div>
+                    <button
+                      className="delete-icon"
+                      title="Delete meal"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(meal);
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                 );
               })

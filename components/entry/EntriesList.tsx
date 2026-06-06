@@ -8,59 +8,11 @@
 import { useState } from "react";
 import { mealEntryTotals } from "@/lib/domain/nutrients";
 import type { DayEntry, FoodEntry } from "@/lib/domain/types";
+import EditableAmount from "@/components/ui/EditableAmount";
 
 function amountText(e: FoodEntry): string {
   if (e.weight_g !== null) return `${Number.isInteger(e.weight_g) ? e.weight_g : e.weight_g.toFixed(1)} g`;
   return `× ${e.quantity}`;
-}
-
-function EditableAmount({
-  entry,
-  onSave,
-}: {
-  entry: FoodEntry;
-  onSave: (entryId: string, amount: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-
-  if (!editing) {
-    return (
-      <span
-        className="ingredient-weight editable"
-        title="Click to edit"
-        onClick={() => {
-          setValue(String(entry.weight_g ?? entry.quantity ?? ""));
-          setEditing(true);
-        }}
-      >
-        {amountText(entry)}
-      </span>
-    );
-  }
-
-  const commit = () => {
-    setEditing(false);
-    const n = Number(value);
-    if (Number.isFinite(n) && n > 0) onSave(entry.entry_id, n);
-  };
-
-  return (
-    <input
-      className="inline-edit-input"
-      type="number"
-      min={0}
-      step={0.1}
-      autoFocus
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") commit();
-        if (e.key === "Escape") setEditing(false);
-      }}
-    />
-  );
 }
 
 function FoodRow({
@@ -76,7 +28,11 @@ function FoodRow({
     <div className="ingredient-item">
       <div className="ingredient-item-header">
         <span className="ingredient-name">{entry.food_name}</span>
-        <EditableAmount entry={entry} onSave={onEdit} />
+        <EditableAmount
+          display={amountText(entry)}
+          value={entry.weight_g ?? entry.quantity ?? 0}
+          onSave={(n) => onEdit(entry.entry_id, n)}
+        />
       </div>
       <span className="ingredient-calories">
         {Math.round(entry.nutrients.energy_kcal)} kcal

@@ -24,8 +24,9 @@ export class FoodsPage {
   get saveButton(): Locator {
     return this.page.getByRole("button", { name: /Save Food|Saving/ });
   }
+  /** Feedback is a toast now (one feedback pattern app-wide); newest last. */
   get alert(): Locator {
-    return this.page.locator(".alert");
+    return this.page.locator(".toast").last();
   }
   listItem(name: string): Locator {
     return this.page.locator(".master-list-item").filter({ hasText: name }).first();

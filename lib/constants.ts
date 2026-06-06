@@ -78,38 +78,43 @@ export const RDI_GUIDELINES: Partial<Record<NutrientKey, number>> = {
   calcium_mg: 1000,
 };
 
-/** Artisan/Nihonga nutrient palette — settings.py COLOR_PALETTE + components.py */
+/**
+ * THE canonical per-nutrient palette — one color per nutrient, used
+ * EVERYWHERE that nutrient appears (preview dots, progress bars, both
+ * dashboard charts). Every color must survive being a 1.5px line on the
+ * Kaolin background, so the five nutrients that appear in the RDI chart
+ * use the high-contrast Nihonga data pigments (brand doc §B); the rest
+ * keep their original artisan pigments.
+ */
 export const NUTRIENT_COLORS: Record<NutrientKey, string> = {
   energy_kcal: "#2B2B2B", // Sumi Iron
   fat_g: "#BF6B59", // Baked Clay
-  saturated_fat_g: "#E09F91", // Dusty Salmon
+  saturated_fat_g: "#E87722", // Persimmon
   carbohydrates_g: "#C8963E", // Antique Gold
-  sugar_g: "#EBC374", // Pale Amber
+  sugar_g: "#B8A900", // Mustard
   protein_g: "#2C4C5B", // Iron Blue
   fibre_g: "#4F6D46", // Aged Pine
-  salt_g: "#7C6A88", // Oxidized Ube
-  calcium_mg: "#6B7F82", // Stone Grey
+  salt_g: "#7B5FB8", // Wisteria
+  calcium_mg: "#4A9B8E", // Teal/Verdigris
+};
+
+/** Short display names — the one label set used wherever nutrients are listed. */
+export const NUTRIENT_SHORT_NAMES: Record<NutrientKey, string> = {
+  energy_kcal: "Energy",
+  fat_g: "Fat",
+  saturated_fat_g: "Sat Fat",
+  carbohydrates_g: "Carbs",
+  sugar_g: "Sugar",
+  protein_g: "Protein",
+  fibre_g: "Fibre",
+  salt_g: "Salt",
+  calcium_mg: "Calcium",
 };
 
 /** Weight series color (Wakatake Bamboo) and band fill. */
 export const WEIGHT_COLOR = "#789440";
 export const WEIGHT_BAND_FILL = "rgba(120, 148, 64, 0.08)";
 
-/**
- * Multi-line chart palette — the Nihonga DATA palette from the brand doc
- * ("selected for high contrast against each other"). The muted nutrient
- * pigments (NUTRIENT_COLORS) are for badges/bars/dots where adjacency and
- * background tints carry the distinction; overlapping 1.5px lines need
- * contrast. (The old app used the muted pigments here and its RDI lines
- * were nearly indistinguishable.)
- */
-export const RDI_CHART_COLORS: Partial<Record<NutrientKey, string>> = {
-  saturated_fat_g: "#E87722", // Persimmon
-  sugar_g: "#B8A900", // Mustard
-  fibre_g: "#3D5941", // Pine
-  salt_g: "#7B5FB8", // Wisteria
-  calcium_mg: "#4A9B8E", // Teal/Verdigris
-};
 
 export type TargetMode = "target" | "limit";
 

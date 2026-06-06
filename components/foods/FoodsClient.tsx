@@ -4,7 +4,7 @@
  * Food Database — master-detail editor, port of pages/foods.py.
  * Left: searchable food list. Right: create/edit form.
  */
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteFoodAction, saveFoodAction } from "@/app/actions/foods";
 import {
@@ -14,6 +14,7 @@ import {
   type UnitType,
 } from "@/lib/constants";
 import type { FoodItem } from "@/lib/domain/types";
+import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
 interface FormState {
   id: string | null;
@@ -57,8 +58,19 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState | null>(null);
-  const [alert, setAlert] = useState<{ kind: "success" | "danger"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // toasts — the one feedback pattern used on every page
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastId = useRef(0);
+  const pushToast = useCallback((text: string, ok: boolean) => {
+    if (!text) return;
+    toastId.current += 1;
+    setToasts((t) => [...t, { id: toastId.current, kind: ok ? "success" : "error", text }]);
+  }, []);
+  const dismissToast = useCallback((id: number) => {
+    setToasts((t) => t.filter((x) => x.id !== id));
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -79,7 +91,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
           NUTRIENT_KEYS.map((k) => [k, parseNum(form.nutrients[k]) ?? 0]),
         ),
       });
-      setAlert({ kind: result.ok ? "success" : "danger", text: result.message });
+      pushToast(result.message, result.ok);
       if (result.ok) {
         setForm(null);
         router.refresh();
@@ -90,7 +102,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
   function handleDelete(foodId: string) {
     startTransition(async () => {
       const result = await deleteFoodAction(foodId);
-      setAlert({ kind: result.ok ? "success" : "danger", text: result.message });
+      pushToast(result.message, result.ok);
       if (result.ok) {
         if (form?.id === foodId) setForm(null);
         router.refresh();
@@ -116,12 +128,6 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
         <div className="toolbar-right">{initialFoods.length} foods</div>
       </div>
 
-      {alert && (
-        <div className={`alert alert-${alert.kind}`} role="alert">
-          {alert.text}
-        </div>
-      )}
-
       <div className="master-detail">
         <div className="master-panel">
           <div className="master-list">
@@ -132,10 +138,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                 <div
                   key={food.id}
                   className={`master-list-item${form?.id === food.id ? " selected" : ""}`}
-                  onClick={() => {
-                    setAlert(null);
-                    setForm(foodToForm(food));
-                  }}
+                  onClick={() => setForm(foodToForm(food))}
                 >
                   <span className="master-list-item-name">{food.name}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -175,6 +178,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                     type="text"
                     value={form.name}
                     placeholder="e.g. Porridge Oats"
+                    autoFocus
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
@@ -256,6 +260,8 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
           )}
         </div>
       </div>
+
+      <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
   );
 }
