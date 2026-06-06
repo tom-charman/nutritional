@@ -138,19 +138,14 @@ export function prepareCaloriesWeight(
     column(summaries, "energy_kcal"),
   );
   const caloriesAvg = rollingAverage(calInterp, rollingWindow);
-  // Weights: interpolate only, no rolling average (show actual weight trend).
-  // Unlike calories, weight bridges gaps of ANY length — body weight is a
-  // continuous physical quantity, so interpolating a missed week is sound,
-  // whereas bridging a calories void would fabricate eating.
+  // Weights: interpolate only, no rolling average (show actual weight trend)
   const weightMorning = interpolateDaily(
     dates,
     column(summaries, "morning_weight_kg"),
-    Infinity,
   ).values;
   const weightEvening = interpolateDaily(
     dates,
     column(summaries, "evening_weight_kg"),
-    Infinity,
   ).values;
 
   return {

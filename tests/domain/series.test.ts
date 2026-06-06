@@ -61,32 +61,36 @@ describe("interpolateDaily (preprocessing.py port)", () => {
     expect(values).toEqual([]);
   });
 
-  it("does NOT bridge gaps wider than maxGapDays (no fabricated lines)", () => {
+  it("bridges gaps of any length by default (python parity)", () => {
     const { values } = interpolateDaily(
-      ["2024-01-01", "2024-01-12"], // 11-day gap > default 7
+      ["2024-01-01", "2024-01-12"], // 11-day gap
       [100, 200],
     );
     expect(values[0]).toBe(100);
     expect(values[11]).toBe(200);
-    // the void stays null — chart line breaks instead of inventing data
+    expect(values[5]).toBeCloseTo(100 + (500 / 11));
+    expect(values.every((v) => v !== null)).toBe(true);
+  });
+
+  it("optional maxGapDays caps how wide a void may be bridged", () => {
+    const { values } = interpolateDaily(
+      ["2024-01-01", "2024-01-12"], // 11-day gap > cap of 7
+      [100, 200],
+      7,
+    );
+    expect(values[0]).toBe(100);
+    expect(values[11]).toBe(200);
+    // the void stays null — chart line would break instead of inventing data
     expect(values.slice(1, 11)).toEqual(new Array(10).fill(null));
   });
 
   it("bridges gaps at exactly maxGapDays", () => {
     const { values } = interpolateDaily(
-      ["2024-01-01", "2024-01-08"], // 7-day gap = default limit
+      ["2024-01-01", "2024-01-08"], // 7-day gap = cap
       [0, 70],
+      7,
     );
     expect(values).toEqual([0, 10, 20, 30, 40, 50, 60, 70]);
-  });
-
-  it("custom maxGapDays widens the bridge", () => {
-    const { values } = interpolateDaily(
-      ["2024-01-01", "2024-01-12"],
-      [100, 200],
-      30,
-    );
-    expect(values[5]).toBeCloseTo(100 + (500 / 11));
   });
 
   it("multiple gaps interpolate against nearest neighbours", () => {

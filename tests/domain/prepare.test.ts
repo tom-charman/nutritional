@@ -93,20 +93,16 @@ describe("prepareCaloriesWeight (transforms.py port)", () => {
     expect(empty.dates).toEqual([]);
   });
 
-  it("weight bridges long gaps; calories break across them", () => {
+  it("weight and calories interpolate consistently across gaps", () => {
     const gappy = [
       summary("2024-01-01", { energy_kcal: 2000, morning_weight_kg: 70 }),
       summary("2024-01-20", { energy_kcal: 2200, morning_weight_kg: 71.9 }), // 19-day gap
     ];
     const r = prepareCaloriesWeight(gappy, 30);
-    // weight: continuous physical quantity → fully interpolated
     expect(r.weight_morning[10]).toBeCloseTo(70 + (1.9 * 10) / 19);
     expect(r.weight_morning.every((v) => v !== null)).toBe(true);
-    // calories: void stays null (no fabricated eating); rolling avg decays
-    // off the last real point, so assert the raw gap behavior via day 10
-    // having no contribution beyond the trailing window of real data
-    const calMid = r.calories_avg[10];
-    expect(calMid).toBe(2000); // trailing window only ever saw day 1's value
+    // calories interpolate too (then the rolling average runs over them)
+    expect(r.calories_avg.every((v) => v !== null)).toBe(true);
   });
 });
 
