@@ -19,6 +19,28 @@ test.describe("dashboard", () => {
     await shot(page, "dashboard", "03-rdi");
   });
 
+  test("range selector windows the chart (3M default, ALL widens)", async ({ page }) => {
+    await page.goto("/");
+    const rangeGroup = page.getByRole("radiogroup", { name: "Date range" });
+    await expect(rangeGroup.getByRole("radio", { name: "3M" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    const svg = page.locator(".graph-wrapper svg.chart-svg");
+    await expect(svg.locator("path").first()).toBeVisible();
+
+    await rangeGroup.getByRole("radio", { name: "ALL" }).click();
+    await expect(rangeGroup.getByRole("radio", { name: "ALL" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(svg.locator("path").first()).toBeVisible();
+
+    await rangeGroup.getByRole("radio", { name: "1M" }).click();
+    await expect(svg.locator("path").first()).toBeVisible();
+    await shot(page, "dashboard", "07-range-1m");
+  });
+
   test("unified hover tooltip appears", async ({ page }) => {
     await page.goto("/");
     const svg = page.locator(".graph-wrapper svg.chart-svg");

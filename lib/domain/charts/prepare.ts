@@ -44,6 +44,89 @@ function column(
   return summaries.map((s) => s[key] as number | null);
 }
 
+/** Calories axis: round to 100s with >=50 padding (transforms.py). */
+export function caloriesAxisLimits(values: Series): [number, number] {
+  const valid = values.filter((v): v is number => v !== null);
+  if (valid.length === 0) return [0, 3000];
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  let pad = (max - min) * 0.1;
+  if (pad < 50) pad = 50;
+  return [
+    Math.floor((min - pad) / 100) * 100,
+    Math.floor((max + pad + 99) / 100) * 100,
+  ];
+}
+
+/** Weight axis: round to integers with >=0.5 padding (transforms.py). */
+export function weightAxisLimits(...seriesList: Series[]): [number, number] {
+  const valid = seriesList.flat().filter((v): v is number => v !== null);
+  if (valid.length === 0) return [60, 90];
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const pad = Math.max((max - min) * 0.1, 0.5);
+  return [Math.floor(min - pad), Math.ceil(max + pad)];
+}
+
+/**
+ * Window already-prepared chart data to dates >= cutoff (client-side range
+ * selector). Rolling averages don't change — each point's trailing window
+ * is unaffected by slicing later points off the front. Axis limits are
+ * recomputed for the visible window.
+ */
+export function windowCaloriesWeight(
+  data: CaloriesWeightData,
+  cutoffIso: string | null,
+): CaloriesWeightData {
+  if (!cutoffIso) return data;
+  const from = data.dates.findIndex((d) => d >= cutoffIso);
+  if (from <= 0) return data;
+  const dates = data.dates.slice(from);
+  const calories_avg = data.calories_avg.slice(from);
+  const weight_morning = data.weight_morning.slice(from);
+  const weight_evening = data.weight_evening.slice(from);
+  return {
+    dates,
+    calories_avg,
+    weight_morning,
+    weight_evening,
+    y1Limits: caloriesAxisLimits(calories_avg),
+    y2Limits: weightAxisLimits(weight_morning, weight_evening),
+  };
+}
+
+export function windowMacroBreakdown(
+  data: MacroBreakdownData,
+  cutoffIso: string | null,
+): MacroBreakdownData {
+  if (!cutoffIso) return data;
+  const from = data.dates.findIndex((d) => d >= cutoffIso);
+  if (from <= 0) return data;
+  return {
+    dates: data.dates.slice(from),
+    protein_cal: data.protein_cal.slice(from),
+    other_carbs_cal: data.other_carbs_cal.slice(from),
+    sugar_cal: data.sugar_cal.slice(from),
+    other_fat_cal: data.other_fat_cal.slice(from),
+    saturated_fat_cal: data.saturated_fat_cal.slice(from),
+  };
+}
+
+export function windowNutrientsRdi(
+  data: NutrientsRdiData,
+  cutoffIso: string | null,
+): NutrientsRdiData {
+  if (!cutoffIso) return data;
+  const from = data.dates.findIndex((d) => d >= cutoffIso);
+  if (from <= 0) return data;
+  return {
+    dates: data.dates.slice(from),
+    series: Object.fromEntries(
+      Object.entries(data.series).map(([k, v]) => [k, v.slice(from)]),
+    ),
+  };
+}
+
 /** prepare_calories_weight_data (transforms.py:18-109). */
 export function prepareCaloriesWeight(
   summaries: DailySummary[],
@@ -65,43 +148,13 @@ export function prepareCaloriesWeight(
     column(summaries, "evening_weight_kg"),
   ).values;
 
-  // Calories axis: round to 100s with >=50 padding
-  const calValid = caloriesAvg.filter((v): v is number => v !== null);
-  let y1Limits: [number, number];
-  if (calValid.length > 0) {
-    const calMin = Math.min(...calValid);
-    const calMax = Math.max(...calValid);
-    let pad = (calMax - calMin) * 0.1;
-    if (pad < 50) pad = 50;
-    y1Limits = [
-      Math.floor((calMin - pad) / 100) * 100,
-      Math.floor((calMax + pad + 99) / 100) * 100,
-    ];
-  } else {
-    y1Limits = [0, 3000];
-  }
-
-  // Weight axis: round to integers with >=0.5 padding
-  const wValid = [...weightMorning, ...weightEvening].filter(
-    (v): v is number => v !== null,
-  );
-  let y2Limits: [number, number];
-  if (wValid.length > 0) {
-    const wMin = Math.min(...wValid);
-    const wMax = Math.max(...wValid);
-    const wPad = Math.max((wMax - wMin) * 0.1, 0.5);
-    y2Limits = [Math.floor(wMin - wPad), Math.ceil(wMax + wPad)];
-  } else {
-    y2Limits = [60, 90];
-  }
-
   return {
     dates: commonDates,
     calories_avg: caloriesAvg,
     weight_morning: weightMorning,
     weight_evening: weightEvening,
-    y1Limits,
-    y2Limits,
+    y1Limits: caloriesAxisLimits(caloriesAvg),
+    y2Limits: weightAxisLimits(weightMorning, weightEvening),
   };
 }
 

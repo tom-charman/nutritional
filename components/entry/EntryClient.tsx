@@ -82,6 +82,15 @@ export default function EntryClient({
   // --- selector state ---
   const [selection, setSelection] = useState<Selection>(null);
   const [amount, setAmount] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const focusSearchAfterRender = useRef(false);
+  useEffect(() => {
+    // The input only exists once the selection chip is gone — focus then.
+    if (selection === null && focusSearchAfterRender.current) {
+      focusSearchAfterRender.current = false;
+      searchRef.current?.focus();
+    }
+  });
 
   // --- toasts / modal ---
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -181,6 +190,9 @@ export default function EntryClient({
           : await addMealEntryAction(date, selection.meal.id, n);
       refreshAfter(result);
       if (result.ok) {
+        // Real days have a dozen entries — put the cursor back where the
+        // next one starts (focused once the input re-renders).
+        focusSearchAfterRender.current = true;
         setSelection(null);
         setAmount("");
       }
@@ -308,6 +320,7 @@ export default function EntryClient({
             options={options}
             placeholder="Search foods and meals..."
             testId="food-search"
+            inputRef={searchRef}
             selectedLabel={
               selection === null
                 ? null
@@ -375,11 +388,7 @@ export default function EntryClient({
             </div>
             <div className="calorie-status-indicator">{calStatus.statusText}</div>
           </div>
-          <MacroProgressBars
-            consumed={totals}
-            targets={targets}
-            hasEntries={initialDay.entries.length > 0}
-          />
+          <MacroProgressBars consumed={totals} targets={targets} />
         </div>
 
         {/* Column 3: Body Measurements */}

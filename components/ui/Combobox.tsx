@@ -20,6 +20,7 @@ export default function Combobox({
   onClear,
   testId,
   maxResults = 50,
+  inputRef,
 }: {
   options: ComboOption[];
   placeholder: string;
@@ -29,6 +30,8 @@ export default function Combobox({
   onClear: () => void;
   testId?: string;
   maxResults?: number;
+  /** Lets the parent re-focus the search input (e.g. after a successful add). */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -105,6 +108,7 @@ export default function Combobox({
     <div className="combobox">
       <input
         type="text"
+        ref={inputRef}
         role="combobox"
         aria-expanded={open}
         data-testid={testId}
@@ -115,7 +119,9 @@ export default function Combobox({
           setHighlight(0);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        // open on user intent (click/typing/arrows) — NOT on programmatic
+        // focus, which would pop the menu over the page after every add
+        onClick={() => setOpen(true)}
         onKeyDown={onKeyDown}
         onBlur={() => {
           blurTimer.current = setTimeout(() => setOpen(false), 150);

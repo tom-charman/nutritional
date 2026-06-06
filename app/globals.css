@@ -1149,6 +1149,39 @@ input[type="radio"] {
     gap: 8px;
 }
 
+/* Chart controls row: tabs left, range toggle right */
+.chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.chart-controls .nav-tabs {
+    margin-bottom: var(--space-xl);
+    flex: 1;
+    min-width: 280px;
+}
+
+.range-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: var(--space-xl);
+    align-self: center;
+}
+
+.range-toggle .mode-toggle-option {
+    height: 28px;
+    padding: 0 12px;
+}
+
+.range-toggle .mode-toggle-option + .mode-toggle-option {
+    border-left: 1px solid var(--border);
+}
+
 /* Target/Limit segmented toggle — pressed like a physical switch, not a dropdown */
 .mode-toggle {
     display: flex;
@@ -1611,6 +1644,12 @@ input[type="radio"] {
         grid-template-columns: 1fr;
         gap: 24px;
     }
+
+    /* Stacked order: log food, then the twice-daily weigh-in within easy
+       reach, then the summary detail — not weight buried below 8 bars. */
+    .mise-ingredients-column { order: 1; }
+    .mise-logbook-column { order: 2; }
+    .mise-summary-column { order: 3; }
 
     .calories-remaining-number {
         font-size: 3rem;

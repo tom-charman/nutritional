@@ -38,6 +38,8 @@ test.describe("daily tracking happy path", () => {
     await expectToast(page, "Added E2E Oats");
     await expect(entry.entryRow("E2E Oats")).toBeVisible();
     await expect(entry.entryRow("E2E Oats")).toContainText("233 kcal");
+    // focus returns to the search for the next item
+    await expect(entry.searchInput).toBeFocused();
     await shot(page, "daily-tracking", "03-first-entry");
   });
 

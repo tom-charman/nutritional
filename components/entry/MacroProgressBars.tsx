@@ -29,20 +29,12 @@ const INDICATOR: Record<string, { symbol: string; cls: string; title: string }> 
 export default function MacroProgressBars({
   consumed,
   targets,
-  hasEntries,
 }: {
   consumed: Nutrients;
   targets: DailyTargets;
-  hasEntries: boolean;
 }) {
-  if (!hasEntries) {
-    return (
-      <div className="macros-visualization">
-        <p className="empty-state-message">No food entries for this day.</p>
-      </div>
-    );
-  }
-
+  // An empty day still renders the bars at zero — the targets ARE the
+  // useful content of an empty day ("here's what today expects of me").
   return (
     <div className="macros-visualization">
       <div className="macros-bars">
