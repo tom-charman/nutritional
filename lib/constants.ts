@@ -123,6 +123,19 @@ export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
   calcium_mg: { ink: "#3F8C80", line: "#2F7468", area: "#9CC7BF", wash: "#E4F0ED" },
 };
 
+/** CSS channel class per nutrient (progress bars + preview channels). */
+export const NUTRIENT_CSS_CLASS: Record<NutrientKey, string> = {
+  energy_kcal: "progress-calories",
+  fat_g: "progress-fat",
+  saturated_fat_g: "progress-saturated-fat",
+  carbohydrates_g: "progress-carbs",
+  sugar_g: "progress-sugar",
+  protein_g: "progress-protein",
+  fibre_g: "progress-fibre",
+  salt_g: "progress-salt",
+  calcium_mg: "progress-calcium",
+};
+
 /** Convenience: the recognizable identity tone per nutrient. */
 export const NUTRIENT_INK: Record<NutrientKey, string> = Object.fromEntries(
   (Object.keys(NUTRIENT_COLORS) as NutrientKey[]).map((k) => [

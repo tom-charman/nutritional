@@ -54,7 +54,7 @@ test.describe("daily tracking happy path", () => {
     await expectToast(page, "Added E2E Banana");
 
     // totals: 233.4 + 157.5 = 390.9 → header shows rounded 391
-    await expect(entry.headerSummary).toContainText("391 / 2000 kcal");
+    await expect(entry.energyValue).toContainText("391 / 2000");
     // calories remaining: 2000 - 390.9 = 1609.1 → 1609
     await expect(entry.caloriesRemaining).toHaveText("1609");
     // macro bar fat: 60g oats = 4.1g fat

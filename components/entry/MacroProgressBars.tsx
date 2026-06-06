@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Macro progress bars vs daily targets — port of entry.py create_macro_bar.
- * 8 nutrients (all but energy), capped at 100%, with ✓/⚠ per mode.
- * Value formats match production: g → "12.3g / 67g", mg → "800mg / 700mg".
+ * Daily pigment channels — each nutrient's day rendered as its own pigment
+ * filling a washed channel (area tone on wash track: the soft dilutions,
+ * carried by the channel's thickness). Energy leads; ✓/⚠ verdicts stamp in.
  */
 import { NUTRIENT_SHORT_NAMES, type NutrientKey, type Nutrients } from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
 import type { DailyTargets } from "@/lib/domain/types";
 
-/** Labels come from the one canonical short-name set (NUTRIENT_SHORT_NAMES). */
-const BARS: { key: NutrientKey; cssClass: string; unit: "g" | "mg" }[] = [
+const BARS: { key: NutrientKey; cssClass: string; unit: "g" | "mg" | "kcal" }[] = [
+  { key: "energy_kcal", cssClass: "progress-calories", unit: "kcal" },
   { key: "fat_g", cssClass: "progress-fat", unit: "g" },
   { key: "saturated_fat_g", cssClass: "progress-saturated-fat", unit: "g" },
   { key: "carbohydrates_g", cssClass: "progress-carbs", unit: "g" },
@@ -27,6 +27,13 @@ const INDICATOR: Record<string, { symbol: string; cls: string; title: string }> 
   exceeded: { symbol: "⚠", cls: "target-exceeded", title: "Limit exceeded" },
 };
 
+/** Value formats per python create_macro_bar: g→"12.3g/67g", mg→"800mg/700mg", kcal→"2463 / 3000". */
+function formatPair(value: number, target: number, unit: "g" | "mg" | "kcal") {
+  if (unit === "kcal") return `${value.toFixed(0)} / ${target.toFixed(0)}`;
+  if (unit === "mg") return `${value.toFixed(0)}mg / ${target.toFixed(0)}mg`;
+  return `${value.toFixed(1)}g / ${target.toFixed(0)}g`;
+}
+
 export default function MacroProgressBars({
   consumed,
   targets,
@@ -34,7 +41,7 @@ export default function MacroProgressBars({
   consumed: Nutrients;
   targets: DailyTargets;
 }) {
-  // An empty day still renders the bars at zero — the targets ARE the
+  // An empty day still renders the channels at zero — the targets ARE the
   // useful content of an empty day ("here's what today expects of me").
   return (
     <div className="macros-visualization">
@@ -47,18 +54,12 @@ export default function MacroProgressBars({
           const indicator = macroIndicator(value, target, mode);
           const pct = target > 0 ? Math.min((value / target) * 100, 100) : 0;
           const ind = indicator ? INDICATOR[indicator] : null;
-          const valueStr =
-            unit === "mg" ? `${value.toFixed(0)}mg` : `${value.toFixed(1)}g`;
-          const targetStr =
-            unit === "mg" ? `${target.toFixed(0)}mg` : `${target.toFixed(0)}g`;
           return (
             <div key={key} className="macro-bar-item">
               <div className="macro-bar-header">
                 <span className="macro-bar-label">{label}</span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span className="macro-bar-value">
-                    {valueStr} / {targetStr}
-                  </span>
+                  <span className="macro-bar-value">{formatPair(value, target, unit)}</span>
                   {ind && (
                     <span className={`macro-bar-indicator ${ind.cls}`} title={ind.title}>
                       {ind.symbol}
@@ -66,7 +67,7 @@ export default function MacroProgressBars({
                   )}
                 </span>
               </div>
-              <div className={`progress ${cssClass}`} style={{ height: 5 }}>
+              <div className={`progress ${cssClass}`}>
                 <div className="progress-bar" style={{ width: `${pct}%` }} />
               </div>
             </div>

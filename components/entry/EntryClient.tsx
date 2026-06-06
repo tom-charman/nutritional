@@ -294,17 +294,7 @@ export default function EntryClient({
           </div>
         </div>
         <div className="daily-summary-bar">
-          <span className="summary-item">
-            <strong>
-              {Math.round(totals.energy_kcal)} / {Math.round(targets.values.energy_kcal)} kcal
-            </strong>
-          </span>
-          <span className="summary-separator">·</span>
-          <span className="summary-item">{totals.fat_g.toFixed(1)} g Fat</span>
-          <span className="summary-separator">·</span>
-          <span className="summary-item">{totals.carbohydrates_g.toFixed(1)} g Carbs</span>
-          <span className="summary-separator">·</span>
-          <span className="summary-item">{totals.protein_g.toFixed(1)} g Protein</span>
+          {/* figures live in the calories card + pigment channels below */}
           <button className="btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
             Edit Targets
           </button>
@@ -365,7 +355,7 @@ export default function EntryClient({
             </div>
           )}
 
-          {preview && <NutrientPreview nutrients={preview} />}
+          {preview && <NutrientPreview nutrients={preview} targets={targets} />}
 
           <div className="section-label" style={{ marginTop: 16 }}>
             Today&apos;s Intake

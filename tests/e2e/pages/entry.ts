@@ -37,8 +37,9 @@ export class EntryPage {
   get caloriesRemaining(): Locator {
     return this.page.locator(".calories-remaining-number");
   }
-  get headerSummary(): Locator {
-    return this.page.locator(".daily-summary-bar");
+  /** The Energy pigment channel's "consumed / target" readout. */
+  get energyValue(): Locator {
+    return this.macroBar("Energy").locator(".macro-bar-value");
   }
   get entriesList(): Locator {
     return this.page.locator(".ingredients-list");

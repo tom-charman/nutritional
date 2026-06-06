@@ -1064,13 +1064,15 @@ input[type="radio"]:focus {
 }
 
 .date-stepper .icon-button {
-    font-size: 22px;
-    font-weight: var(--font-weight-bold);
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
     font-family: var(--font-display);
     color: var(--text-body);
     border: 1px solid var(--border);
     background: var(--surface);
     box-shadow: var(--shadow-sm);
+    line-height: 1;
+    padding: 0 0 4px; /* ‹ › sit high on the type's body — optical centering */
 }
 
 .date-stepper .icon-button:hover:not(:disabled) {
@@ -1749,14 +1751,13 @@ input[type="radio"] {
 .macros-bars {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 14px;
 }
 
 .macro-bar-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 4px;
+    gap: 5px;
 }
 
 .macro-bar-header {
@@ -1878,14 +1879,41 @@ input[type="radio"] {
 
 .nutrient-preview-item {
     display: flex;
-    align-items: center;
-    margin-bottom: 6px;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 9px;
     font-family: var(--font-mono);
     font-size: 0.85rem;
 }
 
 .nutrient-preview-item:last-child {
     margin-bottom: 0;
+}
+
+.nutrient-preview-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.nutrient-preview-row .nutrient-dot {
+    margin-right: 0;
+}
+
+.nutrient-preview-row .nutrient-label {
+    flex: 1;
+    font-size: 12px;
+}
+
+/* the entry's slice of the day — subordinate to the daily channels */
+.preview-channel {
+    height: 7px;
+    border-radius: 3.5px;
+}
+
+.preview-channel .progress-bar {
+    border-radius: 3.5px 0 0 3.5px;
 }
 
 .nutrient-dot {

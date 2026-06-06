@@ -34,9 +34,12 @@ styles in `app/globals.css`, chart conventions in
 | Calcium | Verdigris | `#3F8C80` | `#2F7468` | `#9CC7BF` | `#E4F0ED` |
 | Energy | Sumi (never tinted) | `#2B2B2B` | `#2B2B2B` | `#2B2B2B` | `#F2F0EB` |
 
-Consumption map: dots/bars/tooltip-bullets/badge-text → `ink` · chart
-strokes + end labels → `line` · stacked fills + area swatches → `area` ·
-badge/row tints → `wash`. Contrast floors: ink ≥4.5:1 on white; line ≥3:1
+Consumption map: dots/tooltip-bullets/badge-text → `ink` · chart strokes +
+end labels → `line` · stacked fills + area swatches AND progress-channel
+fills → `area` · badge/row tints AND progress-channel tracks → `wash`.
+The daily macro bars are "pigment channels": the nutrient's own wash as the
+empty track, its area tone as the fill (12px; preview channels 7px) —
+Energy uses diluted sumi `#6B6B6B` on the kaolin wash. Contrast floors: ink ≥4.5:1 on white; line ≥3:1
 on Kaolin (sugar 3.2:1 is the tightest — re-verify if changed).
 Weight series stays `WEIGHT_COLOR` bamboo `#789440`.
 
@@ -110,8 +113,9 @@ Stable selectors/roles asserted by `tests/e2e/` — **do not rename**:
 Shared primitives: `ui/Combobox` (keyboard nav; opens on click/typing,
 NEVER on programmatic focus), `ui/EditableAmount` (click→input,
 Enter/blur commit, Esc cancel), `ui/Toast` (settle in/out, 3s),
-`entry/NutrientPreview` (ink dots, canonical order), `entry/MacroProgressBars`
-(ink channels, hanko verdicts).
+`entry/NutrientPreview` (with targets → slim pigment channels mirroring the
+daily bars, the entry's slice of the day; without targets → ink dots),
+`entry/MacroProgressBars` (pigment channels incl. Energy, hanko verdicts).
 
 Interaction grammar shared across pages: focus returns to search after an
 add; explicit form-opens autofocus their first field; toasts are the one
