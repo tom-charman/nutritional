@@ -6,7 +6,7 @@
  *  Col 2: calories-remaining card + macro progress bars
  *  Col 3: morning/evening weight inputs
  */
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addFoodEntryAction,
@@ -150,6 +150,7 @@ export default function EntryClient({
   }
 
   function handleAdd() {
+    if (isPending) return; // guard against rapid double-submit
     const n = Number(amount);
     if (!selection) return pushToast("Please select a food or meal", false);
     if (!Number.isFinite(n) || n <= 0) return pushToast("Please enter an amount", false);
@@ -175,13 +176,35 @@ export default function EntryClient({
   const handleRemoveMeal = (mealId: string) =>
     startTransition(async () => refreshAfter(await removeEntryAction(date, { mealId })));
 
+  // Last persisted weights — lets blur be a no-op when nothing changed
+  // (e.g. tabbing through an empty field must not fire a "clear").
+  const savedWeights = useRef({
+    morning: initialDay.measurements.morning_weight_kg,
+    evening: initialDay.measurements.evening_weight_kg,
+  });
+  useEffect(() => {
+    savedWeights.current = {
+      morning: initialDay.measurements.morning_weight_kg,
+      evening: initialDay.measurements.evening_weight_kg,
+    };
+  }, [initialDay]);
+
   const handleWeightBlur = (which: "morning" | "evening") =>
     (e: React.FocusEvent<HTMLInputElement>) => {
-      const v = e.target.value.trim() === "" ? null : Number(e.target.value);
+      const raw = e.target.value.trim();
+      const v = raw === "" ? null : Number(raw);
+      const normalized = v !== null && v > 0 ? v : null;
+      const prev = savedWeights.current[which];
+      if (prev === normalized) return; // unchanged — no write, no toast
+      savedWeights.current[which] = normalized; // optimistic: rapid edits compare correctly
       startTransition(async () => {
         const result = await updateWeightAction(date, which, v);
-        if (!result.ok) pushToast(result.message, false);
-        else if (result.message) router.refresh();
+        if (!result.ok) {
+          savedWeights.current[which] = prev;
+          pushToast(result.message, false);
+        } else {
+          router.refresh();
+        }
       });
     };
 

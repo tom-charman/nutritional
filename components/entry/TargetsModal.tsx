@@ -4,7 +4,7 @@
  * Daily targets modal — port of entry.py targets modal:
  * 9 nutrient inputs with target/limit mode dropdowns, Copy Previous Targets.
  */
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { getTargetsForDateAction, saveTargetsAction } from "@/app/actions/entry";
 import {
   NUTRIENT_KEYS,
@@ -43,6 +43,18 @@ export default function TargetsModal({
     ) as Record<NutrientKey, TargetMode>,
   );
   const [isPending, startTransition] = useTransition();
+  const firstInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Escape closes (discarding changes); focus lands on the first value.
+  useEffect(() => {
+    firstInputRef.current?.focus();
+    firstInputRef.current?.select();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   function copyPrevious() {
     startTransition(async () => {
@@ -93,11 +105,12 @@ export default function TargetsModal({
         </div>
         <div className="modal-body">
           <div className="targets-grid">
-            {NUTRIENT_KEYS.map((key) => (
+            {NUTRIENT_KEYS.map((key, i) => (
               <div key={key} className="compact-input">
                 <label className="form-label-sm">{NUTRIENT_LABELS[key]}</label>
                 <input
                   type="number"
+                  ref={i === 0 ? firstInputRef : undefined}
                   min={0}
                   step={stepFor(key)}
                   value={values[key]}

@@ -396,14 +396,19 @@ export async function updateMeasurements(
   date: string,
   weights: { morning_weight_kg?: number | null; evening_weight_kg?: number | null },
 ): Promise<void> {
-  // Build the set clause with ONLY the provided weights — null/undefined
-  // means "leave existing value untouched" (python: `if x is not None`).
-  const set: Record<string, string> = {};
-  if (weights.morning_weight_kg !== null && weights.morning_weight_kg !== undefined) {
-    set.morningWeightKg = dec(weights.morning_weight_kg);
+  // Set clause contains ONLY the provided weights:
+  //  - undefined → leave existing value untouched (python: `if x is not None`)
+  //  - null      → EXPLICIT CLEAR, sets DB NULL (UX addition over python:
+  //                emptying the input means "I didn't mean to track this")
+  //  - number    → set the value
+  const set: Record<string, string | null> = {};
+  if (weights.morning_weight_kg !== undefined) {
+    set.morningWeightKg =
+      weights.morning_weight_kg === null ? null : dec(weights.morning_weight_kg);
   }
-  if (weights.evening_weight_kg !== null && weights.evening_weight_kg !== undefined) {
-    set.eveningWeightKg = dec(weights.evening_weight_kg);
+  if (weights.evening_weight_kg !== undefined) {
+    set.eveningWeightKg =
+      weights.evening_weight_kg === null ? null : dec(weights.evening_weight_kg);
   }
 
   const existing = await db

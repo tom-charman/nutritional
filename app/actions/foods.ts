@@ -64,6 +64,16 @@ export async function saveFoodAction(input: FoodFormInput): Promise<ActionResult
   return { ok: true, message: `Food item '${name}' saved successfully!` };
 }
 
+/** Match a pattern anywhere in an error's message → cause chain (drizzle wraps DB errors). */
+function errorChainMatches(e: unknown, pattern: RegExp): boolean {
+  let current: unknown = e;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
+    if (pattern.test(current.message)) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
 export async function deleteFoodAction(foodId: string): Promise<ActionResult> {
   try {
     const deleted = await deleteFoodItem(db, foodId);
@@ -71,10 +81,9 @@ export async function deleteFoodAction(foodId: string): Promise<ActionResult> {
   } catch (e) {
     return {
       ok: false,
-      message:
-        e instanceof Error && /foreign key|violates/i.test(e.message)
-          ? "Cannot delete: food is referenced by existing entries"
-          : "Failed to delete food",
+      message: errorChainMatches(e, /foreign key|violates/i)
+        ? "Cannot delete: this food is used by existing entries or meals"
+        : "Failed to delete food",
     };
   }
   revalidatePath("/foods");

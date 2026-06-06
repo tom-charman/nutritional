@@ -194,6 +194,16 @@ describe("daily entry save/load invariants", () => {
     expect(s.morning_weight_kg).toBe(70.5); // untouched
   });
 
+  it("updateMeasurements: null clears, undefined leaves untouched", async () => {
+    const d = "2024-06-04";
+    await updateMeasurements(db, d, { morning_weight_kg: 70.1, evening_weight_kg: 71.1 });
+    // explicit null clears morning; evening untouched (undefined)
+    await updateMeasurements(db, d, { morning_weight_kg: null });
+    const s = (await loadAllSummaries(db)).find((x) => x.date === d)!;
+    expect(s.morning_weight_kg).toBeNull();
+    expect(s.evening_weight_kg).toBe(71.1);
+  });
+
   it("updateMeasurements only sets provided weights", async () => {
     const d = "2024-06-03";
     await updateMeasurements(db, d, { morning_weight_kg: 69.9 });

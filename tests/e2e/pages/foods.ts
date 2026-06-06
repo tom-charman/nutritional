@@ -33,11 +33,12 @@ export class FoodsPage {
   unitRadio(label: "Per 100g" | "Per Item"): Locator {
     return this.page.locator(".radio-label").filter({ hasText: label }).locator("input");
   }
-  /** Nutrient input in the editor grid by its label. */
+  /** Nutrient input in the editor grid by its exact label. */
   nutrientInput(label: string): Locator {
+    const exact = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
     return this.page
       .locator(".editor-grid .compact-input")
-      .filter({ has: this.page.locator("label", { hasText: label }) })
+      .filter({ has: this.page.locator("label", { hasText: exact }) })
       .locator("input");
   }
 

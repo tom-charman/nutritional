@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { EntryPage } from "./pages/entry";
+import { FoodsPage } from "./pages/foods";
 import { E2E_DATES, expectToast, shot } from "./pages/helpers";
 
 const DATE = E2E_DATES.targets;
@@ -50,20 +51,44 @@ test.describe("daily targets", () => {
     await expect(entry.headerSummary).toContainText("/ 2400 kcal");
   });
 
-  test("changing a mode affects the macro bar indicator", async ({ page }) => {
+  test("changing a value + mode drives the macro bar indicator", async ({ page }) => {
+    // macro bars only render once the day has entries (python parity) — add one
+    const foods = new FoodsPage(page);
+    await foods.goto();
+    await foods.createFood({
+      name: "E2E Tofu",
+      nutrients: { "Calories (kcal)": 76, "Protein (g)": 17 },
+    });
+    await expect(foods.alert).toContainText("saved successfully");
+
     const entry = new EntryPage(page);
     await entry.goto(DATE);
+    await entry.addFood("E2E Tofu", 100); // 17g protein consumed
+    await expectToast(page, "Added E2E Tofu");
+
     await entry.openTargetsModal();
-    // make protein a tiny LIMIT so any intake would warn; with no entries, no indicator
+    // protein as a tiny LIMIT: 17 > 10 * 1.1 → exceeded ⚠
     await targetInput(page, "Protein (g)").fill("10");
-    const proteinMode = modal(page)
+    const proteinModeSelect = modal(page)
       .locator(".compact-input")
       .filter({ has: page.locator("label", { hasText: "Protein (g)" }) })
-      .locator("select, [role=radiogroup]");
+      .locator("select");
+    await proteinModeSelect.selectOption("limit");
     await shot(page, "targets", "02-mode-controls");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expectToast(page, "Targets saved");
-    await expect(entry.macroBar("Protein").locator(".macro-bar-value")).toContainText("/ 10g");
+
+    const proteinBar = entry.macroBar("Protein");
+    await expect(proteinBar.locator(".macro-bar-value")).toContainText("/ 10g");
+    await expect(proteinBar.locator(".macro-bar-indicator")).toHaveClass(/target-exceeded/);
+    await shot(page, "targets", "03-limit-exceeded");
+
+    // switch back to target mode: 17 >= 10 → met ✓
+    await entry.openTargetsModal();
+    await proteinModeSelect.selectOption("target");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expectToast(page, "Targets saved");
+    await expect(proteinBar.locator(".macro-bar-indicator")).toHaveClass(/target-met/);
   });
 
   test("targets are per-day (sticky forward, not backward)", async ({ page }) => {

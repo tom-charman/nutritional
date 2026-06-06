@@ -63,9 +63,10 @@ export class EntryPage {
     return this.page.locator(".combobox-option").filter({ hasText: text }).first();
   }
   macroBar(label: string): Locator {
+    const exact = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
     return this.page
       .locator(".macro-bar-item")
-      .filter({ has: this.page.locator(".macro-bar-label", { hasText: label }) });
+      .filter({ has: this.page.locator(".macro-bar-label", { hasText: exact }) });
   }
 
   // --- actions ---

@@ -171,13 +171,33 @@ export async function removeEntryAction(
   const day = await loadDailyEntry(db, date);
   if (!day) return { ok: false, message: "No entries for this date" };
 
-  const before = day.entries.length;
-  day.entries = day.entries.filter((e: DayEntry) => {
-    if (ref.entryId && e.kind === "food") return e.entry.entry_id !== ref.entryId;
-    if (ref.mealId && e.kind === "meal") return e.entry.meal_id !== ref.mealId;
-    return true;
-  });
-  if (day.entries.length === before) {
+  let removed = false;
+  day.entries = day.entries
+    .map((e: DayEntry): DayEntry | null => {
+      if (ref.mealId && e.kind === "meal" && e.entry.meal_id === ref.mealId) {
+        removed = true;
+        return null; // remove the whole meal
+      }
+      if (ref.entryId && e.kind === "food" && e.entry.entry_id === ref.entryId) {
+        removed = true;
+        return null; // remove an individual food entry
+      }
+      if (ref.entryId && e.kind === "meal") {
+        // remove a single ingredient inside a meal entry
+        const remaining = e.entry.ingredients.filter(
+          (ing) => ing.entry_id !== ref.entryId,
+        );
+        if (remaining.length !== e.entry.ingredients.length) {
+          removed = true;
+          // a meal with no ingredients left disappears entirely
+          if (remaining.length === 0) return null;
+          return { kind: "meal", entry: { ...e.entry, ingredients: remaining } };
+        }
+      }
+      return e;
+    })
+    .filter((e): e is DayEntry => e !== null);
+  if (!removed) {
     return { ok: false, message: "Entry not found" };
   }
 
@@ -186,23 +206,27 @@ export async function removeEntryAction(
   return { ok: true, message: "Entry removed" };
 }
 
-/** Weight auto-save — independent of food entries (update_measurements). */
+/**
+ * Weight auto-save — independent of food entries (update_measurements).
+ * Empty input (or 0) = explicit clear: "I didn't mean to track weight today."
+ */
 export async function updateWeightAction(
   date: string,
   which: "morning" | "evening",
   value: number | null,
 ): Promise<ActionResult> {
-  // 0 or empty treated as "not entered" (entry.py weight handling)
-  const weight = value !== null && value > 0 ? value : null;
-  if (weight === null) return { ok: true, message: "" };
-  if (weight > 500) return { ok: false, message: "Weight out of range" };
+  const clearing = value === null || value <= 0;
+  if (!clearing && (value > 500 || !Number.isFinite(value))) {
+    return { ok: false, message: "Weight must be between 0 and 500 kg" };
+  }
+  const weight = clearing ? null : value;
 
   await updateMeasurements(db, date, {
-    morning_weight_kg: which === "morning" ? weight : null,
-    evening_weight_kg: which === "evening" ? weight : null,
+    morning_weight_kg: which === "morning" ? weight : undefined,
+    evening_weight_kg: which === "evening" ? weight : undefined,
   });
   revalidate();
-  return { ok: true, message: "Weight saved" };
+  return { ok: true, message: clearing ? "Weight cleared" : "Weight saved" };
 }
 
 /** Save targets from the modal (entry.py save-targets flow). */

@@ -65,7 +65,9 @@ test.describe("food database", () => {
     await expect(foods.page.locator(".master-list-item")).toHaveCount(1);
     await foods.searchInput.fill("zzz-no-such-food");
     await expect(foods.page.locator(".master-list-item")).toHaveCount(0);
-    await expect(foods.page.locator(".empty-state-message")).toBeVisible();
+    await expect(
+      foods.page.locator(".master-list .empty-state-message"),
+    ).toBeVisible();
   });
 
   test("delete an unused food", async ({ page }) => {

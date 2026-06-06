@@ -62,12 +62,21 @@ export async function saveMealAction(
   try {
     await saveMeal(db, meal);
   } catch (e) {
+    // drizzle wraps DB errors — check the cause chain
+    let isDuplicate = false;
+    let current: unknown = e;
+    for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
+      if (/unique|duplicate/i.test(current.message)) {
+        isDuplicate = true;
+        break;
+      }
+      current = current.cause;
+    }
     return {
       ok: false,
-      message:
-        e instanceof Error && /unique|duplicate/i.test(e.message)
-          ? `A meal named '${trimmed}' already exists`
-          : "Failed to save meal",
+      message: isDuplicate
+        ? `A meal named '${trimmed}' already exists`
+        : "Failed to save meal",
     };
   }
   revalidatePath("/meals");
