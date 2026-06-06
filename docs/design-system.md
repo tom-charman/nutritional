@@ -96,9 +96,16 @@ zeroes everything (global block at the bottom of globals.css).
   `touch-action: pan-y` on the overlay.
 - **Curves**: `curveMonotoneX` only — never an interpolation that
   overshoots the data.
-- **Reference lines**: etched datum (solid 0.35-opacity hairline +
-  0.08-opacity incised echo), label engraved on the line over a kaolin
-  knockout.
+- **Reference lines**: etched datum (solid hairline + faint incised echo),
+  label engraved on the line over a kaolin knockout.
+- **The RDI tab is an etched grid**, not a multi-line chart: one strip per
+  nutrient (76px desktop / 48px mobile), shared y-scale capped at 150% so
+  the 100% datum sits at the same height in every strip; soft `area`-tone
+  wash (0.55) filled to the value, `ink`-tone pooling (0.45) where it
+  crosses the datum, `line`-tone inked top edge, engraved current % at the
+  strip's end. Values past 150% peg flat — a pinned needle, honestly read
+  via the deep pigment and the % readout. Rationale: a well-fed person
+  lives near 100% on all five, so overlapping lines always tangle.
 
 ## 6. Component inventory (selectors are an e2e contract)
 

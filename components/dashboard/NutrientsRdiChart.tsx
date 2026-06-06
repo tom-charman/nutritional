@@ -1,13 +1,18 @@
 "use client";
 
 /**
- * Nutrients vs RDI — five inked lines over an etched 100% datum.
- * Strokes use the deep `line` dilution with a paper casing (the page shows
- * through where lines cross); engraved end labels carry name + current %.
- * Production RDI values: SatFat 30g, Sugar 90g, Fibre 30g, Salt 6g, Calcium 1000mg.
+ * Nutrients vs RDI — the etched grid.
+ *
+ * Five overlapping lines always tangled in a band around 100% (where a
+ * well-fed person lives), so each nutrient gets its own strip: a soft
+ * pigment wash filled to its value, crossed by a common etched 100% datum
+ * at the same height in every strip. Where the wash pools ABOVE the datum,
+ * the pigment deepens (ink dilution) — overage is visible at a glance
+ * without a single overlapping line. The inked top edge carries precision;
+ * the engraved % at each strip's end is the instrument's reading.
  */
 import { useCallback } from "react";
-import { curveMonotoneX, line } from "d3-shape";
+import { area, curveMonotoneX, line } from "d3-shape";
 import {
   NUTRIENT_COLORS,
   NUTRIENT_SHORT_NAMES,
@@ -16,17 +21,13 @@ import {
 } from "@/lib/constants";
 import type { NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import {
+  AXIS_COLOR,
   CaliperLine,
   ChartTooltip,
   ContactDot,
-  DirectLabels,
   EmptyChart,
   KAOLIN,
-  LatestReadout,
-  Legend,
   XAxis,
-  YAxis,
-  chartFrame,
   lastDefined,
   makeXScale,
   makeYScale,
@@ -43,23 +44,31 @@ const SERIES: { key: NutrientKey; unit: string }[] = [
   { key: "calcium_mg", unit: "mg" },
 ];
 
+const STRIP_LABEL_H = 20; // mono caption above each strip
+const STRIP_GAP = 18;
+const BOTTOM = 30; // shared date axis
+const READOUT_W = 64; // engraved % gutter at the right
+
 export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) {
   const [containerRef, width] = useMeasuredWidth();
-  const { narrow, height, margin } = chartFrame(width);
-  const innerWidth = Math.max(width - margin.left - margin.right, 100);
-  const innerHeight = height - margin.top - margin.bottom;
-
-  const xScale = makeXScale(data.dates, innerWidth);
-  const yScale = makeYScale([0, 200], innerHeight);
-
-  type Point = { date: Date; value: number | null };
-  const lineGen = line<Point>()
-    .defined((p) => p.value !== null)
-    .x((p) => xScale(p.date))
-    .y((p) => yScale(Math.min(p.value as number, 200)))
-    .curve(curveMonotoneX);
+  const narrow = width <= 560;
+  const stripH = narrow ? 48 : 76;
 
   const active = SERIES.filter((s) => data.series[s.key]);
+  const n = active.length;
+  const height = 12 + n * (STRIP_LABEL_H + stripH + STRIP_GAP) - STRIP_GAP + BOTTOM + 8;
+
+  const marginLeft = narrow ? 10 : 16;
+  const innerWidth = Math.max(width - marginLeft - READOUT_W, 100);
+  const xScale = makeXScale(data.dates, innerWidth);
+  // One shared scale, capped at 150%: daily life happens around 100, so the
+  // datum sits at 2/3 height with real amplitude around it. Values beyond
+  // 150 peg flat against the strip's top — a pinned needle, honestly read
+  // via the deep overage pigment and the engraved %.
+  const CAP = 150;
+  const yScale = makeYScale([0, CAP], stripH);
+
+  const plotHeight = n * (STRIP_LABEL_H + stripH + STRIP_GAP) - STRIP_GAP;
 
   const rowsForIndex = useCallback(
     (i: number) =>
@@ -76,136 +85,149 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
 
   const { hover, onMove, onLeave } = useUnifiedHover(data.dates, xScale, rowsForIndex);
 
-  if (data.dates.length === 0) return <EmptyChart height={height} />;
+  if (data.dates.length === 0) return <EmptyChart height={320} />;
 
-  // Latest readings + engraved end labels
-  const latest = active
-    .map((s) => {
-      const last = lastDefined(data.series[s.key]);
-      return last ? { s, last } : null;
-    })
-    .filter((x): x is { s: (typeof SERIES)[number]; last: { value: number; index: number } } => x !== null);
-
-  const readout = latest.map(({ s, last }) => ({
-    value: `${Math.round(last.value)}`,
-    unit: "%",
-    label: NUTRIENT_SHORT_NAMES[s.key],
-  }));
-
-  const endLabels = latest.map(({ s, last }) => ({
-    label: NUTRIENT_SHORT_NAMES[s.key],
-    value: `${Math.round(last.value)}%`,
-    color: NUTRIENT_COLORS[s.key].line,
-    y: yScale(Math.min(last.value, 200)),
-  }));
+  type Point = { date: Date; value: number | null };
+  const clamp = (v: number) => Math.min(v, CAP);
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <LatestReadout items={narrow ? [] : readout} />
-      {narrow && (
-        <Legend
-          items={active.map((s) => ({
-            label: `${NUTRIENT_SHORT_NAMES[s.key]} (${RDI_GUIDELINES[s.key]}${s.unit})`,
-            color: NUTRIENT_COLORS[s.key].line,
-          }))}
-        />
-      )}
       <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          <YAxis
-            yScale={yScale}
-            innerWidth={innerWidth}
-            tickFormat={(v) => `${v}%`}
-            tickValues={[0, 50, 100, 150, 200]}
-            baselineAt={0}
-          />
-          <XAxis xScale={xScale} innerHeight={innerHeight} />
-
-          {/* 100% RDI — an etched datum: incised line with an engraved label */}
-          <g>
-            <line
-              x1={0}
-              x2={innerWidth}
-              y1={yScale(100)}
-              y2={yScale(100)}
-              stroke="#2B2B2B"
-              strokeWidth={1}
-              strokeOpacity={0.35}
-            />
-            <line
-              x1={0}
-              x2={innerWidth}
-              y1={yScale(100) + 1.5}
-              y2={yScale(100) + 1.5}
-              stroke="#2B2B2B"
-              strokeWidth={0.5}
-              strokeOpacity={0.08}
-            />
-            <rect
-              x={innerWidth - 112}
-              y={yScale(100) - 6}
-              width={108}
-              height={12}
-              fill={KAOLIN}
-            />
-            <text
-              x={innerWidth - 6}
-              y={yScale(100)}
-              dy="0.32em"
-              textAnchor="end"
-              fontSize={9}
-              letterSpacing="0.08em"
-              fill="#6B6B6B"
-            >
-              100% RDI Target
-            </text>
-          </g>
-
-          {active.map((s) => {
+        <g transform={`translate(${marginLeft},12)`}>
+          {active.map((s, si) => {
+            const tones = NUTRIENT_COLORS[s.key];
+            const values = data.series[s.key];
             const pts: Point[] = data.dates.map((d, i) => ({
               date: new Date(`${d}T00:00:00Z`),
-              value: data.series[s.key][i],
+              value: values[i],
             }));
-            const d = lineGen(pts) ?? undefined;
+
+            // soft wash filled from the floor to the value
+            const washArea = area<Point>()
+              .defined((p) => p.value !== null)
+              .x((p) => xScale(p.date))
+              .y0(yScale(0))
+              .y1((p) => yScale(clamp(p.value as number)))
+              .curve(curveMonotoneX);
+
+            // the pigment deepens where it pools above the datum
+            const overArea = area<Point>()
+              .defined((p) => p.value !== null && (p.value as number) > 100)
+              .x((p) => xScale(p.date))
+              .y0(yScale(100))
+              .y1((p) => yScale(clamp(p.value as number)))
+              .curve(curveMonotoneX);
+
+            // the inked top edge — precision over the wash
+            const edge = line<Point>()
+              .defined((p) => p.value !== null)
+              .x((p) => xScale(p.date))
+              .y((p) => yScale(clamp(p.value as number)))
+              .curve(curveMonotoneX);
+
+            const last = lastDefined(values);
+            const stripTop = si * (STRIP_LABEL_H + stripH + STRIP_GAP) + STRIP_LABEL_H;
+            const hoverValue = hover ? values[hover.index] : null;
+
             return (
-              <g key={s.key}>
-                {/* paper casing — the page shows through where lines cross */}
-                <path d={d} fill="none" stroke={KAOLIN} strokeWidth={5.25} strokeLinecap="round" strokeLinejoin="round" />
+              <g key={s.key} transform={`translate(0,${stripTop})`}>
+                {/* caption: name · RDI reference */}
+                <text x={0} y={-7} fontSize={10} fill={AXIS_COLOR} letterSpacing="0.06em">
+                  {NUTRIENT_SHORT_NAMES[s.key].toUpperCase()}
+                  <tspan fill="#A0A0A0"> · {RDI_GUIDELINES[s.key]}{s.unit}</tspan>
+                </text>
+
+                <path d={washArea(pts) ?? undefined} fill={tones.area} fillOpacity={0.55} />
+                <path d={overArea(pts) ?? undefined} fill={tones.ink} fillOpacity={0.45} />
                 <path
-                  d={d}
+                  d={edge(pts) ?? undefined}
                   fill="none"
-                  stroke={NUTRIENT_COLORS[s.key].line}
-                  strokeWidth={2.25}
+                  stroke={tones.line}
+                  strokeWidth={1.25}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
+
+                {/* the common etched datum — same height in every strip */}
+                <line
+                  x1={0}
+                  x2={innerWidth}
+                  y1={yScale(100)}
+                  y2={yScale(100)}
+                  stroke="#2B2B2B"
+                  strokeWidth={0.75}
+                  strokeOpacity={0.5}
+                />
+                <line
+                  x1={0}
+                  x2={innerWidth}
+                  y1={yScale(100) + 1.25}
+                  y2={yScale(100) + 1.25}
+                  stroke="#2B2B2B"
+                  strokeWidth={0.5}
+                  strokeOpacity={0.1}
+                />
+                {si === 0 && (
+                  <g>
+                    <rect
+                      x={innerWidth - 100}
+                      y={yScale(100) - 6}
+                      width={100}
+                      height={12}
+                      fill={KAOLIN}
+                    />
+                    <text
+                      x={innerWidth - 2}
+                      y={yScale(100)}
+                      dy="0.32em"
+                      textAnchor="end"
+                      fontSize={9}
+                      letterSpacing="0.08em"
+                      fill="#6B6B6B"
+                    >
+                      100% RDI Target
+                    </text>
+                  </g>
+                )}
+
+                {/* engraved reading at the strip's end */}
+                {last && (
+                  <text
+                    x={innerWidth + 10}
+                    y={Math.max(10, Math.min(stripH - 2, yScale(clamp(last.value)) + 4))}
+                    fontSize={13}
+                    fontWeight={600}
+                    fill={tones.ink}
+                  >
+                    {Math.round(last.value)}%
+                  </text>
+                )}
+
+                {/* caliper contact */}
+                {hover && hoverValue !== null && (
+                  <ContactDot x={hover.x} y={yScale(clamp(hoverValue))} color={tones.ink} />
+                )}
               </g>
             );
           })}
 
-          {!narrow && (
-            <DirectLabels items={endLabels} innerWidth={innerWidth} innerHeight={innerHeight} />
-          )}
-
+          {/* shared caliper hairline through all strips */}
           {hover && (
-            <g>
-              <CaliperLine hover={hover} innerHeight={innerHeight} />
-              {active.map((s) => {
-                const v = data.series[s.key][hover.index];
-                return v === null ? null : (
-                  <ContactDot
-                    key={s.key}
-                    x={hover.x}
-                    y={yScale(Math.min(v, 200))}
-                    color={NUTRIENT_COLORS[s.key].line}
-                  />
-                );
-              })}
+            <g transform={`translate(0,${STRIP_LABEL_H})`}>
+              <CaliperLine hover={hover} innerHeight={plotHeight - STRIP_LABEL_H} />
             </g>
           )}
+
+          {/* one shared date axis under the last strip */}
+          <g transform={`translate(0,${plotHeight})`}>
+            <line x2={innerWidth} stroke={AXIS_COLOR} strokeWidth={0.75} />
+            <XAxis xScale={xScale} innerHeight={0} />
+          </g>
+
           <rect
+            y={0}
             width={innerWidth}
-            height={innerHeight}
+            height={plotHeight}
             fill="transparent"
             style={{ touchAction: "pan-y" }}
             onPointerMove={onMove}
