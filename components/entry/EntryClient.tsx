@@ -287,8 +287,11 @@ export default function EntryClient({
               {Math.round(totals.energy_kcal)} / {Math.round(targets.values.energy_kcal)} kcal
             </strong>
           </span>
+          <span className="summary-separator">·</span>
           <span className="summary-item">{totals.fat_g.toFixed(1)} g Fat</span>
+          <span className="summary-separator">·</span>
           <span className="summary-item">{totals.carbohydrates_g.toFixed(1)} g Carbs</span>
+          <span className="summary-separator">·</span>
           <span className="summary-item">{totals.protein_g.toFixed(1)} g Protein</span>
           <button className="btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
             Edit Targets

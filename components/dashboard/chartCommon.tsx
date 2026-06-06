@@ -44,7 +44,11 @@ export const makeYScale = (domain: [number, number], innerHeight: number) =>
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function formatTickDate(d: Date): string {
+export function formatTickDate(d: Date, spanDays?: number): string {
+  // long ranges tick on month/year boundaries — the year is the signal there
+  if (spanDays !== undefined && spanDays > 180) {
+    return `${MONTHS[d.getUTCMonth()]} '${String(d.getUTCFullYear() % 100).padStart(2, "0")}`;
+  }
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
@@ -138,14 +142,18 @@ export function XAxis({
   xScale: ScaleTime<number, number>;
   innerHeight: number;
 }) {
-  const ticks = xScale.ticks(6);
+  // ~90px per label keeps ticks readable down to phone widths
+  const [x0, x1] = xScale.range();
+  const ticks = xScale.ticks(Math.max(2, Math.min(6, Math.floor((x1 - x0) / 90))));
+  const [d0, d1] = xScale.domain();
+  const spanDays = (d1.getTime() - d0.getTime()) / 86_400_000;
   return (
     <g transform={`translate(0,${innerHeight})`}>
       {ticks.map((t, i) => (
         <g key={i} transform={`translate(${xScale(t)},0)`}>
           <line y2={4} stroke={AXIS_COLOR} strokeWidth={0.5} />
           <text y={18} textAnchor="middle" fontSize={11} fill={AXIS_COLOR}>
-            {formatTickDate(t)}
+            {formatTickDate(t, spanDays)}
           </text>
         </g>
       ))}
