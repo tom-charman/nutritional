@@ -104,11 +104,15 @@ zeroes everything (global block at the bottom of globals.css).
   wash (0.55) filled to the value, `ink`-tone pooling (0.45) where it
   crosses the datum, `line`-tone inked top edge, engraved current % at the
   strip's end. Values past 150% peg flat — a pinned needle, honestly read
-  via the deep pigment and the % readout. The datum carries the CURRENT
-  target-mode semantics like an engineering drawing hatches the solid side
-  of a boundary: LIMIT → hatch strokes rise above the line (a ceiling);
-  TARGET → strokes hang below (a floor). Caption carries the word; the
-  engraved % gains the entry-channel ✓/⚠ verdict when meaningful.
+  via the deep pigment and the % readout. The CURRENT target-mode
+  semantics render with three redundant channels: (1) drafting poché — the
+  whole semantic zone is veiled (flat sumi 5.5% for arm's length) and
+  hatched (fine 45° for close reading): LIMIT shades the sky above the
+  datum, TARGET shades the floor below; (2) a desired-direction glyph in
+  the readout column (▼ keep below the rule / ▲ keep above); (3) the
+  caption word (· LIMIT / · TARGET). The engraved % gains the
+  entry-channel ✓/⚠ verdict when meaningful. Fine texture alone is
+  subliminal — never rely on it for at-a-glance semantics.
   Rationale: a well-fed person lives near 100% on all five, so overlapping
   lines always tangle.
 

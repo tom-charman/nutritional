@@ -11,10 +11,12 @@
  * without a single overlapping line. The inked top edge carries precision;
  * the engraved % at each strip's end is the instrument's reading.
  *
- * The datum carries the CURRENT target semantics like an engineering
- * drawing hatches the solid side of a boundary: a LIMIT is a ceiling
- * (hatch strokes rise above the line — the wall you shouldn't cross);
- * a TARGET is a floor (strokes hang below — the shelf you stand on).
+ * The CURRENT target semantics render as drafting poché — the whole
+ * forbidden/aspirational zone is hatch-filled, not the line: a LIMIT
+ * hatches the sky above the datum (don't let your pigment rise into it);
+ * a TARGET hatches the floor below (bury it under your pigment — exposed
+ * hatching is shortfall showing through). Region position is readable at
+ * arm's length where stroke-direction ticks were not.
  */
 import { useCallback } from "react";
 import { area, curveMonotoneX, line } from "d3-shape";
@@ -106,6 +108,14 @@ export default function NutrientsRdiChart({
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
       <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
+        <defs>
+          {/* drafting poché: fine 45° sumi hatching for the semantic zones */}
+          <pattern id="poche" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            {/* flat shadow veil (reads at arm's length) + fine hatch (reads up close) */}
+            <rect width="5" height="5" fill="#2B2B2B" fillOpacity="0.055" />
+            <line x1="0" y1="0" x2="0" y2="5" stroke="#2B2B2B" strokeWidth="0.7" strokeOpacity="0.16" />
+          </pattern>
+        </defs>
         <g transform={`translate(${marginLeft},12)`}>
           {active.map((s, si) => {
             const tones = NUTRIENT_COLORS[s.key];
@@ -144,12 +154,6 @@ export default function NutrientsRdiChart({
             const mode = modes?.[s.key];
             // verdict per the entry-channel grammar (value vs the 100% rule)
             const verdict = last && mode ? macroIndicator(last.value, 100, mode) : null;
-            // ceiling/floor hatching: strokes on the forbidden/solid side
-            const hatchDir = mode === "limit" ? -1 : 1;
-            const hatches: number[] = [];
-            if (mode) {
-              for (let hx = 10; hx < innerWidth - 110; hx += 30) hatches.push(hx);
-            }
 
             return (
               <g key={s.key} transform={`translate(0,${stripTop})`}>
@@ -164,8 +168,8 @@ export default function NutrientsRdiChart({
                   )}
                 </text>
 
-                <path d={washArea(pts) ?? undefined} fill={tones.area} fillOpacity={0.55} />
-                <path d={overArea(pts) ?? undefined} fill={tones.ink} fillOpacity={0.45} />
+                <path d={washArea(pts) ?? undefined} fill={tones.area} />
+                <path d={overArea(pts) ?? undefined} fill={tones.ink} fillOpacity={0.4} />
                 <path
                   d={edge(pts) ?? undefined}
                   fill="none"
@@ -174,6 +178,18 @@ export default function NutrientsRdiChart({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
+
+                {/* poché overlay — the whole semantic zone is hatched:
+                    limit = the sky you must not rise into; target = the
+                    floor you bury under pigment. Region position reads at
+                    arm's length; pigment seen through the hatch marks
+                    trespass (limits) or attainment (targets). */}
+                {mode === "limit" && (
+                  <rect x={0} y={0} width={innerWidth} height={yScale(100)} fill="url(#poche)" />
+                )}
+                {mode === "target" && (
+                  <rect x={0} y={yScale(100)} width={innerWidth} height={stripH - yScale(100)} fill="url(#poche)" />
+                )}
 
                 {/* the common etched datum — same height in every strip */}
                 <line
@@ -194,18 +210,7 @@ export default function NutrientsRdiChart({
                   strokeWidth={0.5}
                   strokeOpacity={0.1}
                 />
-                {hatches.map((hx) => (
-                  <line
-                    key={hx}
-                    x1={hx}
-                    y1={yScale(100)}
-                    x2={hx + 4}
-                    y2={yScale(100) + hatchDir * 4.5}
-                    stroke="#2B2B2B"
-                    strokeWidth={0.75}
-                    strokeOpacity={0.3}
-                  />
-                ))}
+
                 {si === 0 && (
                   <g>
                     <rect
@@ -238,6 +243,11 @@ export default function NutrientsRdiChart({
                     fontWeight={600}
                     fill={tones.ink}
                   >
+                    {mode && (
+                      <tspan fill="#6B6B6B" fontSize={9}>
+                        {mode === "limit" ? "▼ " : "▲ "}
+                      </tspan>
+                    )}
                     {Math.round(last.value)}%
                     {verdict === "met" && (
                       <tspan fill="#789440" fontSize={11}> ✓</tspan>
