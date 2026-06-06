@@ -110,9 +110,10 @@ export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
   // Persimmon — fat's deeper kin, rotated orange; brightest band at stack top
   saturated_fat_g: { ink: "#C8531C", line: "#B5440F", area: "#EFB48C", wash: "#FBEADD" },
   // Antique Gold — the dominant stack mass, honeyed ochre
-  carbohydrates_g: { ink: "#B07D2B", line: "#9A6A1E", area: "#E3C07A", wash: "#F5EEDD" },
-  // Mustard / pale amber — sugar is carved out of carbs: kin, green-shifted, lighter
-  sugar_g: { ink: "#9A8E1A", line: "#8A8000", area: "#EBD487", wash: "#F7F3D9" },
+  carbohydrates_g: { ink: "#B07D2B", line: "#9A6A1E", area: "#D9A848", wash: "#F5EEDD" },
+  // Pale Amber — sugar is carved out of carbs: same warm family, lighter.
+  // (The original beloved #EBC374; deep warm amber for ink/line — no green.)
+  sugar_g: { ink: "#997C18", line: "#8A6D00", area: "#EBC374", wash: "#F8F0DA" },
   // Iron Blue — the anchor; cool base under the warm stack
   protein_g: { ink: "#2C4C5B", line: "#2C4C5B", area: "#5E7C88", wash: "#E6ECEE" },
   // Aged Pine — held distinct from Bamboo success green

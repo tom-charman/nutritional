@@ -25,8 +25,8 @@ styles in `app/globals.css`, chart conventions in
 | Nutrient | pigment | ink | line | area | wash |
 |---|---|---|---|---|---|
 | Protein | Iron Blue (anchor) | `#2C4C5B` | `#2C4C5B` | `#5E7C88` | `#E6ECEE` |
-| Carbs | Antique Gold | `#B07D2B` | `#9A6A1E` | `#E3C07A` | `#F5EEDD` |
-| Sugar | Mustard (carbs' kin) | `#9A8E1A` | `#8A8000` | `#EBD487` | `#F7F3D9` |
+| Carbs | Antique Gold | `#B07D2B` | `#9A6A1E` | `#D9A848` | `#F5EEDD` |
+| Sugar | Pale Amber (carbs' kin) | `#997C18` | `#8A6D00` | `#EBC374` | `#F8F0DA` |
 | Fat | Baked Clay | `#BF6B59` | `#A8503D` | `#E5A593` | `#F3E6E0` |
 | Sat Fat | Persimmon (fat's kin) | `#C8531C` | `#B5440F` | `#EFB48C` | `#FBEADD` |
 | Fibre | Aged Pine | `#4F6D46` | `#3F5C38` | `#8FA587` | `#E7EFE5` |
@@ -40,7 +40,7 @@ fills → `area` · badge/row tints AND progress-channel tracks → `wash`.
 The daily macro bars are "pigment channels": the nutrient's own wash as the
 empty track, its area tone as the fill (12px; preview channels 7px) —
 Energy uses diluted sumi `#6B6B6B` on the kaolin wash. Contrast floors: ink ≥4.5:1 on white; line ≥3:1
-on Kaolin (sugar 3.2:1 is the tightest — re-verify if changed).
+on Kaolin (sugar line #8A6D00 ≈4.3:1 on Kaolin).
 Weight series stays `WEIGHT_COLOR` bamboo `#789440`.
 
 ## 2. Typography
