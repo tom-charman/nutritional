@@ -238,7 +238,7 @@ export default function MealsClient({
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <button
-              className="btn-success"
+              className="btn-primary"
               data-testid="save-meal"
               onClick={handleSave}
               disabled={isPending}

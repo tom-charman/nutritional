@@ -31,9 +31,13 @@ async function main() {
   await page.waitForSelector(".chart-svg path");
   await shot("01-morning-dashboard");
   await page.getByRole("tab", { name: "Macronutrient Breakdown" }).click();
-  await shot("02-macros-tab");
+  await shot("02-macros-tab-3m");
+  await page.getByRole("radio", { name: "ALL" }).click();
+  await shot("02b-macros-tab-all");
   await page.getByRole("tab", { name: "Nutrients vs RDI" }).click();
-  await shot("03-rdi-tab");
+  await shot("03b-rdi-tab-all");
+  await page.getByRole("radio", { name: "3M" }).click();
+  await shot("03-rdi-tab-3m");
 
   // ---- 2. Log breakfast (today): the usual overnight-oats meal ----
   await page.goto(`${BASE}/entry`);
@@ -77,11 +81,19 @@ async function main() {
   await page.waitForTimeout(1200);
   await fullShot("11-yesterday-real-day-full");
 
-  // expand a meal if present
+  // expand a meal, then edit one ingredient inline (post-entry meal editing)
   const mealHeader = page.locator(".meal-entry-header").first();
   if (await mealHeader.count()) {
     await mealHeader.click();
     await shot("12-yesterday-meal-expanded");
+    const ingredientAmount = page
+      .locator(".meal-entry-ingredients .ingredient-weight.editable")
+      .first();
+    if (await ingredientAmount.count()) {
+      await ingredientAmount.click();
+      await shot("12b-ingredient-inline-edit");
+      await page.keyboard.press("Escape");
+    }
   }
 
   // ---- 6. Foods: find and inspect a long-named item ----

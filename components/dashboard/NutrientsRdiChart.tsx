@@ -7,7 +7,7 @@
  */
 import { useCallback } from "react";
 import { curveCatmullRom, line } from "d3-shape";
-import { NUTRIENT_COLORS, RDI_GUIDELINES, type NutrientKey } from "@/lib/constants";
+import { RDI_CHART_COLORS, RDI_GUIDELINES, type NutrientKey } from "@/lib/constants";
 import type { NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import {
   ChartTooltip,
@@ -55,7 +55,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
         return {
           label: s.label,
           value: v === null ? "—" : `${v.toFixed(1)}% of RDI`,
-          color: NUTRIENT_COLORS[s.key],
+          color: RDI_CHART_COLORS[s.key]!,
         };
       }),
     [data],
@@ -70,7 +70,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
       <Legend
         items={SERIES.map((s) => ({
           label: `${s.label} (${RDI_GUIDELINES[s.key]}${s.unit})`,
-          color: NUTRIENT_COLORS[s.key],
+          color: RDI_CHART_COLORS[s.key]!,
         }))}
       />
       <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
@@ -110,7 +110,7 @@ export default function NutrientsRdiChart({ data }: { data: NutrientsRdiData }) 
                 key={s.key}
                 d={lineGen(pts) ?? undefined}
                 fill="none"
-                stroke={NUTRIENT_COLORS[s.key]}
+                stroke={RDI_CHART_COLORS[s.key]!}
                 strokeWidth={1.5}
               />
             );

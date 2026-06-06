@@ -88,7 +88,14 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <Legend items={LAYERS.map((l) => ({ label: l.label, color: l.color }))} />
+      <Legend
+        items={LAYERS.map((l) => ({
+          label: l.label,
+          color: l.color,
+          kind: "area" as const,
+          opacity: l.opacity,
+        }))}
+      />
       <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           <rect width={innerWidth} height={innerHeight} fill={PLOT_BG} />

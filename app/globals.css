@@ -354,6 +354,7 @@ button, .btn {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    white-space: nowrap;
 }
 
 /* Primary Button - Aizome Indigo style */
@@ -639,6 +640,7 @@ input[type="radio"]:focus {
 /* ==================== Tabs ==================== */
 .nav-tabs {
     display: flex;
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--border);
     margin-bottom: var(--space-xl);
     padding: 0;
@@ -648,6 +650,7 @@ input[type="radio"]:focus {
 .nav-tabs .tab-link {
     border: none;
     background: transparent;
+    white-space: normal; /* tab labels may wrap on narrow screens */
     color: var(--text-body);
     font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-sm);

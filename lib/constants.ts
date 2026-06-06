@@ -95,6 +95,22 @@ export const NUTRIENT_COLORS: Record<NutrientKey, string> = {
 export const WEIGHT_COLOR = "#789440";
 export const WEIGHT_BAND_FILL = "rgba(120, 148, 64, 0.08)";
 
+/**
+ * Multi-line chart palette — the Nihonga DATA palette from the brand doc
+ * ("selected for high contrast against each other"). The muted nutrient
+ * pigments (NUTRIENT_COLORS) are for badges/bars/dots where adjacency and
+ * background tints carry the distinction; overlapping 1.5px lines need
+ * contrast. (The old app used the muted pigments here and its RDI lines
+ * were nearly indistinguishable.)
+ */
+export const RDI_CHART_COLORS: Partial<Record<NutrientKey, string>> = {
+  saturated_fat_g: "#E87722", // Persimmon
+  sugar_g: "#B8A900", // Mustard
+  fibre_g: "#3D5941", // Pine
+  salt_g: "#7B5FB8", // Wisteria
+  calcium_mg: "#4A9B8E", // Teal/Verdigris
+};
+
 export type TargetMode = "target" | "limit";
 
 export type UnitType = "per_100g" | "per_item";

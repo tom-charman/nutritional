@@ -201,7 +201,7 @@ export function YAxis({
 export function Legend({
   items,
 }: {
-  items: { label: string; color: string; dash?: string }[];
+  items: { label: string; color: string; dash?: string; kind?: "line" | "area"; opacity?: number }[];
 }) {
   return (
     <div
@@ -217,16 +217,20 @@ export function Legend({
     >
       {items.map((it) => (
         <span key={it.label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <svg width={22} height={8}>
-            <line
-              x1={0}
-              y1={4}
-              x2={22}
-              y2={4}
-              stroke={it.color}
-              strokeWidth={2}
-              strokeDasharray={it.dash}
-            />
+          <svg width={22} height={10}>
+            {it.kind === "area" ? (
+              <rect x={5} y={0} width={12} height={10} fill={it.color} fillOpacity={it.opacity ?? 1} rx={2} />
+            ) : (
+              <line
+                x1={0}
+                y1={5}
+                x2={22}
+                y2={5}
+                stroke={it.color}
+                strokeWidth={2}
+                strokeDasharray={it.dash}
+              />
+            )}
           </svg>
           {it.label}
         </span>
