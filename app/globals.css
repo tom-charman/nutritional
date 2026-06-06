@@ -78,10 +78,22 @@
     --radius-md: 8px;
     --radius-lg: 12px;
 
-    /* Shadows - Flatter, more subtle (inking on paper, not drop shadows) */
-    --shadow-sm: 0 0.5px 1px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
-    --shadow-lg: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+    /* Shadows — warmed Sumi-tinted inks on paper, never pure black */
+    --shadow-sm: 0 0.5px 1px rgba(43, 38, 34, 0.09);
+    --shadow-md: 0 1px 2px rgba(43, 38, 34, 0.09), inset 0 0 0 0.5px rgba(43, 38, 34, 0.05);
+    --shadow-lg: inset 0 1px 3px rgba(43, 38, 34, 0.09);
+    --shadow-press: inset 0 1.5px 3px rgba(43, 38, 34, 0.16);
+    /* Warm-brass focus ring — every focusable wears the same one */
+    --ring-focus: 0 0 0 1px rgba(176, 141, 87, 0.55), 0 0 0 3px rgba(176, 141, 87, 0.18);
+
+    /* Motion — one signature gesture: things settle into place like a
+       well-fitted drawer. Never springs, never bounces. */
+    --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-press: cubic-bezier(0.4, 0, 0.6, 1);
+    --ease-exit: ease-in;
+    --dur-instant: 80ms;
+    --dur-quick: 160ms;
+    --dur-settle: 280ms;
 
     /* Typography - Brand fonts (self-hosted via next/font in app/layout.tsx) */
     --font-display: var(--font-crimson), 'Georgia', serif;
@@ -100,6 +112,18 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
+}
+
+/* Tabular numerals wherever digits form columns — the instrument's gauge */
+.macro-bar-value,
+.ingredient-calories,
+.ingredient-weight,
+.nutrient-value,
+.chart-tooltip,
+.summary-item,
+.master-list-item-badge,
+.meal-card-info {
+    font-feature-settings: "tnum";
 }
 
 /* ==================== Global Styles ==================== */
@@ -356,7 +380,10 @@ button, .btn {
     font-size: var(--font-size-sm);
     font-family: var(--font-primary);
     letter-spacing: 0;
-    transition: all 0.15s ease;
+    transition: background-color var(--dur-quick) var(--ease-press),
+                border-color var(--dur-quick) var(--ease-press),
+                box-shadow var(--dur-quick) var(--ease-press),
+                transform var(--dur-instant) var(--ease-press);
     border: none;
     display: inline-flex;
     align-items: center;
@@ -380,7 +407,14 @@ button, .btn {
 
 .btn-primary:active {
     transform: translateY(1px);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-press);
+}
+
+/* Material honesty: every button presses, none blink */
+.btn-secondary:active, .btn-ghost:active,
+.btn-success:active, .btn-danger:active {
+    transform: translateY(1px);
+    box-shadow: var(--shadow-press);
 }
 
 /* Success Button */
@@ -471,8 +505,18 @@ select:focus,
 .form-control:focus {
     background-color: var(--surface);
     border-color: var(--border-hover);
-    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(191, 166, 125, 0.3);
+    box-shadow: inset 0 0.5px 1px rgba(43, 38, 34, 0.08), var(--ring-focus);
     outline: none;
+}
+
+/* Every focusable wears the same warm-brass ring */
+button:focus-visible,
+.btn:focus-visible,
+a:focus-visible,
+[role="radio"]:focus-visible,
+[role="tab"]:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
 }
 
 input::placeholder {
@@ -564,6 +608,7 @@ input[type="radio"]:focus {
 }
 
 .combobox-menu {
+    animation: menu-in var(--dur-quick) var(--ease-settle);
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -576,6 +621,10 @@ input[type="radio"]:focus {
     max-height: 280px;
     overflow-y: auto;
     z-index: 100;
+}
+
+@keyframes menu-in {
+    from { opacity: 0; transform: translateY(-2px); }
 }
 
 .combobox-option {
@@ -782,7 +831,7 @@ input[type="radio"]:focus {
 .progress-bar {
     height: 100%;
     border-radius: 4px;
-    transition: width 0.3s ease;
+    transition: width var(--dur-settle) var(--ease-settle);
 }
 
 /* Nutrient-specific progress bars - brand pigments */
@@ -862,8 +911,21 @@ input[type="radio"]:focus {
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    animation: fadeIn 0.2s ease;
+    box-shadow: 0 2px 8px rgba(43, 38, 34, 0.18);
+    animation: settle-in var(--dur-settle) var(--ease-settle);
+}
+
+.toast.leaving {
+    animation: settle-out var(--dur-quick) var(--ease-exit) forwards;
+}
+
+@keyframes settle-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes settle-out {
+    to { opacity: 0; transform: translateY(4px); }
 }
 
 .toast-success { background-color: var(--success); }
@@ -1116,6 +1178,7 @@ input[type="radio"] {
     position: fixed;
     inset: 0;
     background: rgba(26, 26, 26, 0.4);
+    animation: overlay-in var(--dur-quick) ease-out;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1123,7 +1186,12 @@ input[type="radio"] {
     padding: var(--space-xl);
 }
 
+@keyframes overlay-in {
+    from { opacity: 0; }
+}
+
 .modal {
+    animation: modal-in var(--dur-settle) var(--ease-settle);
     background: var(--surface);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
@@ -1132,6 +1200,10 @@ input[type="radio"] {
     width: 100%;
     max-height: calc(100vh - 80px);
     overflow-y: auto;
+}
+
+@keyframes modal-in {
+    from { opacity: 0; transform: scale(0.98) translateY(4px); }
 }
 
 .modal-header {
@@ -1497,6 +1569,7 @@ input[type="radio"] {
 
 /* Inline edit input for entry amounts */
 .inline-edit-input {
+    animation: fadeIn var(--dur-quick) var(--ease-settle);
     width: 80px;
     height: 26px;
     padding: 2px 8px;
@@ -1597,6 +1670,18 @@ input[type="radio"] {
     font-size: 12px;
     min-width: 16px;
     text-align: center;
+}
+
+/* The verdict stamps in like a hanko seal */
+.macro-bar-indicator.target-met,
+.macro-bar-indicator.target-warning,
+.macro-bar-indicator.target-exceeded {
+    animation: stamp-in var(--dur-quick) var(--ease-settle);
+}
+
+@keyframes stamp-in {
+    from { opacity: 0; transform: scale(1.35); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 /* Column 3: The Logbook (Context) */
@@ -1905,5 +1990,14 @@ input[type="radio"] {
     .ingredient-item:hover {
         padding-left: 0;
         padding-right: 0;
+    }
+}
+
+/* ==================== Reduced Motion ==================== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
