@@ -78,7 +78,19 @@ export default function DashboardTabs({
             </button>
           ))}
         </div>
-        <div className="range-toggle" role="radiogroup" aria-label="Date range">
+        <div
+          className="range-toggle"
+          role="radiogroup"
+          aria-label="Date range"
+          onKeyDown={(e) => {
+            const idx = RANGES.findIndex((r) => r.label === range);
+            if (e.key === "ArrowRight" && idx < RANGES.length - 1) {
+              setRange(RANGES[idx + 1].label);
+            } else if (e.key === "ArrowLeft" && idx > 0) {
+              setRange(RANGES[idx - 1].label);
+            }
+          }}
+        >
           {RANGES.map((r) => (
             <button
               key={r.label}
@@ -93,7 +105,8 @@ export default function DashboardTabs({
           ))}
         </div>
       </div>
-      <div className="graph-wrapper">
+      {/* keyed by view: range/tab changes settle the new reading into place */}
+      <div className="graph-wrapper" key={`${active}-${range}`}>
         {active === 0 && <CaloriesWeightChart data={windowed.caloriesWeight} />}
         {active === 1 && <MacroBreakdownChart data={windowed.macroBreakdown} />}
         {active === 2 && <NutrientsRdiChart data={windowed.nutrientsRdi} />}

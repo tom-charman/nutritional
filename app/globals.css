@@ -608,7 +608,6 @@ input[type="radio"]:focus {
 }
 
 .combobox-menu {
-    animation: menu-in var(--dur-quick) var(--ease-settle);
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -621,10 +620,6 @@ input[type="radio"]:focus {
     max-height: 280px;
     overflow-y: auto;
     z-index: 100;
-}
-
-@keyframes menu-in {
-    from { opacity: 0; transform: translateY(-2px); }
 }
 
 .combobox-option {
@@ -725,10 +720,26 @@ input[type="radio"]:focus {
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
+.nav-tabs .tab-link {
+    color: var(--text-muted);
+}
+
 .nav-tabs .tab-link.active {
     color: var(--primary);
-    border-bottom: 2px solid var(--primary);
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-semibold);
     background-color: transparent;
+    position: relative;
+}
+
+/* the scribed line extends past the word, like a scored rule */
+.nav-tabs .tab-link.active::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--space-xl) - 6px);
+    right: calc(var(--space-xl) - 6px);
+    bottom: -1px;
+    border-bottom: 2px solid var(--primary);
 }
 
 /* ==================== Chart Containers ==================== */
@@ -745,6 +756,49 @@ input[type="radio"]:focus {
     border-radius: var(--radius-md);
     padding: 16px;
     border: 1px solid var(--border);
+    animation: settle-in var(--dur-settle) var(--ease-settle);
+}
+
+/* The instrument's primary reading — quiet row above the plot */
+.chart-readout {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 4px 4px 14px;
+}
+
+.chart-readout-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.chart-readout-value {
+    font-family: var(--font-display);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-main);
+    font-variation-settings: "opsz" 32;
+}
+
+.chart-readout-unit {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.chart-readout-label {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-tiny);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.chart-readout-sep {
+    color: var(--text-disabled);
+    margin-right: 10px;
 }
 
 .chart-svg {
@@ -757,22 +811,39 @@ input[type="radio"]:focus {
 .chart-tooltip {
     position: absolute;
     pointer-events: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    background: #FBFAF6;
+    border: 1px solid #C9BBA3;
+    border-radius: 2px; /* a metal plate, sharper than the paper radii */
+    box-shadow: inset 0 1px 0 #fff, 0 1px 3px rgba(43, 38, 34, 0.14);
     padding: 8px 12px;
     font-family: var(--font-mono);
     font-size: var(--font-size-xs);
+    font-feature-settings: "tnum";
     color: var(--text-body);
     z-index: 50;
     white-space: nowrap;
+    min-width: 168px;
 }
 
 .chart-tooltip .tooltip-date {
     font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.chart-tooltip .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    line-height: 1.6;
+}
+
+.chart-tooltip .tooltip-value {
     color: var(--text-main);
-    margin-bottom: 4px;
+    font-weight: 600;
 }
 
 /* ==================== Lists & Tables ==================== */
@@ -1247,20 +1318,47 @@ input[type="radio"] {
 
 .range-toggle {
     display: flex;
-    border: 1px solid var(--border);
+    border: 1px solid #C9BBA3;
     border-radius: var(--radius-sm);
     overflow: hidden;
     margin-bottom: var(--space-xl);
     align-self: center;
+    background: var(--background);
+    box-shadow: inset 0 1px 2px rgba(43, 38, 34, 0.08); /* debossed channel */
 }
 
 .range-toggle .mode-toggle-option {
     height: 28px;
     padding: 0 12px;
+    background: transparent;
+    position: relative;
 }
 
-.range-toggle .mode-toggle-option + .mode-toggle-option {
+/* detent marks between positions, not table-cell borders */
+.range-toggle .mode-toggle-option + .mode-toggle-option::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 10px;
     border-left: 1px solid var(--border);
+}
+
+/* the locked-in key: raised, with a scribe mark over the detent */
+.range-toggle .mode-toggle-option.active {
+    background: var(--surface);
+    box-shadow: 0 0.5px 1.5px rgba(43, 38, 34, 0.18);
+}
+
+.range-toggle .mode-toggle-option.active::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    border-top: 1px solid var(--primary);
 }
 
 /* Target/Limit segmented toggle — pressed like a physical switch, not a dropdown */

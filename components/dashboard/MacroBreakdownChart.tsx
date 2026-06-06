@@ -1,33 +1,32 @@
 "use client";
 
 /**
- * Macronutrient breakdown stacked area — port of plotting/macros.py.
- * Stack order (bottom→top): Protein, Other Carbs, Sugar, Other Fat, Saturated Fat.
+ * Macronutrient breakdown — soft mineral bands stacked on the paper.
+ * Stack order (bottom→top): Protein, Other Carbs, Sugar, Other Fat, Sat Fat.
+ * Bands carry the soft `area` dilution; identity markers (tooltip bullets)
+ * use `ink`. Direct band labels at the right edge replace the legend.
  */
 import { useCallback } from "react";
-import { area, curveCatmullRom } from "d3-shape";
+import { area, curveMonotoneX } from "d3-shape";
 import { NUTRIENT_COLORS } from "@/lib/constants";
 import type { MacroBreakdownData } from "@/lib/domain/charts/prepare";
 import {
+  CaliperLine,
   ChartTooltip,
+  DirectLabels,
   EmptyChart,
+  LatestReadout,
   Legend,
-  MARGIN,
-  PLOT_BG,
   XAxis,
   YAxis,
+  chartFrame,
+  lastDefined,
   makeXScale,
   makeYScale,
   useMeasuredWidth,
   useUnifiedHover,
 } from "./chartCommon";
 
-const HEIGHT = 480;
-
-/**
- * Layer fills use the soft `area` dilution; tooltip bullets use `ink` — the
- * identity tone a user recognizes from dots/bars everywhere else.
- */
 const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; area: string; ink: string }[] = [
   { key: "protein_cal", label: "Protein", area: NUTRIENT_COLORS.protein_g.area, ink: NUTRIENT_COLORS.protein_g.ink },
   { key: "other_carbs_cal", label: "Other Carbs", area: NUTRIENT_COLORS.carbohydrates_g.area, ink: NUTRIENT_COLORS.carbohydrates_g.ink },
@@ -38,8 +37,9 @@ const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; are
 
 export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData }) {
   const [containerRef, width] = useMeasuredWidth();
-  const innerWidth = Math.max(width - MARGIN.left - MARGIN.right, 100);
-  const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
+  const { narrow, height, margin } = chartFrame(width);
+  const innerWidth = Math.max(width - margin.left - margin.right, 100);
+  const innerHeight = height - margin.top - margin.bottom;
 
   const n = data.dates.length;
 
@@ -72,7 +72,7 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
     .x((p) => xScale(p.date))
     .y0((p) => yScale(p.lower as number))
     .y1((p) => yScale(p.upper as number))
-    .curve(curveCatmullRom);
+    .curve(curveMonotoneX);
 
   const rowsForIndex = useCallback(
     (i: number) =>
@@ -89,21 +89,55 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
 
   const { hover, onMove, onLeave } = useUnifiedHover(data.dates, xScale, rowsForIndex);
 
-  if (n === 0) return <EmptyChart height={HEIGHT} />;
+  if (n === 0) return <EmptyChart height={height} />;
+
+  // Latest reading: total + macro shares
+  const lastTotal = lastDefined(running);
+  const readout = [];
+  if (lastTotal) {
+    const i = lastTotal.index;
+    const p = data.protein_cal[i] ?? 0;
+    const c = (data.other_carbs_cal[i] ?? 0) + (data.sugar_cal[i] ?? 0);
+    const f = (data.other_fat_cal[i] ?? 0) + (data.saturated_fat_cal[i] ?? 0);
+    const total = lastTotal.value;
+    readout.push({
+      value: Math.round(total).toLocaleString("en-US"),
+      unit: "kcal",
+      label: "total",
+    });
+    if (total > 0) {
+      readout.push({
+        value: `${Math.round((p / total) * 100)} / ${Math.round((c / total) * 100)} / ${Math.round((f / total) * 100)}`,
+        unit: "%",
+        label: "protein / carbs / fat",
+      });
+    }
+  }
+
+  // Direct band labels at right-edge mid-heights
+  const lastIdx = lastTotal?.index ?? n - 1;
+  const bandLabels = LAYERS.map((layer, li) => {
+    const lower = stacks[li].lower[lastIdx];
+    const upper = stacks[li].upper[lastIdx];
+    if (lower === null || upper === null) return null;
+    return {
+      label: layer.label,
+      color: layer.ink,
+      y: yScale((lower + upper) / 2),
+    };
+  }).filter((x): x is { label: string; color: string; y: number } => x !== null);
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <Legend
-        items={LAYERS.map((l) => ({
-          label: l.label,
-          color: l.area,
-          kind: "area" as const,
-        }))}
-      />
-      <svg className="chart-svg" viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT}>
-        <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-          <rect width={innerWidth} height={innerHeight} fill={PLOT_BG} />
-          <YAxis yScale={yScale} innerWidth={innerWidth} />
+      <LatestReadout items={readout} />
+      {narrow && (
+        <Legend
+          items={LAYERS.map((l) => ({ label: l.label, color: l.area, kind: "area" as const }))}
+        />
+      )}
+      <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
+        <g transform={`translate(${margin.left},${margin.top})`}>
+          <YAxis yScale={yScale} innerWidth={innerWidth} baselineAt={0} />
           <XAxis xScale={xScale} innerHeight={innerHeight} />
 
           {LAYERS.map((layer, li) => {
@@ -122,23 +156,19 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
             );
           })}
 
-          {hover && (
-            <line
-              x1={hover.x}
-              x2={hover.x}
-              y1={0}
-              y2={innerHeight}
-              stroke="#6B6B6B"
-              strokeWidth={0.75}
-              strokeDasharray="3 3"
-            />
+          {!narrow && (
+            <DirectLabels items={bandLabels} innerWidth={innerWidth} innerHeight={innerHeight} />
           )}
+
+          {hover && <CaliperLine hover={hover} innerHeight={innerHeight} />}
           <rect
             width={innerWidth}
             height={innerHeight}
             fill="transparent"
-            onMouseMove={onMove}
-            onMouseLeave={onLeave}
+            style={{ touchAction: "pan-y" }}
+            onPointerMove={onMove}
+            onPointerDown={onMove}
+            onPointerLeave={onLeave}
           />
         </g>
       </svg>
