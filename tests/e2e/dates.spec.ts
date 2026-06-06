@@ -49,6 +49,20 @@ test.describe("date navigation", () => {
     await expect(entry.datePicker).toHaveAttribute("max", today);
   });
 
+  test("prev/next day arrows step through days; next disabled at today", async ({ page }) => {
+    const entry = new EntryPage(page);
+    await entry.goto(DAY_A); // 2024-01-15
+    await page.getByTestId("prev-day").click();
+    await expect(entry.datePicker).toHaveValue("2024-01-14");
+    await page.getByTestId("next-day").click();
+    await page.getByTestId("next-day").click();
+    await expect(entry.datePicker).toHaveValue(DAY_B); // 2024-01-16
+    // at today, next is disabled
+    const today = new Date().toISOString().slice(0, 10);
+    await entry.goto(today);
+    await expect(page.getByTestId("next-day")).toBeDisabled();
+  });
+
   test("reload preserves the selected date", async ({ page }) => {
     const entry = new EntryPage(page);
     await entry.goto(DAY_A);

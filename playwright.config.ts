@@ -26,10 +26,21 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
+      testIgnore: "**/setup/**",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
     {
+      // both projects share one DB — wipe E2E residue before the mobile pass
+      // (solo mobile runs: use --project=mobile --no-deps after a manual reset,
+      // or just let the dependency chain run desktop first)
+      name: "reset-between-projects",
+      testMatch: "**/setup/reset.setup.ts",
+      dependencies: ["desktop"],
+    },
+    {
       name: "mobile",
+      testIgnore: "**/setup/**",
+      dependencies: ["reset-between-projects"],
       use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } },
     },
   ],

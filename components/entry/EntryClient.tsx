@@ -31,6 +31,12 @@ type Selection =
   | { kind: "meal"; meal: Meal }
   | null;
 
+function shiftDate(iso: string, days: number): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 function formatHeaderDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
   const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -58,6 +64,20 @@ export default function EntryClient({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // --- optimistic date (arrows step instantly; server data follows) ---
+  const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const shownDate = pendingDate ?? date;
+  useEffect(() => {
+    setPendingDate(null); // server caught up
+  }, [date]);
+  const navigateToDate = useCallback(
+    (d: string) => {
+      setPendingDate(d);
+      router.push(`/entry?date=${d}`);
+    },
+    [router],
+  );
 
   // --- selector state ---
   const [selection, setSelection] = useState<Selection>(null);
@@ -228,17 +248,38 @@ export default function EntryClient({
       {/* Header: date picker + compact summary */}
       <div className="daily-header">
         <div className="daily-header-left">
-          <h1>{formatHeaderDate(date)}</h1>
-          <input
-            type="date"
-            data-testid="date-picker"
-            value={date}
-            max={today}
-            style={{ width: 170 }}
-            onChange={(e) => {
-              if (e.target.value) router.push(`/entry?date=${e.target.value}`);
-            }}
-          />
+          <h1>{formatHeaderDate(shownDate)}</h1>
+          <div className="date-stepper">
+            <button
+              type="button"
+              className="icon-button"
+              data-testid="prev-day"
+              title="Previous day"
+              onClick={() => navigateToDate(shiftDate(shownDate, -1))}
+            >
+              ‹
+            </button>
+            <input
+              type="date"
+              data-testid="date-picker"
+              value={shownDate}
+              max={today}
+              style={{ width: 170 }}
+              onChange={(e) => {
+                if (e.target.value) navigateToDate(e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="icon-button"
+              data-testid="next-day"
+              title="Next day"
+              disabled={shownDate >= today}
+              onClick={() => navigateToDate(shiftDate(shownDate, 1))}
+            >
+              ›
+            </button>
+          </div>
         </div>
         <div className="daily-summary-bar">
           <span className="summary-item">

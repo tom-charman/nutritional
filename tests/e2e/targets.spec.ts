@@ -69,11 +69,10 @@ test.describe("daily targets", () => {
     await entry.openTargetsModal();
     // protein as a tiny LIMIT: 17 > 10 * 1.1 → exceeded ⚠
     await targetInput(page, "Protein (g)").fill("10");
-    const proteinModeSelect = modal(page)
-      .locator(".compact-input")
-      .filter({ has: page.locator("label", { hasText: "Protein (g)" }) })
-      .locator("select");
-    await proteinModeSelect.selectOption("limit");
+    const proteinModeGroup = modal(page).getByRole("radiogroup", {
+      name: "Protein (g) mode",
+    });
+    await proteinModeGroup.getByRole("radio", { name: "Limit" }).click();
     await shot(page, "targets", "02-mode-controls");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expectToast(page, "Targets saved");
@@ -85,7 +84,7 @@ test.describe("daily targets", () => {
 
     // switch back to target mode: 17 >= 10 → met ✓
     await entry.openTargetsModal();
-    await proteinModeSelect.selectOption("target");
+    await proteinModeGroup.getByRole("radio", { name: "Target" }).click();
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expectToast(page, "Targets saved");
     await expect(proteinBar.locator(".macro-bar-indicator")).toHaveClass(/target-met/);

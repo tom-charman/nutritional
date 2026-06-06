@@ -57,6 +57,9 @@ export async function saveFoodAction(input: FoodFormInput): Promise<ActionResult
   try {
     await saveFoodItem(db, food);
   } catch (e) {
+    if (errorChainMatches(e, /unique|duplicate/i)) {
+      return { ok: false, message: `A food named '${name}' already exists` };
+    }
     return { ok: false, message: e instanceof Error ? e.message : "Failed to save food" };
   }
   revalidatePath("/foods");

@@ -116,16 +116,24 @@ export default function TargetsModal({
                   value={values[key]}
                   onChange={(e) => setValues({ ...values, [key]: e.target.value })}
                 />
-                <select
-                  value={modes[key]}
-                  style={{ marginTop: 4 }}
-                  onChange={(e) =>
-                    setModes({ ...modes, [key]: e.target.value as TargetMode })
-                  }
+                <div
+                  className="mode-toggle"
+                  role="radiogroup"
+                  aria-label={`${NUTRIENT_LABELS[key]} mode`}
                 >
-                  <option value="target">Target</option>
-                  <option value="limit">Limit</option>
-                </select>
+                  {(["target", "limit"] as TargetMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      role="radio"
+                      aria-checked={modes[key] === m}
+                      className={`mode-toggle-option${modes[key] === m ? " active" : ""}`}
+                      onClick={() => setModes({ ...modes, [key]: m })}
+                    >
+                      {m === "target" ? "Target" : "Limit"}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
