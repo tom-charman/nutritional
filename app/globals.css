@@ -309,6 +309,15 @@ p {
     background-color: var(--background);
 }
 
+.navbar .nav-link-button {
+    /* a <button> wearing the nav-link suit */
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    color: var(--text-muted);
+}
+
 .navbar .nav-link.active {
     /* pressed like an ink stamp, not highlighted like a menu */
     background-color: var(--primary-light);

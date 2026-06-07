@@ -26,7 +26,7 @@ export default async function DeniedPage() {
               </button>
             </form>
           ) : (
-            <a href="/api/auth/signin" className="btn-primary btn">
+            <a href="/signin" className="btn-primary btn">
               Sign in
             </a>
           )}

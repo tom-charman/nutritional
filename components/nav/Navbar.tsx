@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOutAction } from "@/app/actions/auth";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -10,7 +11,7 @@ const LINKS = [
   { href: "/meals", label: "Meal Planner" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname();
   return (
     <nav className="navbar">
@@ -31,6 +32,13 @@ export default function Navbar() {
               </Link>
             );
           })}
+          {signedIn && (
+            <form action={signOutAction} style={{ display: "inline" }}>
+              <button type="submit" className="nav-link nav-link-button">
+                Sign out
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </nav>

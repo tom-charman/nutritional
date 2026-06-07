@@ -20,6 +20,7 @@ export default auth((req) => {
   if (
     pathname.startsWith("/api/auth") ||
     pathname === "/denied" ||
+    pathname === "/signin" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/textures") ||
     pathname === "/favicon.ico"
@@ -29,7 +30,7 @@ export default auth((req) => {
 
   const email = req.auth?.user?.email;
   if (!req.auth) {
-    const signInUrl = new URL("/api/auth/signin", req.nextUrl.origin);
+    const signInUrl = new URL("/signin", req.nextUrl.origin);
     signInUrl.searchParams.set("callbackUrl", req.nextUrl.href);
     return NextResponse.redirect(signInUrl);
   }

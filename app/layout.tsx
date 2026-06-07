@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, JetBrains_Mono } from "next/font/google";
 import Navbar from "@/components/nav/Navbar";
+import { auth } from "@/lib/auth";
 import "./globals.css";
 
 /**
@@ -30,13 +31,14 @@ export const metadata: Metadata = {
   description: "Personal nutrition tracking",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
   return (
     <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <Navbar />
+        <Navbar signedIn={Boolean(session?.user)} />
         <main className="app-container">{children}</main>
       </body>
     </html>
