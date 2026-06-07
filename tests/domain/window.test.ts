@@ -59,6 +59,32 @@ describe("range windowing", () => {
   });
 });
 
+describe("axis span floors (scale honesty)", () => {
+  it("calories: tiny ranges expand to the 800 kcal floor", () => {
+    const [lo, hi] = caloriesAxisLimits([2480, 2520]); // 40 kcal of noise
+    expect(hi - lo).toBeGreaterThanOrEqual(800);
+    // centered on the data, not pinned to an edge
+    expect(lo).toBeLessThan(2480);
+    expect(hi).toBeGreaterThan(2520);
+  });
+
+  it("calories: large ranges still auto-grow past the floor", () => {
+    const [lo, hi] = caloriesAxisLimits([1000, 3000]);
+    expect(hi - lo).toBeGreaterThan(2000);
+  });
+
+  it("weight: stable weeks expand to the 6 kg floor", () => {
+    const [lo, hi] = weightAxisLimits([65.2, 65.8], [66.0, 66.4]); // ~1 kg wobble
+    expect(hi - lo).toBeGreaterThanOrEqual(6);
+  });
+
+  it("weight: a 12 kg journey still fits naturally", () => {
+    const [lo, hi] = weightAxisLimits([56, 68]);
+    expect(lo).toBeLessThanOrEqual(56);
+    expect(hi).toBeGreaterThanOrEqual(68);
+  });
+});
+
 describe("axis limit helpers (transforms.py parity)", () => {
   it("calories limits round to 100s, fallback on empty", () => {
     expect(caloriesAxisLimits([])).toEqual([0, 3000]);

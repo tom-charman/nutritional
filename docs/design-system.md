@@ -96,6 +96,16 @@ zeroes everything (global block at the bottom of globals.css).
   `touch-action: pan-y` on the overlay.
 - **Curves**: `curveMonotoneX` only — never an interpolation that
   overshoots the data.
+- **Scale honesty**: y-axes have minimum spans so noise never looks like a
+  swing — calories 800 kcal (deliberate shifts are ±200–500), weight 6 kg
+  (a slow cut/bulk is 0.25–0.5 kg/week). Longer windows auto-grow past the
+  floor (`MIN_CALORIES_SPAN`/`MIN_WEIGHT_SPAN` in prepare.ts).
+- **The weight scale rule**: weight has no axis (the right gutter belongs
+  to the engraved readouts); a small bamboo caliper bracket bottom-left
+  declares the mapping ("this distance = N kg"), N picked as the smallest
+  of 0.5/1/2/5/10 that draws ≥36px.
+- Series end-labels use real words ("Morning"/"Evening"), never
+  abbreviations that need decoding.
 - **Reference lines**: etched datum (solid hairline + faint incised echo),
   label engraved on the line over a kaolin knockout.
 - **The RDI tab is an etched grid**, not a multi-line chart: one strip per

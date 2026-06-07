@@ -90,6 +90,13 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
 
   if (data.dates.length === 0) return <EmptyChart height={height} />;
 
+  // The weight scale rule — with no right axis, this caliper bracket says
+  // what a kilogram looks like at the current zoom. Pick the smallest
+  // round span that draws at least ~36px tall.
+  const kgPerPx = (data.y2Limits[1] - data.y2Limits[0]) / innerHeight;
+  const ruleKg = [0.5, 1, 2, 5, 10].find((kg) => kg / kgPerPx >= 36) ?? 10;
+  const rulePx = ruleKg / kgPerPx;
+
   // Latest readings — the instrument's primary display
   const lastCal = lastDefined(data.calories_avg);
   const lastM = lastDefined(data.weight_morning);
@@ -125,7 +132,7 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
     ...(lastM
       ? [
           {
-            label: "Weight m",
+            label: "Morning",
             value: `${lastM.value.toFixed(1)} kg`,
             color: WEIGHT_COLOR,
             y: yWeight(lastM.value),
@@ -135,7 +142,7 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
     ...(lastE
       ? [
           {
-            label: "Weight e",
+            label: "Evening",
             value: `${lastE.value.toFixed(1)} kg`,
             color: WEIGHT_COLOR,
             y: yWeight(lastE.value),
@@ -151,8 +158,8 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
         <Legend
           items={[
             { label: "Calories (30-day avg)", color: CALORIES_COLOR },
-            { label: "Weight m", color: WEIGHT_COLOR, dash: "6 2 1 2" },
-            { label: "Weight e", color: WEIGHT_COLOR, dash: "5 4" },
+            { label: "Morning", color: WEIGHT_COLOR, dash: "6 2 1 2" },
+            { label: "Evening", color: WEIGHT_COLOR, dash: "5 4" },
           ]}
         />
       )}
@@ -206,6 +213,16 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
           {!narrow && (
             <DirectLabels items={directLabels} innerWidth={innerWidth} innerHeight={innerHeight} />
           )}
+
+          {/* weight scale rule — a caliper bracket: "this distance = N kg" */}
+          <g transform={`translate(10,${innerHeight - 10 - rulePx})`} aria-label="weight scale">
+            <line x1={0} x2={0} y1={0} y2={rulePx} stroke={WEIGHT_COLOR} strokeWidth={1} strokeOpacity={0.8} />
+            <line x1={-3} x2={3} y1={0} y2={0} stroke={WEIGHT_COLOR} strokeWidth={1} strokeOpacity={0.8} />
+            <line x1={-3} x2={3} y1={rulePx} y2={rulePx} stroke={WEIGHT_COLOR} strokeWidth={1} strokeOpacity={0.8} />
+            <text x={7} y={rulePx / 2} dy="0.32em" fontSize={10} fill={WEIGHT_COLOR} fillOpacity={0.95}>
+              {ruleKg} kg
+            </text>
+          </g>
 
           {hover && (
             <g>

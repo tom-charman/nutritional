@@ -44,12 +44,32 @@ function column(
   return summaries.map((s) => s[key] as number | null);
 }
 
-/** Calories axis: round to 100s with >=50 padding (transforms.py). */
+/**
+ * Minimum y-axis spans — scale honesty. Auto-fit axes make tiny
+ * fluctuations look like big swings; these floors guarantee that noise
+ * stays visually small while deliberate changes stay visible:
+ *  - calories: bulk/cut adjustments are ±200–500 kcal, so an 800 kcal
+ *    floor renders a 500 kcal shift at ~60% of plot height and ±75 kcal
+ *    noise under 10%.
+ *  - weight: a slow cut/lean bulk is ~0.25–0.5 kg/week (3–6 kg per
+ *    quarter); a 6 kg floor renders real progress at half the plot and a
+ *    stable ±0.5 kg wobble as a calm ribbon.
+ * Longer windows still auto-grow beyond the floor.
+ */
+export const MIN_CALORIES_SPAN = 800;
+export const MIN_WEIGHT_SPAN = 6;
+
+/** Calories axis: round to 100s with >=50 padding (transforms.py) + span floor. */
 export function caloriesAxisLimits(values: Series): [number, number] {
   const valid = values.filter((v): v is number => v !== null);
   if (valid.length === 0) return [0, 3000];
-  const min = Math.min(...valid);
-  const max = Math.max(...valid);
+  let min = Math.min(...valid);
+  let max = Math.max(...valid);
+  if (max - min < MIN_CALORIES_SPAN) {
+    const mid = (min + max) / 2;
+    min = mid - MIN_CALORIES_SPAN / 2;
+    max = mid + MIN_CALORIES_SPAN / 2;
+  }
   let pad = (max - min) * 0.1;
   if (pad < 50) pad = 50;
   return [
@@ -58,12 +78,17 @@ export function caloriesAxisLimits(values: Series): [number, number] {
   ];
 }
 
-/** Weight axis: round to integers with >=0.5 padding (transforms.py). */
+/** Weight axis: round to integers with >=0.5 padding (transforms.py) + span floor. */
 export function weightAxisLimits(...seriesList: Series[]): [number, number] {
   const valid = seriesList.flat().filter((v): v is number => v !== null);
   if (valid.length === 0) return [60, 90];
-  const min = Math.min(...valid);
-  const max = Math.max(...valid);
+  let min = Math.min(...valid);
+  let max = Math.max(...valid);
+  if (max - min < MIN_WEIGHT_SPAN) {
+    const mid = (min + max) / 2;
+    min = mid - MIN_WEIGHT_SPAN / 2;
+    max = mid + MIN_WEIGHT_SPAN / 2;
+  }
   const pad = Math.max((max - min) * 0.1, 0.5);
   return [Math.floor(min - pad), Math.ceil(max + pad)];
 }
