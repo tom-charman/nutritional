@@ -243,11 +243,6 @@ export default function NutrientsRdiChart({
                     fontWeight={600}
                     fill={tones.ink}
                   >
-                    {mode && (
-                      <tspan fill="#6B6B6B" fontSize={9}>
-                        {mode === "limit" ? "▼ " : "▲ "}
-                      </tspan>
-                    )}
                     {Math.round(last.value)}%
                     {verdict === "met" && (
                       <tspan fill="#789440" fontSize={11}> ✓</tspan>
