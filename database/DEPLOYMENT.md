@@ -1,5 +1,13 @@
 # Deployment Guide - Google Cloud E2-micro (1GB RAM)
 
+> **Note (Next.js rewrite):** the application is now Next.js (Node 22), not
+> Python/Dash. The PostgreSQL setup, tuning, backup, and nginx sections of
+> this guide still apply unchanged. For the app service itself (systemd
+> unit, build/deploy flow, env vars) see [`deploy/CUTOVER.md`](../deploy/CUTOVER.md)
+> and `deploy/nutritional-next.service`. Python-specific sections below
+> (venv, gunicorn, `python -m nutritional`) are retained for historical
+> reference only.
+
 This guide covers deploying the nutritional tracker to a Google Cloud Compute Engine E2-micro instance running Debian 12.
 
 ## Instance Specifications
