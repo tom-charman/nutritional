@@ -617,6 +617,84 @@ input[type="radio"]:focus {
     align-items: center;
 }
 
+/* ==================== Checkboxes ==================== */
+input[type="checkbox"] {
+    appearance: none;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    border-radius: var(--radius-sm);
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    vertical-align: middle;
+    position: relative;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1.5px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--surface);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.2);
+}
+
+/* ==================== Export modal options ==================== */
+.export-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.export-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.export-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.export-option-label {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--text-body);
+}
+
+.export-option-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.export-range-error {
+    margin: var(--space-sm) 0 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--danger, #b5440f);
+}
+
 /* ==================== Combobox (food selector) ==================== */
 .combobox {
     position: relative;
