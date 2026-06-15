@@ -15,7 +15,7 @@ nano ../.env      # Paste into DATABASE_URL
 rm .db_password   # DELETE after copying
 
 # Development (Windows/Mac with Docker)
-docker-compose up -d  # (from project root)
+docker compose up -d  # (from project root)
 # Note: Uses default password - for development only!
 ```
 
@@ -50,17 +50,6 @@ cd database
 
 # Database reset (DESTRUCTIVE!)
 ./db.sh reset       # Drops and recreates database
-```
-
-## Python Integration
-
-```python
-# Test connection
-from nutritional.database.connection import test_connection
-print("✓ Connected" if test_connection() else "✗ Failed")
-
-# Use storage
-SQLModelStorage
 ```
 
 ## Configuration Files
@@ -134,6 +123,6 @@ sudo -u postgres psql -d nutritional_db -c "
 
 ## Help
 
-- Full documentation: `database/README.md`
-- Deployment guide: `database/DEPLOYMENT.md`
-- Migration plan: `docs/migration-plan.md`
+- Database docs: `database/README.md`
+- First-time VM setup: `deploy/SETUP.md`
+- App deploy & ops: `deploy/README.md`

@@ -51,15 +51,16 @@ Edit `.env` and set:
 DATABASE_URL=postgresql://nutritional_user:your_secure_password@localhost:5432/nutritional_db
 ```
 
-### 4. Test Connection
+### 4. Verify the Database
 
 ```bash
-# Activate Python environment
-source .venv/bin/activate  # or use uv
-
-# Test connection
-python -c "from nutritional.database.connection import test_connection; print('✓ Connected' if test_connection() else '✗ Failed')"
+# Service is up and tables exist
+./db.sh status
+sudo -u postgres psql -d nutritional_db -c '\dt'
 ```
+
+App-level verification (sign-in, charts, write cycle) is the smoke test in
+[`../deploy/README.md`](../deploy/README.md#smoke-test-a-deploy).
 
 ## Manual Setup Steps
 
@@ -221,5 +222,7 @@ This provides a PostgreSQL instance without system installation.
 - `postgresql.conf.template` - Optimized configuration for 1GB RAM
 - `pg_hba.conf.local` - Local-only access configuration (security hardened)
 - `README.md` - This file
-- `DEPLOYMENT.md` - Production deployment guide
 - `QUICKREF.md` - Quick command reference
+
+See `deploy/SETUP.md` (first-time VM provisioning) and `deploy/README.md`
+(routine deploy & ops) for everything outside the database.
