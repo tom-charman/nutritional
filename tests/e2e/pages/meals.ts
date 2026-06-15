@@ -33,6 +33,10 @@ export class MealsPage {
   mealCard(name: string): Locator {
     return this.page.locator(".meal-card").filter({ hasText: name }).first();
   }
+  /** The ▸/▾ toggle that reveals a saved meal's full nutrient breakdown. */
+  mealCardExpand(name: string): Locator {
+    return this.mealCard(name).locator(".meal-card-expand");
+  }
   comboOption(text: string | RegExp): Locator {
     return this.page.locator(".combobox-option").filter({ hasText: text }).first();
   }

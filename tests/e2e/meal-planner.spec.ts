@@ -32,6 +32,11 @@ test.describe("meal planner (template CRUD)", () => {
     await meals.addIngredient("E2E Planner Egg", 2);
     await expect(meals.composerIngredient("E2E Planner Egg")).toContainText("156 kcal");
     await expect(page.locator(".nutrient-preview-card")).toContainText("356 kcal");
+    // The preview uses the daily-entry pigment channels (share of targets),
+    // not the channel-less dot fallback — one nutrient language app-wide.
+    await expect(
+      page.locator(".nutrient-preview-card .preview-channel").first(),
+    ).toBeVisible();
     await shot(page, "meal-planner", "02-composed");
 
     await meals.saveButton.click();
@@ -41,6 +46,25 @@ test.describe("meal planner (template CRUD)", () => {
     // composer cleared after save
     await expect(meals.nameInput).toHaveValue("");
     await shot(page, "meal-planner", "03-saved");
+  });
+
+  test("saved meal card expands to show its full nutrient breakdown", async ({ page }) => {
+    const meals = new MealsPage(page);
+    await meals.goto();
+    const card = meals.mealCard("E2E Power Breakfast");
+    // collapsed by default — only the kcal summary, no nutrient card
+    await expect(card.locator(".nutrient-preview-card")).toHaveCount(0);
+    await meals.mealCardExpand("E2E Power Breakfast").click();
+    const preview = card.locator(".nutrient-preview-card");
+    await expect(preview).toBeVisible();
+    // full set with the same channels as the composer/daily-entry views
+    await expect(preview).toContainText("Energy");
+    await expect(preview).toContainText("Calcium");
+    await expect(preview.locator(".preview-channel").first()).toBeVisible();
+    await shot(page, "meal-planner", "05-saved-expanded");
+    // toggles back closed
+    await meals.mealCardExpand("E2E Power Breakfast").click();
+    await expect(card.locator(".nutrient-preview-card")).toHaveCount(0);
   });
 
   test("mistake: wrong amount → remove ingredient and re-add", async ({ page }) => {

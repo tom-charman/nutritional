@@ -2070,8 +2070,46 @@ input[type="radio"] {
     color: var(--text-muted);
 }
 
+/* expand toggle + delete sit together in the card's trailing column */
+.meal-card-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
 
+.meal-card-expand {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 2px 4px;
+}
 
+.meal-card-expand:hover {
+    color: var(--text-main);
+}
+
+/* the meal's full nutrient breakdown, revealed under its header */
+.meal-card-nutrients {
+    grid-column: 1 / -1;
+}
+
+.meal-card-nutrients .nutrient-preview-card {
+    margin-top: 8px;
+    box-shadow: none;
+}
+
+/* The composer is shorter than a long saved-meals list — keep it in view
+   while the list scrolls, instead of leaving dead space beside it. */
+@media (min-width: 769px) {
+    .mise-planner-column:first-child {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+    }
+}
 
 
 
