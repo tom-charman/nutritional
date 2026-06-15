@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { deleteMealAction, saveMealAction } from "@/app/actions/meals";
 import { type Nutrients } from "@/lib/constants";
 import { calculateNutrients, sumNutrients } from "@/lib/domain/nutrients";
-import type { FoodItem, Meal, MealIngredient } from "@/lib/domain/types";
+import type { DailyTargets, FoodItem, Meal, MealIngredient } from "@/lib/domain/types";
 import Combobox from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
 import NutrientPreview from "@/components/entry/NutrientPreview";
@@ -19,12 +19,25 @@ import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 export default function MealsClient({
   foods,
   initialMeals,
+  targets,
 }: {
   foods: FoodItem[];
   initialMeals: Meal[];
+  targets: DailyTargets;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // Saved meals whose full nutrient breakdown is expanded inline.
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
+  const toggleExpanded = useCallback((id: string) => {
+    setExpandedMeals((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   // --- composer state ---
   const [mealId, setMealId] = useState<string | null>(null);
@@ -270,7 +283,9 @@ export default function MealsClient({
             </div>
           )}
 
-          {totals && totals.energy_kcal > 0 && <NutrientPreview nutrients={totals} />}
+          {totals && totals.energy_kcal > 0 && (
+            <NutrientPreview nutrients={totals} targets={targets} />
+          )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <button
@@ -300,6 +315,7 @@ export default function MealsClient({
                 const mealTotals = sumNutrients(
                   meal.ingredients.map((i) => i.nutrients),
                 );
+                const expanded = expandedMeals.has(meal.id);
                 return (
                   <div
                     key={meal.id}
@@ -318,16 +334,34 @@ export default function MealsClient({
                         {Math.round(mealTotals.energy_kcal)} kcal
                       </span>
                     </div>
-                    <button
-                      className="delete-icon"
-                      title="Delete meal"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(meal);
-                      }}
-                    >
-                      ×
-                    </button>
+                    <div className="meal-card-controls">
+                      <button
+                        className="meal-card-expand"
+                        aria-expanded={expanded}
+                        title={expanded ? "Hide nutrients" : "Show nutrients"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpanded(meal.id);
+                        }}
+                      >
+                        {expanded ? "▾" : "▸"}
+                      </button>
+                      <button
+                        className="delete-icon"
+                        title="Delete meal"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(meal);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {expanded && (
+                      <div className="meal-card-nutrients">
+                        <NutrientPreview nutrients={mealTotals} targets={targets} />
+                      </div>
+                    )}
                   </div>
                 );
               })
