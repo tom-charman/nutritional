@@ -70,6 +70,7 @@ standalone output and rsyncs it to `~/apps/nutritional/releases/<sha>`,
 then repoints the `current` symlink and restarts the systemd unit
 (`deploy/nutritional-next.service`, memory-capped at 448 MB).
 
-- Runbook: [`deploy/CUTOVER.md`](deploy/CUTOVER.md)
+- Deploy & operate (routine): [`deploy/README.md`](deploy/README.md)
+- First-time VM setup: [`deploy/SETUP.md`](deploy/SETUP.md)
 - DB ops (backup/restore/tuning): [`database/`](database/) — `db.sh`,
-  `DEPLOYMENT.md`, `postgresql.conf.template`
+  `README.md`, `postgresql.conf.template`
