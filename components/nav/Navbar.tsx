@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { signOutAction } from "@/app/actions/auth";
+import ExportModal from "@/components/export/ExportModal";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -13,6 +15,7 @@ const LINKS = [
 
 export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname();
+  const [exportOpen, setExportOpen] = useState(false);
   return (
     <nav className="navbar">
       <div className="navbar-inner">
@@ -32,6 +35,13 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
               </Link>
             );
           })}
+          <button
+            type="button"
+            className="nav-link nav-link-button"
+            onClick={() => setExportOpen(true)}
+          >
+            Export
+          </button>
           {signedIn && (
             <form action={signOutAction} style={{ display: "inline" }}>
               <button type="submit" className="nav-link nav-link-button">
@@ -41,6 +51,7 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
           )}
         </div>
       </div>
+      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
     </nav>
   );
 }
