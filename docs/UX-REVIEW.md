@@ -11,6 +11,10 @@ detail*:
    they don't eat what they planned, they eat more than they planned, they prep a
    batch and eat half of it, they cook a recipe missing an ingredient, they eat out.
 
+> **Running your own review?** Follow [`docs/UX-REVIEW-GUIDE.md`](./UX-REVIEW-GUIDE.md)
+> — the scenario matrix there forces coverage of the deviation cases (reload,
+> fractional values, mistakes, off-plan eating) that a happy-path sweep misses.
+
 The second pass is where the app's polish breaks down. The headline finding is a
 **class of data-integrity bugs around meals and portions** that the happy-path
 sweep (which only ever used "1 portion" and clean numbers) completely missed —
