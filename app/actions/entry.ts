@@ -271,7 +271,13 @@ export async function updateWeightAction(
     evening_weight_kg: which === "evening" ? weight : undefined,
   });
   revalidate();
-  return { ok: true, message: clearing ? "Weight cleared" : "Weight saved" };
+  if (clearing) return { ok: true, message: "Weight cleared" };
+  // Saved, but nudge on physiologically implausible values (often a lb/kg slip)
+  // without blocking — the user may genuinely be outside this band.
+  if (weight !== null && (weight < 30 || weight > 300)) {
+    return { ok: true, message: `Saved ${weight} kg — that looks unusual, double-check it` };
+  }
+  return { ok: true, message: "Weight saved" };
 }
 
 /** Save targets from the modal (entry.py save-targets flow). */

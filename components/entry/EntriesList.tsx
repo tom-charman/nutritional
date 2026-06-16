@@ -32,6 +32,7 @@ function FoodRow({
           display={amountText(entry)}
           value={entry.weight_g ?? entry.quantity ?? 0}
           onSave={(n) => onEdit(entry.entry_id, n)}
+          onRemove={onRemove}
         />
       </div>
       <span className="ingredient-calories">

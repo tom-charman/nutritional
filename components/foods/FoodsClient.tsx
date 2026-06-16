@@ -225,6 +225,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
               </div>
 
               <div className="section-label">Nutrients ({form.unit_type === "per_100g" ? "per 100g" : "per item"})</div>
+              <p className="field-hint">A blank field is recorded as 0.</p>
               <div className="editor-grid">
                 {NUTRIENT_KEYS.map((key) => (
                   <div key={key} className="compact-input">
