@@ -12,6 +12,15 @@ export const CAL_PROT = 4;
 export const CAL_CARB = 4;
 export const CAL_FAT = 9;
 
+/**
+ * Maintenance-calories estimate (adaptive TDEE from energy balance).
+ * KCAL_PER_KG: standard energy density of body-mass change (~7700 kcal/kg).
+ * MAINTENANCE_MIN_POINTS: minimum valid weight points in the trailing window
+ *   before a trend slope is trusted; below this no estimate is produced.
+ */
+export const KCAL_PER_KG = 7700;
+export const MAINTENANCE_MIN_POINTS = 14;
+
 /** The 9 tracked nutrients, canonical input/display order (models.py NUTRIENT_INPUT_ORDER). */
 export const NUTRIENT_KEYS = [
   "energy_kcal",

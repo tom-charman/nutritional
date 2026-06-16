@@ -3,13 +3,19 @@
  * Run on the server; outputs are plain JSON-serializable objects passed as
  * props to the client d3 chart components.
  */
-import { RDI_GUIDELINES } from "@/lib/constants";
+import {
+  KCAL_PER_KG,
+  MAINTENANCE_MIN_POINTS,
+  RDI_GUIDELINES,
+} from "@/lib/constants";
 import type { DailySummary } from "@/lib/domain/types";
 import {
   calculateMacroCalories,
+  estimateMaintenance,
   interpolateDaily,
   normalizeToRdi,
   rollingAverage,
+  trailingSlope,
   type Series,
 } from "./series";
 
@@ -18,6 +24,8 @@ export interface CaloriesWeightData {
   calories_avg: Series;
   weight_morning: Series;
   weight_evening: Series;
+  /** Estimated maintenance calories (adaptive TDEE); not plotted, shown as a readout. */
+  maintenance: Series;
   y1Limits: [number, number];
   y2Limits: [number, number];
 }
@@ -110,11 +118,13 @@ export function windowCaloriesWeight(
   const calories_avg = data.calories_avg.slice(from);
   const weight_morning = data.weight_morning.slice(from);
   const weight_evening = data.weight_evening.slice(from);
+  const maintenance = data.maintenance.slice(from);
   return {
     dates,
     calories_avg,
     weight_morning,
     weight_evening,
+    maintenance,
     y1Limits: caloriesAxisLimits(calories_avg),
     y2Limits: weightAxisLimits(weight_morning, weight_evening),
   };
@@ -164,20 +174,29 @@ export function prepareCaloriesWeight(
   );
   const caloriesAvg = rollingAverage(calInterp, rollingWindow);
   // Weights: interpolate only, no rolling average (show actual weight trend)
-  const weightMorning = interpolateDaily(
-    dates,
-    column(summaries, "morning_weight_kg"),
-  ).values;
-  const weightEvening = interpolateDaily(
-    dates,
-    column(summaries, "evening_weight_kg"),
-  ).values;
+  const morningRaw = column(summaries, "morning_weight_kg");
+  const eveningRaw = column(summaries, "evening_weight_kg");
+  const weightMorning = interpolateDaily(dates, morningRaw).values;
+  const weightEvening = interpolateDaily(dates, eveningRaw).values;
+
+  // Maintenance estimate: trailing weight-trend slope (kg/day) × kcal/kg,
+  // subtracted from average intake. Trend weight prefers the (less noisy)
+  // morning reading, falling back to evening on days without one.
+  const trendRaw: Series = morningRaw.map((m, i) => m ?? eveningRaw[i] ?? null);
+  const trendWeight = interpolateDaily(dates, trendRaw).values;
+  const weightSlope = trailingSlope(
+    trendWeight,
+    rollingWindow,
+    MAINTENANCE_MIN_POINTS,
+  );
+  const maintenance = estimateMaintenance(caloriesAvg, weightSlope, KCAL_PER_KG);
 
   return {
     dates: commonDates,
     calories_avg: caloriesAvg,
     weight_morning: weightMorning,
     weight_evening: weightEvening,
+    maintenance,
     y1Limits: caloriesAxisLimits(caloriesAvg),
     y2Limits: weightAxisLimits(weightMorning, weightEvening),
   };

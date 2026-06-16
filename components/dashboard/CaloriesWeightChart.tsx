@@ -101,9 +101,13 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
   const lastCal = lastDefined(data.calories_avg);
   const lastM = lastDefined(data.weight_morning);
   const lastE = lastDefined(data.weight_evening);
+  const lastMaint = lastDefined(data.maintenance);
   const readout = [
     ...(lastCal
       ? [{ value: Math.round(lastCal.value).toLocaleString("en-US"), unit: "kcal", label: "30-day avg" }]
+      : []),
+    ...(lastMaint
+      ? [{ value: Math.round(lastMaint.value).toLocaleString("en-US"), unit: "kcal", label: "maintenance (est.)" }]
       : []),
     ...(lastM || lastE
       ? [

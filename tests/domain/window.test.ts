@@ -13,6 +13,7 @@ const sample: CaloriesWeightData = {
   calories_avg: [2000, 2100, 2200, 2300],
   weight_morning: [70, 70.5, 71, 71.5],
   weight_evening: [71, 71.5, 72, 72.5],
+  maintenance: [null, null, 2150, 2250],
   y1Limits: [1800, 2500],
   y2Limits: [69, 74],
 };
@@ -31,7 +32,9 @@ describe("range windowing", () => {
     expect(w.dates).toEqual(["2026-01-03", "2026-01-04"]);
     expect(w.calories_avg).toEqual([2200, 2300]);
     expect(w.weight_morning).toEqual([71, 71.5]);
-    // limits recomputed for the visible window
+    expect(w.maintenance).toEqual([2150, 2250]);
+    // limits recomputed for the visible window — maintenance is NOT plotted,
+    // so it does not affect the calorie axis.
     expect(w.y1Limits).toEqual(caloriesAxisLimits([2200, 2300]));
     expect(w.y2Limits).toEqual(weightAxisLimits([71, 71.5], [72, 72.5]));
   });
