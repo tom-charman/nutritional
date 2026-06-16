@@ -514,6 +514,9 @@ function QuickAddForm({
   return (
     <div className="compact-input quick-add-form">
       <label className="form-label-sm">Quick add (not in your foods)</label>
+      <p className="quick-add-intro">
+        Enter the totals for the portion you&apos;re logging — not per 100&nbsp;g.
+      </p>
       <input
         className="form-control"
         placeholder="Name"
@@ -525,7 +528,7 @@ function QuickAddForm({
           <div key={k} className="compact-input">
             <label className="form-label-sm">
               {NUTRIENT_LABELS[k]}
-              {k === "energy_kcal" ? " *" : ""}
+              {k === "energy_kcal" ? <span className="required-mark"> *</span> : ""}
             </label>
             <input
               className="form-control"
@@ -541,8 +544,9 @@ function QuickAddForm({
           </div>
         ))}
       </div>
-      <p className="field-hint">
-        Calories required; blank fields are recorded as 0. Saved to your foods for reuse.
+      <p className="field-hint quick-add-hint">
+        <span className="required-mark">*</span> Calories required. Blank fields are
+        recorded as 0. Saved to your foods for reuse.
       </p>
       <div className="input-group">
         <button className="btn-primary" onClick={submit} disabled={pending}>
