@@ -54,6 +54,9 @@ function foodToForm(food: FoodItem): FormState {
   };
 }
 
+/** Cap rendered rows — the DB can hold hundreds of foods; search narrows it. */
+const LIST_CAP = 50;
+
 export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -134,7 +137,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
             {filtered.length === 0 ? (
               <p className="empty-state-message">No foods found.</p>
             ) : (
-              filtered.map((food) => (
+              filtered.slice(0, LIST_CAP).map((food) => (
                 <div
                   key={food.id}
                   className={`master-list-item${form?.id === food.id ? " selected" : ""}`}
@@ -158,6 +161,11 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                   </span>
                 </div>
               ))
+            )}
+            {filtered.length > LIST_CAP && (
+              <p className="field-hint" style={{ padding: "8px 4px" }}>
+                Showing {LIST_CAP} of {filtered.length} — refine your search to narrow it down.
+              </p>
             )}
           </div>
         </div>

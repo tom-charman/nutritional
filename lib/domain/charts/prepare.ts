@@ -6,14 +6,18 @@
 import {
   KCAL_PER_KG,
   MAINTENANCE_MIN_POINTS,
+  MAX_WEIGHT_DELTA_KG,
+  MAX_WEIGHT_SLOPE_KG_PER_DAY,
   RDI_GUIDELINES,
 } from "@/lib/constants";
 import type { DailySummary } from "@/lib/domain/types";
 import {
   calculateMacroCalories,
+  clampSlope,
   estimateMaintenance,
   interpolateDaily,
   normalizeToRdi,
+  rejectWeightSpikes,
   rollingAverage,
   trailingSlope,
   type Series,
@@ -183,11 +187,13 @@ export function prepareCaloriesWeight(
   // subtracted from average intake. Trend weight prefers the (less noisy)
   // morning reading, falling back to evening on days without one.
   const trendRaw: Series = morningRaw.map((m, i) => m ?? eveningRaw[i] ?? null);
-  const trendWeight = interpolateDaily(dates, trendRaw).values;
-  const weightSlope = trailingSlope(
-    trendWeight,
-    rollingWindow,
-    MAINTENANCE_MIN_POINTS,
+  // Robustness: drop impossible spikes before interpolation, then clamp the trend
+  // slope — so a single fat-fingered weigh-in can't bend the line into nonsense.
+  const trendClean = rejectWeightSpikes(trendRaw, MAX_WEIGHT_DELTA_KG);
+  const trendWeight = interpolateDaily(dates, trendClean).values;
+  const weightSlope = clampSlope(
+    trailingSlope(trendWeight, rollingWindow, MAINTENANCE_MIN_POINTS),
+    MAX_WEIGHT_SLOPE_KG_PER_DAY,
   );
   const maintenance = estimateMaintenance(caloriesAvg, weightSlope, KCAL_PER_KG);
 
