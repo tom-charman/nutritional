@@ -120,9 +120,12 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 ### A user can search and browse the food database
 - **What it does:** A live, case-insensitive substring filter narrows the
   alphabetically-sorted food list; a count and per-unit badges are shown, with an
-  empty state when nothing matches.
+  empty state when nothing matches. At most 50 rows render at once; beyond that a
+  "Showing 50 of N — refine your search" hint appears (the food currently open in the
+  editor is always kept visible).
 - **UI/UX considerations:** Search should be instant (client-side) and forgiving of
-  case. The empty state must read as "no matches", distinct from "no foods exist".
+  case. The empty state must read as "no matches", distinct from "no foods exist". The
+  50-row cap keeps a large database fast to render without losing the selected row.
 - **Implemented in:** `components/foods/FoodsClient.tsx`, `app/foods/page.tsx`
 
 > **Cross-cutting consequence of the two unit models:** every place a food appears
@@ -206,14 +209,36 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 
 ### A user can enter a meal (by portion size) into the daily log
 - **What it does:** Add a saved meal by specifying portions (e.g. 1.5 = 150% of the
-  template). Each ingredient is scaled by the portions factor and stored as an
-  individual entry sharing one `meal_id`.
+  template). Each ingredient is scaled by the portions factor and stored, grouped by a
+  per-log instance id (`meal_log_id`). The portion count **persists across reload**, and
+  the same meal logged twice in a day stays as two separate entries (not merged).
 - **UI/UX considerations:** The amount input becomes "Portions" (placeholder "1.0",
   step 0.1). In the log the scaled ingredients **explode into grouped, collapsible
   rows** under the meal name with its portion count — they must read as one logical
   meal yet remain individually inspectable.
 - **Implemented in:** `components/entry/EntryClient.tsx`, `app/actions/entry.ts`
-  (`addMealEntryAction`)
+  (`addMealEntryAction`), `lib/data/storage.ts` (groups by `meal_log_id`)
+
+### A user can change a logged meal's portions
+- **What it does:** The portion count on a logged meal's header is click-to-edit; saving
+  rescales every ingredient (weights/quantities and nutrients) to the new portions.
+- **UI/UX considerations:** The portions value reads as an editable amount like the
+  ingredient amounts; editing it must not toggle the meal's expand/collapse. 0 portions
+  is rejected (a logged meal can't be zero — remove it instead).
+- **Implemented in:** `components/entry/EntriesList.tsx`, `app/actions/entry.ts`
+  (`editMealPortionsAction`)
+
+### A user can quick-add food that isn't in the database
+- **What it does:** Searching a name with no match offers "+ Quick add <name>", opening
+  an inline form (name + **calories required**, all other nutrients optional) that
+  creates a reusable food and logs it — without leaving the entry page or filling the
+  full food editor. Blank nutrient fields record as 0.
+- **UI/UX considerations:** The form must be clearly dismissable (a Cancel button) and
+  must disappear when the user types a new search or selects an existing food — it never
+  lingers alongside the normal amount input. The created food is saved for reuse.
+- **Implemented in:** `components/entry/EntryClient.tsx` (`QuickAddForm`),
+  `components/ui/Combobox.tsx` (`onQuickAdd`), `app/actions/entry.ts`
+  (`quickAddEntryAction`)
 
 ### A user can preview an entry's nutrition before adding it
 - **What it does:** As soon as a food/meal and a valid amount are chosen, a live
@@ -228,11 +253,13 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 ### A user can inline-edit the amount of a logged entry
 - **What it does:** Click a logged amount to edit it in place; Enter or blur commits
   (only if changed and valid), Escape cancels. Nutrients and daily totals
-  recalculate on commit.
+  recalculate on commit. Editing a food amount to **0 or blank removes** that entry;
+  a negative/non-numeric value goes red and stays editable (blurring it reverts).
 - **UI/UX considerations:** The edit affordance must read naturally for **both**
   display forms — "150 g" and "× 1.5". This works for individual food entries and for
-  single ingredients inside a meal. Invalid (≤0 / non-finite) edits are rejected
-  without committing.
+  single ingredients inside a meal. No silent no-op: invalid input gives visible
+  feedback rather than quietly doing nothing. (Meal *portions* reject 0 instead of
+  removing — remove the meal itself for that.)
 - **Implemented in:** `components/ui/EditableAmount.tsx`,
   `components/entry/EntriesList.tsx`, `app/actions/entry.ts`
   (`editEntryAmountAction`)
@@ -257,11 +284,12 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 
 ### A user can see calories remaining for the day
 - **What it does:** A card shows logged calories against the day's target with
-  status colouring (under / near / over).
+  status colouring (under / near / over). When over target the card flips to
+  **"Calories Over"** and shows the overage as the big number (e.g. 1,725) in red,
+  rather than a misleading "0 remaining".
 - **UI/UX considerations:** The colour semantics must be legible at a glance — green
-  on track, a warning band as the target nears (within 200 kcal), red when over.
-  The wording ("On track" / "Target nearly met" / "X kcal over target") should match
-  the colour.
+  on track, a warning band as the target nears (within 200 kcal), red when over. The
+  big number must reflect the actual state: remaining when under, the overage when over.
 - **Implemented in:** `components/entry/EntryClient.tsx`, `lib/domain/targets.ts`
   (`calorieStatus`)
 
@@ -309,11 +337,14 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 ### A user can log morning and evening body weight
 - **What it does:** Two independent weight inputs auto-save on blur, stored
   separately from food entries. Clearing an input is an explicit "no weight today"
-  (writes NULL, not 0). Valid range is 0–500 kg.
+  (writes NULL, not 0). Hard range is 0–500 kg; a value outside the plausible band
+  (< 30 or > 300 kg, often a lb/kg slip) still saves but surfaces a "that looks
+  unusual, double-check it" warning.
 - **UI/UX considerations:** Weights must save **independently of food entries** — a
   user logging only weight on a given day should succeed without any food rows.
   Auto-save should only fire on actual change, and clearing must mean cleared (NULL),
-  never a misleading 0 that would skew the weight trend.
+  never a misleading 0 that would skew the weight trend. The plausibility nudge is
+  non-blocking — the user may legitimately be outside the band.
 - **Implemented in:** `app/actions/entry.ts` (`updateWeightAction`),
   `lib/data/storage.ts` (`updateMeasurements`), `components/entry/EntryClient.tsx`
 
@@ -334,13 +365,17 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 ### A user can see an estimated maintenance (TDEE) calorie line
 - **What it does:** From the weight trend (trailing-30-day least-squares slope) and
   intake, the app estimates daily maintenance calories: `caloriesAvg − weightSlope ×
-  7700 kcal/kg`. It requires at least 14 valid weight points or it is hidden.
+  7700 kcal/kg`. It requires at least 14 valid weight points or it is hidden. The trend
+  is hardened against bad data: impossible day-over-day jumps (> 3 kg) are dropped
+  before interpolation, and the slope is clamped to ±0.5 kg/day, so one fat-fingered
+  weigh-in can't drive the estimate to an absurd value.
 - **UI/UX considerations:** The estimate must **gracefully disappear** when there's
   too little weight data rather than showing a wild number — a half-tracked first
-  fortnight should not produce a misleading TDEE.
+  fortnight should not produce a misleading TDEE, and a single outlier must not bend it.
 - **Implemented in:** `lib/domain/charts/prepare.ts`, `lib/domain/charts/series.ts`
-  (`estimateMaintenance`), `lib/constants.ts` (`MAINTENANCE_MIN_POINTS`,
-  `KCAL_PER_KG`)
+  (`estimateMaintenance`, `rejectWeightSpikes`, `clampSlope`), `lib/constants.ts`
+  (`MAINTENANCE_MIN_POINTS`, `KCAL_PER_KG`, `MAX_WEIGHT_DELTA_KG`,
+  `MAX_WEIGHT_SLOPE_KG_PER_DAY`)
 
 ### A user can view a macro breakdown chart
 - **What it does:** A stacked-area chart shows protein, other-carbs, sugar,

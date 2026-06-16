@@ -17,7 +17,12 @@ import {
   removeEntryAction,
   updateWeightAction,
 } from "@/app/actions/entry";
-import { ZERO_NUTRIENTS, type Nutrients } from "@/lib/constants";
+import {
+  NUTRIENT_KEYS,
+  NUTRIENT_LABELS,
+  ZERO_NUTRIENTS,
+  type Nutrients,
+} from "@/lib/constants";
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
 import type { DailyData, DailyTargets, FoodItem, Meal } from "@/lib/domain/types";
@@ -130,6 +135,7 @@ export default function EntryClient({
   const handleSelect = useCallback(
     (key: string) => {
       setAmount("");
+      setQuickAddName(null); // leaving quick-add: a real selection takes over
       if (key.startsWith("food:")) {
         const food = foods.find((f) => f.id === key.slice(5));
         if (food) setSelection({ kind: "food", food });
@@ -341,6 +347,11 @@ export default function EntryClient({
             onClear={() => {
               setSelection(null);
               setAmount("");
+              setQuickAddName(null);
+            }}
+            onQueryChange={() => {
+              // typing a new search abandons any in-progress quick-add
+              if (quickAddName !== null) setQuickAddName(null);
             }}
             onQuickAdd={(q) => {
               setSelection(null);
@@ -349,7 +360,7 @@ export default function EntryClient({
             }}
           />
 
-          {amountConfig && (
+          {amountConfig && quickAddName === null && (
             <div className="compact-input">
               <label className="form-label-sm">{amountConfig.label}</label>
               <div className="input-group">
@@ -483,22 +494,21 @@ function QuickAddForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(initialName);
-  const [kcal, setKcal] = useState("");
-  const [protein, setProtein] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [fat, setFat] = useState("");
+  const [vals, setVals] = useState<Partial<Record<keyof Nutrients, string>>>({});
+  const setVal = (k: keyof Nutrients, v: string) =>
+    setVals((s) => ({ ...s, [k]: v }));
 
-  const numOrUndef = (s: string) => {
+  const numOrUndef = (s?: string) => {
     const n = Number(s);
-    return s.trim() !== "" && Number.isFinite(n) ? n : undefined;
+    return s != null && s.trim() !== "" && Number.isFinite(n) ? n : undefined;
   };
   const submit = () => {
-    onSubmit(name.trim(), {
-      energy_kcal: numOrUndef(kcal),
-      protein_g: numOrUndef(protein),
-      carbohydrates_g: numOrUndef(carbs),
-      fat_g: numOrUndef(fat),
-    });
+    const nutrients: Partial<Nutrients> = {};
+    for (const k of NUTRIENT_KEYS) {
+      const v = numOrUndef(vals[k]);
+      if (v !== undefined) nutrients[k] = v;
+    }
+    onSubmit(name.trim(), nutrients);
   };
 
   return (
@@ -510,35 +520,43 @@ function QuickAddForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
-      <div className="input-group" style={{ marginTop: 8 }}>
-        <input
-          className="form-control"
-          type="number"
-          min={0}
-          placeholder="Calories (kcal)"
-          value={kcal}
-          autoFocus
-          onChange={(e) => setKcal(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
-          }}
-        />
-        <button className="btn-primary" onClick={submit} disabled={pending}>
-          Add
-        </button>
-      </div>
-      <div className="quick-add-macros">
-        <input className="form-control" type="number" min={0} placeholder="Protein (g)"
-          value={protein} onChange={(e) => setProtein(e.target.value)} />
-        <input className="form-control" type="number" min={0} placeholder="Carbs (g)"
-          value={carbs} onChange={(e) => setCarbs(e.target.value)} />
-        <input className="form-control" type="number" min={0} placeholder="Fat (g)"
-          value={fat} onChange={(e) => setFat(e.target.value)} />
+      <div className="editor-grid" style={{ marginTop: 8 }}>
+        {NUTRIENT_KEYS.map((k) => (
+          <div key={k} className="compact-input">
+            <label className="form-label-sm">
+              {NUTRIENT_LABELS[k]}
+              {k === "energy_kcal" ? " *" : ""}
+            </label>
+            <input
+              className="form-control"
+              type="number"
+              min={0}
+              value={vals[k] ?? ""}
+              autoFocus={k === "energy_kcal"}
+              onChange={(e) => setVal(k, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+              }}
+            />
+          </div>
+        ))}
       </div>
       <p className="field-hint">
-        Optional macros — blanks are 0. Saved to your foods for reuse.{" "}
-        <button type="button" className="link-button" onClick={onCancel}>Cancel</button>
+        Calories required; blank fields are recorded as 0. Saved to your foods for reuse.
       </p>
+      <div className="input-group">
+        <button className="btn-primary" onClick={submit} disabled={pending}>
+          Add to day
+        </button>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onCancel}
+          disabled={pending}
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

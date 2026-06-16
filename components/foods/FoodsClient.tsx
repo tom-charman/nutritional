@@ -81,6 +81,17 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
     return initialFoods.filter((f) => f.name.toLowerCase().includes(q));
   }, [initialFoods, search]);
 
+  // Render at most LIST_CAP rows, but always keep the food currently open in the
+  // editor visible (so its selected highlight never vanishes off the cap).
+  const shown = useMemo(() => {
+    const base = filtered.slice(0, LIST_CAP);
+    if (form?.id && !base.some((f) => f.id === form.id)) {
+      const edited = initialFoods.find((f) => f.id === form.id);
+      if (edited) return [edited, ...base];
+    }
+    return base;
+  }, [filtered, form?.id, initialFoods]);
+
   function handleSave() {
     if (!form) return;
     startTransition(async () => {
@@ -137,7 +148,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
             {filtered.length === 0 ? (
               <p className="empty-state-message">No foods found.</p>
             ) : (
-              filtered.slice(0, LIST_CAP).map((food) => (
+              shown.map((food) => (
                 <div
                   key={food.id}
                   className={`master-list-item${form?.id === food.id ? " selected" : ""}`}

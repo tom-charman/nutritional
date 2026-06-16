@@ -42,9 +42,15 @@ export default function EditableAmount({
     );
   }
 
+  const cancel = () => {
+    setInvalid(false);
+    setEditing(false);
+  };
+
   // No silent no-op: empty/0 removes the entry (when allowed); a negative or
-  // non-numeric value stays in edit mode and goes red rather than vanishing.
-  const commit = () => {
+  // non-numeric value goes red and stays editable on Enter. Blurring away from an
+  // invalid value just reverts (rather than leaving a stuck red unfocused input).
+  const commit = (viaBlur = false) => {
     const t = draft.trim();
     const n = Number(t);
     if (t === "" || n === 0) {
@@ -52,13 +58,16 @@ export default function EditableAmount({
         setEditing(false);
         setInvalid(false);
         onRemove();
+      } else if (viaBlur) {
+        cancel(); // e.g. portions can't be zero — blurring reverts
       } else {
-        setInvalid(true); // e.g. portions can't be zero
+        setInvalid(true);
       }
       return;
     }
     if (!Number.isFinite(n) || n < 0) {
-      setInvalid(true);
+      if (viaBlur) cancel();
+      else setInvalid(true);
       return;
     }
     setEditing(false);
@@ -80,13 +89,10 @@ export default function EditableAmount({
         setDraft(e.target.value);
         if (invalid) setInvalid(false);
       }}
-      onBlur={commit}
+      onBlur={() => commit(true)}
       onKeyDown={(e) => {
         if (e.key === "Enter") commit();
-        if (e.key === "Escape") {
-          setInvalid(false);
-          setEditing(false);
-        }
+        if (e.key === "Escape") cancel();
       }}
     />
   );

@@ -156,3 +156,25 @@ reload → expect "0.5 portions"; meal twice → expect two entries; inline-edit
 expect a visible result; exceed target → expect a clear over-state; reduce a meal to
 one ingredient → expect "1 ingredient"; a 150 kg outlier → maintenance stays sane.
 `scripts/ux-review-personas.ts` and `scripts/ux-review-matrix.ts` already drive these.
+
+---
+
+## Post-fix sweep — 2026-06-16
+
+After the 16 findings were implemented (PRs #32–#37) and deployed, a follow-up sweep
+caught that the **quick-add** feature (#4) shipped sloppy. Fixed in `fix/quick-add-polish`:
+
+- Quick-add now offers **all 9 nutrient fields** (was calories + 3), has a clear
+  **Cancel** button, and **dismisses when the user types a new search or selects an
+  existing food** (was lingering and could render alongside the amount input).
+- Cleanups found in the same audit: toast `scheduled`-ref no longer leaks ids for
+  early-dismissed toasts; the foods 50-row cap now always keeps the row being edited
+  visible; an inline-edit blurred on an invalid value reverts instead of leaving a
+  stuck red unfocused input.
+- `docs/FEATURES.md` brought back in sync (quick-add, editable/persisted portions,
+  "Calories Over" card, edit-to-0-removes, weight plausibility warning, foods cap,
+  maintenance outlier robustness).
+
+Re-ran the feature sweep + persona + matrix suites (both viewports) against a prod-data
+clone: quick-add verified (9 fields / dismiss-on-search / dismiss-on-select / single
+amount input / logs correctly); all prior headline fixes still pass; no new regressions.
