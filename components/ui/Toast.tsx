@@ -45,6 +45,11 @@ export default function ToastContainer({
         scheduled.current.delete(t.id);
       }, VISIBLE_MS + EXIT_MS);
     }
+    // Prune ids for toasts removed before their timer fired (no leak).
+    const live = new Set(toasts.map((t) => t.id));
+    for (const id of scheduled.current) {
+      if (!live.has(id)) scheduled.current.delete(id);
+    }
   }, [toasts]);
 
   if (toasts.length === 0) return null;

@@ -19,6 +19,7 @@ export default function Combobox({
   onSelect,
   onClear,
   onQuickAdd,
+  onQueryChange,
   testId,
   maxResults = 50,
   inputRef,
@@ -31,6 +32,8 @@ export default function Combobox({
   onClear: () => void;
   /** When provided, a no-match search offers "+ Quick add <query>". */
   onQuickAdd?: (query: string) => void;
+  /** Fires as the user edits the search text (lets the parent react to typing). */
+  onQueryChange?: (query: string) => void;
   testId?: string;
   maxResults?: number;
   /** Lets the parent re-focus the search input (e.g. after a successful add). */
@@ -121,6 +124,7 @@ export default function Combobox({
           setQuery(e.target.value);
           setHighlight(0);
           setOpen(true);
+          onQueryChange?.(e.target.value);
         }}
         // open on user intent (click/typing/arrows) — NOT on programmatic
         // focus, which would pop the menu over the page after every add
