@@ -153,6 +153,29 @@ export function trailingSlope(
 }
 
 /**
+ * Drop physiologically impossible day-over-day weight jumps before the series is
+ * interpolated/regressed. A reading more than `maxDeltaKg` from the previous valid
+ * reading (e.g. a 150 kg fat-finger after 66 kg) is treated as missing, so one bad
+ * entry can't bend the trend line or the maintenance estimate. Nulls pass through.
+ */
+export function rejectWeightSpikes(values: Series, maxDeltaKg: number): Series {
+  let prev: number | null = null;
+  return values.map((v) => {
+    if (v === null) return null;
+    if (prev !== null && Math.abs(v - prev) > maxDeltaKg) return null; // spike → drop
+    prev = v;
+    return v;
+  });
+}
+
+/** Clamp each non-null slope to ±maxAbs (defends the estimate against outliers). */
+export function clampSlope(slope: Series, maxAbs: number): Series {
+  return slope.map((s) =>
+    s === null ? null : Math.max(-maxAbs, Math.min(maxAbs, s)),
+  );
+}
+
+/**
  * Adaptive-TDEE maintenance estimate (kcal/day):
  *   maintenance[i] = caloriesAvg[i] − weightSlopeKgPerDay[i] × kcalPerKg
  * Null wherever either input is null.

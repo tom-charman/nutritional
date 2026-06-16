@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateMacroCalories,
+  clampSlope,
   createDateRange,
   estimateMaintenance,
   interpolateDaily,
   normalizeToRdi,
+  rejectWeightSpikes,
   rollingAverage,
   trailingSlope,
 } from "@/lib/domain/charts/series";
@@ -252,5 +254,30 @@ describe("calculateMacroCalories (preprocessing.py port)", () => {
   it("null rows stay null", () => {
     const result = calculateMacroCalories([null], [1], [1], [1], [100]);
     expect(result.protein_cal[0]).toBeNull();
+  });
+});
+
+describe("weight-outlier robustness (UX review #6)", () => {
+  it("rejectWeightSpikes drops an impossible day-over-day jump", () => {
+    // 66, 66.2, 150 (fat-finger), 66.3 → the 150 is dropped, neighbours kept
+    const out = rejectWeightSpikes([66, 66.2, 150, 66.3], 3);
+    expect(out).toEqual([66, 66.2, null, 66.3]);
+  });
+
+  it("rejectWeightSpikes passes through legitimate gradual change and nulls", () => {
+    expect(rejectWeightSpikes([70, null, 69.5, 69], 3)).toEqual([70, null, 69.5, 69]);
+  });
+
+  it("clampSlope caps extreme slopes but leaves real trends untouched", () => {
+    expect(clampSlope([2.5, -2.5, 0.1, null], 0.5)).toEqual([0.5, -0.5, 0.1, null]);
+  });
+
+  it("a single 150kg spike no longer poisons maintenance", () => {
+    const cal = [2000, 2000, 2000];
+    // raw slope from a spike would be huge; clamped to ±0.5 → bounded estimate
+    const clamped = clampSlope([1.7], 0.5); // 1.7 kg/day outlier
+    const m = estimateMaintenance([cal[0]], clamped, 7700);
+    // 2000 - 0.5*7700 = -1850, NOT 2000 - 1.7*7700 = -11090
+    expect(m[0]).toBe(2000 - 0.5 * 7700);
   });
 });

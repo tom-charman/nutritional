@@ -20,6 +20,9 @@ export const CAL_FAT = 9;
  */
 export const KCAL_PER_KG = 7700;
 export const MAINTENANCE_MIN_POINTS = 14;
+/** Robustness guards so one bad weigh-in can't wreck the maintenance estimate. */
+export const MAX_WEIGHT_SLOPE_KG_PER_DAY = 0.5; // ~3.5 kg/week ceiling on trend
+export const MAX_WEIGHT_DELTA_KG = 3; // day-over-day jump beyond this = a fat-finger
 
 /** The 9 tracked nutrients, canonical input/display order (models.py NUTRIENT_INPUT_ORDER). */
 export const NUTRIENT_KEYS = [
