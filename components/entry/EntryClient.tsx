@@ -13,10 +13,11 @@ import {
   addMealEntryAction,
   editEntryAmountAction,
   editMealPortionsAction,
+  quickAddEntryAction,
   removeEntryAction,
   updateWeightAction,
 } from "@/app/actions/entry";
-import { ZERO_NUTRIENTS } from "@/lib/constants";
+import { ZERO_NUTRIENTS, type Nutrients } from "@/lib/constants";
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
 import type { DailyData, DailyTargets, FoodItem, Meal } from "@/lib/domain/types";
@@ -83,6 +84,8 @@ export default function EntryClient({
   // --- selector state ---
   const [selection, setSelection] = useState<Selection>(null);
   const [amount, setAmount] = useState("");
+  // Quick-add: holds the typed name when logging food not in the DB.
+  const [quickAddName, setQuickAddName] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const focusSearchAfterRender = useRef(false);
   useEffect(() => {
@@ -196,6 +199,18 @@ export default function EntryClient({
         focusSearchAfterRender.current = true;
         setSelection(null);
         setAmount("");
+      }
+    });
+  }
+
+  function handleQuickAdd(name: string, nutrients: Partial<Nutrients>) {
+    if (isPending) return;
+    startTransition(async () => {
+      const result = await quickAddEntryAction(date, { name, nutrients });
+      refreshAfter(result);
+      if (result.ok) {
+        setQuickAddName(null);
+        focusSearchAfterRender.current = true;
       }
     });
   }
@@ -327,6 +342,11 @@ export default function EntryClient({
               setSelection(null);
               setAmount("");
             }}
+            onQuickAdd={(q) => {
+              setSelection(null);
+              setAmount("");
+              setQuickAddName(q);
+            }}
           />
 
           {amountConfig && (
@@ -357,6 +377,15 @@ export default function EntryClient({
                 </button>
               </div>
             </div>
+          )}
+
+          {quickAddName !== null && (
+            <QuickAddForm
+              initialName={quickAddName}
+              pending={isPending}
+              onSubmit={handleQuickAdd}
+              onCancel={() => setQuickAddName(null)}
+            />
           )}
 
           {preview && <NutrientPreview nutrients={preview} targets={targets} />}
@@ -434,6 +463,82 @@ export default function EntryClient({
       )}
 
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
+    </div>
+  );
+}
+
+/**
+ * Inline "quick add" for food not in the database — name + calories (required),
+ * macros optional. Reuses the normal save+log path; the food is kept for reuse.
+ */
+function QuickAddForm({
+  initialName,
+  pending,
+  onSubmit,
+  onCancel,
+}: {
+  initialName: string;
+  pending: boolean;
+  onSubmit: (name: string, nutrients: Partial<Nutrients>) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [kcal, setKcal] = useState("");
+  const [protein, setProtein] = useState("");
+  const [carbs, setCarbs] = useState("");
+  const [fat, setFat] = useState("");
+
+  const numOrUndef = (s: string) => {
+    const n = Number(s);
+    return s.trim() !== "" && Number.isFinite(n) ? n : undefined;
+  };
+  const submit = () => {
+    onSubmit(name.trim(), {
+      energy_kcal: numOrUndef(kcal),
+      protein_g: numOrUndef(protein),
+      carbohydrates_g: numOrUndef(carbs),
+      fat_g: numOrUndef(fat),
+    });
+  };
+
+  return (
+    <div className="compact-input quick-add-form">
+      <label className="form-label-sm">Quick add (not in your foods)</label>
+      <input
+        className="form-control"
+        placeholder="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <div className="input-group" style={{ marginTop: 8 }}>
+        <input
+          className="form-control"
+          type="number"
+          min={0}
+          placeholder="Calories (kcal)"
+          value={kcal}
+          autoFocus
+          onChange={(e) => setKcal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+        />
+        <button className="btn-primary" onClick={submit} disabled={pending}>
+          Add
+        </button>
+      </div>
+      <div className="quick-add-macros">
+        <input className="form-control" type="number" min={0} placeholder="Protein (g)"
+          value={protein} onChange={(e) => setProtein(e.target.value)} />
+        <input className="form-control" type="number" min={0} placeholder="Carbs (g)"
+          value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+        <input className="form-control" type="number" min={0} placeholder="Fat (g)"
+          value={fat} onChange={(e) => setFat(e.target.value)} />
+      </div>
+      <p className="field-hint">
+        Optional macros — blanks are 0. Saved to your foods for reuse.{" "}
+        <button type="button" className="link-button" onClick={onCancel}>Cancel</button>
+      </p>
     </div>
   );
 }
