@@ -20,6 +20,8 @@ import {
 } from "@/lib/data/storage";
 import { calculateNutrients } from "@/lib/domain/nutrients";
 import type { DailyData, DailyTargets, DayEntry, FoodEntry } from "@/lib/domain/types";
+import type { Nutrients } from "@/lib/constants";
+import { saveFoodAction } from "@/app/actions/foods";
 
 export interface ActionResult {
   ok: boolean;
@@ -74,6 +76,34 @@ export async function addFoodEntryAction(
   await saveDailyEntry(db, day);
   revalidate();
   return { ok: true, message: `Added ${food.name}` };
+}
+
+/**
+ * Quick-add: log food that isn't in the database yet (e.g. a takeaway) without
+ * leaving the entry page. Creates a reusable per-100g food whose values ARE the
+ * entry (logged at 100 g → exact), then logs it. Macros left blank are 0.
+ */
+export async function quickAddEntryAction(
+  date: string,
+  input: { name: string; nutrients: Partial<Nutrients> },
+): Promise<ActionResult> {
+  const name = input.name?.trim();
+  if (!name) return { ok: false, message: "Please enter a name" };
+  const energy = input.nutrients.energy_kcal;
+  if (!Number.isFinite(energy) || (energy ?? 0) <= 0) {
+    return { ok: false, message: "Please enter calories" };
+  }
+  const id = randomUUID();
+  // Reuse the food-save validation/duplicate handling, then log it.
+  const saved = await saveFoodAction({
+    id,
+    name,
+    unit_type: "per_100g",
+    serving_size_g: null,
+    nutrients: input.nutrients,
+  });
+  if (!saved.ok) return saved;
+  return addFoodEntryAction(date, id, 100);
 }
 
 /** Add a meal entry (entry.py add-entry flow, meal branch). */

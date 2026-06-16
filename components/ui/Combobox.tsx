@@ -18,6 +18,7 @@ export default function Combobox({
   selectedLabel,
   onSelect,
   onClear,
+  onQuickAdd,
   testId,
   maxResults = 50,
   inputRef,
@@ -28,6 +29,8 @@ export default function Combobox({
   selectedLabel: string | null;
   onSelect: (key: string) => void;
   onClear: () => void;
+  /** When provided, a no-match search offers "+ Quick add <query>". */
+  onQuickAdd?: (query: string) => void;
   testId?: string;
   maxResults?: number;
   /** Lets the parent re-focus the search input (e.g. after a successful add). */
@@ -130,7 +133,23 @@ export default function Combobox({
       {open && (
         <div className="combobox-menu" ref={listRef}>
           {filtered.length === 0 ? (
-            <div className="combobox-empty">No matches</div>
+            onQuickAdd && query.trim() ? (
+              <div
+                className="combobox-option combobox-quick-add focused"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const q = query.trim();
+                  if (blurTimer.current) clearTimeout(blurTimer.current);
+                  setOpen(false);
+                  setQuery("");
+                  onQuickAdd(q);
+                }}
+              >
+                + Quick add &ldquo;{query.trim()}&rdquo;
+              </div>
+            ) : (
+              <div className="combobox-empty">No matches</div>
+            )
           ) : (
             filtered.map((opt, i) => (
               <div
