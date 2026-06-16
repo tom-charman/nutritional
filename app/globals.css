@@ -1677,6 +1677,21 @@ input[type="radio"] {
     padding: 12px;
     margin-top: 8px;
 }
+/* What basis to enter values on — sits between the title and the name field. */
+.quick-add-intro {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: 4px 0 10px;
+}
+/* Give the hint room from the nutrient grid above (the base .field-hint pulls
+   itself up with a negative top margin, which reads as cramped here). */
+.quick-add-hint {
+    margin: 14px 0 12px;
+}
+.required-mark {
+    color: var(--danger);
+    font-weight: var(--font-weight-medium);
+}
 .quick-add-macros {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
