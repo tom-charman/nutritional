@@ -11,25 +11,19 @@ Next.js app.
 
 ## Ship a release
 
-The everyday path. The VM never runs `next build` (1 GB RAM) — the standalone
-build is produced off-VM and rsync'd over.
-
-**CI (preferred):** trigger the **Deploy** workflow
-([`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)) via
-`workflow_dispatch` (requires repo secrets `DEPLOY_SSH_KEY`, `DEPLOY_HOST`,
-`DEPLOY_USER`).
-
-**Manual fallback:**
+Deploys run **locally** from a clone with SSH access to the VM. The VM never
+runs `next build` (1 GB RAM) — the standalone build is produced on your machine
+and rsync'd over.
 
 ```bash
 ./scripts/deploy.sh user@vm-host
 ```
 
-Either path does the same thing: `npm ci && npm run build`, assemble the
-standalone output (plus `.next/static` and `public/`, which live outside it),
-rsync to `releases/<sha>`, repoint the `current` symlink, `sudo systemctl
-restart nutritional-next`, smoke-check `http://127.0.0.1:8050/api/auth/providers`,
-and prune to the 3 newest releases.
+This does: `npm ci && npm run build`, assemble the standalone output (plus
+`.next/static` and `public/`, which live outside it), rsync to `releases/<sha>`,
+repoint the `current` symlink, `sudo systemctl restart nutritional-next`,
+smoke-check `http://127.0.0.1:8050/api/auth/providers`, and prune to the 3
+newest releases.
 
 ## Layout on the VM
 
