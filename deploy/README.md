@@ -16,8 +16,14 @@ runs `next build` (1 GB RAM) — the standalone build is produced on your machin
 and rsync'd over.
 
 ```bash
-./scripts/deploy.sh user@vm-host
+./scripts/deploy.sh <ssh-host>
 ```
+
+`<ssh-host>` is whatever resolves the VM for plain `ssh` — typically the
+gcloud-generated alias from `gcloud compute config-ssh` (e.g.
+`instance-…-<zone>.<project>`). **Do not prefix a `user@`** — the alias (and
+`~/.ssh/config`) already carry the login user; adding one overrides it and the
+connection fails.
 
 This does: `npm ci && npm run build`, assemble the standalone output (plus
 `.next/static` and `public/`, which live outside it), rsync to `releases/<sha>`,
