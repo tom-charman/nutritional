@@ -112,6 +112,63 @@ export function rollingAverage(
   return result;
 }
 
+/**
+ * Trailing least-squares regression slope over a window, in value-units per
+ * index step (units/day for a daily-interpolated series). For each i, fit
+ * y = a + b·x over the valid points in [i-window+1, i], using the LOCAL
+ * day-offset (j - start) as the abscissa so the fitted slope is invariant
+ * under front-slicing. Nulls are skipped. Returns null when fewer than
+ * `minPoints` valid observations are in the window, or the fit is degenerate
+ * (denom <= 0, e.g. all points on one day).
+ */
+export function trailingSlope(
+  values: Series,
+  window: number,
+  minPoints = 14,
+): Series {
+  const result: Series = new Array(values.length).fill(null);
+  for (let i = 0; i < values.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    let n = 0;
+    let sx = 0;
+    let sy = 0;
+    let sxx = 0;
+    let sxy = 0;
+    for (let j = start; j <= i; j++) {
+      const v = values[j];
+      if (v === null) continue;
+      const x = j - start;
+      n++;
+      sx += x;
+      sy += v;
+      sxx += x * x;
+      sxy += x * v;
+    }
+    if (n < minPoints) continue;
+    const denom = n * sxx - sx * sx;
+    if (denom <= 0) continue;
+    result[i] = (n * sxy - sx * sy) / denom;
+  }
+  return result;
+}
+
+/**
+ * Adaptive-TDEE maintenance estimate (kcal/day):
+ *   maintenance[i] = caloriesAvg[i] − weightSlopeKgPerDay[i] × kcalPerKg
+ * Null wherever either input is null.
+ */
+export function estimateMaintenance(
+  caloriesAvg: Series,
+  weightSlopeKgPerDay: Series,
+  kcalPerKg: number,
+): Series {
+  return caloriesAvg.map((cal, i) => {
+    const slope = weightSlopeKgPerDay[i];
+    if (cal === null || slope === null) return null;
+    return cal - slope * kcalPerKg;
+  });
+}
+
 /** normalize_to_rdi (preprocessing.py:117-136). */
 export function normalizeToRdi(values: Series, rdiValue: number): Series {
   if (rdiValue === 0) return values.map(() => null);

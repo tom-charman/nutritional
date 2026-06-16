@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  caloriesAxisLimits,
   prepareCaloriesWeight,
   prepareMacroBreakdown,
   prepareNutrientsRdi,
+  windowCaloriesWeight,
 } from "@/lib/domain/charts/prepare";
 import type { DailySummary } from "@/lib/domain/types";
 
@@ -103,6 +105,59 @@ describe("prepareCaloriesWeight (transforms.py port)", () => {
     expect(r.weight_morning.every((v) => v !== null)).toBe(true);
     // calories interpolate too (then the rolling average runs over them)
     expect(r.calories_avg.every((v) => v !== null)).toBe(true);
+  });
+});
+
+describe("prepareCaloriesWeight — maintenance estimate", () => {
+  // 25 contiguous days: steady 2400 kcal intake, weight falling 0.02 kg/day.
+  // A loss while eating 2400 ⇒ maintenance must sit ABOVE 2400.
+  const days = Array.from({ length: 25 }, (_, i) => {
+    const d = String(i + 1).padStart(2, "0");
+    return summary(`2024-02-${d}`, {
+      energy_kcal: 2400,
+      morning_weight_kg: 75 - i * 0.02,
+    });
+  });
+
+  it("returns a maintenance series matching the date length", () => {
+    const r = prepareCaloriesWeight(days, 30);
+    expect(r.maintenance).toHaveLength(r.dates.length);
+  });
+
+  it("is null until MAINTENANCE_MIN_POINTS (14) weight points accrue", () => {
+    const r = prepareCaloriesWeight(days, 30);
+    expect(r.maintenance[0]).toBeNull();
+    expect(r.maintenance[12]).toBeNull(); // 13 points
+    expect(r.maintenance[13]).not.toBeNull(); // 14 points
+  });
+
+  it("falling weight ⇒ maintenance above intake (~+154 kcal at 0.02 kg/day)", () => {
+    const r = prepareCaloriesWeight(days, 30);
+    const last = r.maintenance[r.maintenance.length - 1]!;
+    expect(last).toBeGreaterThan(2400);
+    expect(last).toBeCloseTo(2400 + 0.02 * 7700, 0); // ≈ 2554
+  });
+
+  it("maintenance is NOT folded into the calorie axis limits", () => {
+    const r = prepareCaloriesWeight(days, 30);
+    // Limits are framed to the calorie line alone — identical to what they'd be
+    // without any maintenance series (maintenance is a readout, not a plotted line).
+    expect(r.y1Limits).toEqual(caloriesAxisLimits(r.calories_avg));
+  });
+
+  it("no weight data ⇒ maintenance all null", () => {
+    const calsOnly = Array.from({ length: 20 }, (_, i) =>
+      summary(`2024-03-${String(i + 1).padStart(2, "0")}`, { energy_kcal: 2400 }),
+    );
+    const r = prepareCaloriesWeight(calsOnly, 30);
+    expect(r.maintenance.every((v) => v === null)).toBe(true);
+  });
+
+  it("windowed maintenance equals the full-prep tail (slice-invariant)", () => {
+    const full = prepareCaloriesWeight(days, 30);
+    const windowed = windowCaloriesWeight(full, "2024-02-20");
+    const tail = full.maintenance.slice(full.dates.indexOf("2024-02-20"));
+    expect(windowed.maintenance).toEqual(tail);
   });
 });
 

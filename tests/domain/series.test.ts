@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   calculateMacroCalories,
   createDateRange,
+  estimateMaintenance,
   interpolateDaily,
   normalizeToRdi,
   rollingAverage,
+  trailingSlope,
 } from "@/lib/domain/charts/series";
 
 describe("createDateRange", () => {
@@ -131,6 +133,74 @@ describe("rollingAverage (preprocessing.py port)", () => {
 
   it("empty input", () => {
     expect(rollingAverage([], 5)).toEqual([]);
+  });
+});
+
+describe("trailingSlope", () => {
+  it("rising ramp → slope of +1 per step (minPoints met)", () => {
+    const s = trailingSlope([0, 1, 2, 3, 4], 5, 1);
+    expect(s[4]).toBeCloseTo(1);
+  });
+
+  it("falling ramp → negative slope", () => {
+    const s = trailingSlope([4, 3, 2, 1, 0], 5, 1);
+    expect(s[4]).toBeCloseTo(-1);
+  });
+
+  it("flat series → slope 0 (not null; denom > 0)", () => {
+    const s = trailingSlope([5, 5, 5, 5], 4, 1);
+    expect(s[3]).toBe(0);
+  });
+
+  it("skips nulls within the window", () => {
+    const s = trailingSlope([0, null, 2, null, 4], 5, 1);
+    expect(s[4]).toBeCloseTo(1);
+  });
+
+  it("fewer than minPoints valid in window → null", () => {
+    const s = trailingSlope([null, null, 5], 3, 2);
+    expect(s[2]).toBeNull(); // only one valid observation
+  });
+
+  it("a single valid point → null (denom <= 0)", () => {
+    const s = trailingSlope([42], 5, 1);
+    expect(s[0]).toBeNull();
+  });
+
+  it("is slice-invariant once the window is full (local day-offset abscissa)", () => {
+    const v = [10, 11, 13, 12, 15, 14, 17, 16, 19, 18];
+    const window = 4;
+    const cut = 3;
+    const full = trailingSlope(v, window, 2);
+    const sliced = trailingSlope(v.slice(cut), window, 2);
+    // Past the warmup, each sliced index sees the identical full window as the
+    // matching full-array index — values match exactly. (The first window-1
+    // sliced entries legitimately differ: their window is truncated.)
+    for (let i = window - 1; i < sliced.length; i++) {
+      expect(sliced[i]).toBe(full[cut + i]);
+    }
+  });
+});
+
+describe("estimateMaintenance", () => {
+  it("rising weight → maintenance below intake by slope×kcalPerKg", () => {
+    // slope +0.01 kg/day, 7700 kcal/kg → 77 kcal/day surplus
+    expect(estimateMaintenance([2500], [0.01], 7700)).toEqual([2500 - 77]);
+  });
+
+  it("falling weight → maintenance above intake", () => {
+    expect(estimateMaintenance([2500], [-0.01], 7700)).toEqual([2500 + 77]);
+  });
+
+  it("flat weight → maintenance equals intake", () => {
+    expect(estimateMaintenance([2500], [0], 7700)).toEqual([2500]);
+  });
+
+  it("null calorie or null slope → null", () => {
+    expect(estimateMaintenance([null, 2500], [0.01, null], 7700)).toEqual([
+      null,
+      null,
+    ]);
   });
 });
 
