@@ -349,6 +349,7 @@ async function run(vp: Viewport): Promise<void> {
   await step("entry.targets", async () => {
     await page.getByRole("button", { name: "Edit Targets" }).click();
     await page.waitForSelector(".modal");
+    await settle(); // let the modal finish animating in before capturing
     await shot("entry", "targets-modal");
     const toggle = page.locator(".modal [role=radio]").first();
     if (await toggle.count()) {
@@ -426,6 +427,7 @@ async function run(vp: Viewport): Promise<void> {
   await step("export.modal", async () => {
     await page.getByRole("button", { name: "Export" }).click();
     await page.waitForSelector(".modal");
+    await settle(); // let the modal finish animating in before capturing
     await shot("export", "modal-default");
     const boxes = page.locator(".modal input[type=checkbox]");
     const count = await boxes.count();

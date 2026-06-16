@@ -27,7 +27,9 @@ export function chartFrame(width: number, tall = 480) {
   const narrow = width <= 560;
   return {
     narrow,
-    height: narrow ? 320 : tall,
+    // a touch taller on mobile so the plot isn't cramped beneath the stacked
+    // header stats + tab row + legend
+    height: narrow ? 380 : tall,
     margin: narrow ? MARGIN_MOBILE : MARGIN,
   };
 }

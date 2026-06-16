@@ -230,7 +230,12 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                   </div>
                 </div>
                 <div className="compact-input">
-                  <label className="form-label">Serving Size (g)</label>
+                  <label className="form-label">
+                    Serving Size (g)
+                    {form.unit_type === "per_item" && (
+                      <span className="required-mark"> *</span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     min={0}
