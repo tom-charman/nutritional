@@ -23,7 +23,9 @@ export default auth((req) => {
     pathname === "/signin" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/textures") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/icon.svg" ||
+    pathname === "/apple-icon.png"
   ) {
     return NextResponse.next();
   }
@@ -41,5 +43,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png).*)"],
 };
