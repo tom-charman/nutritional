@@ -16,10 +16,14 @@ const LINKS = [
 export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname();
   const [exportOpen, setExportOpen] = useState(false);
+  // The sign-in / access-denied pages are pre-auth: show only the brand, not the
+  // app nav (links there go nowhere useful and read as a broken logged-out state).
+  const authPage = pathname === "/signin" || pathname === "/denied";
   return (
     <nav className="navbar">
       <div className="navbar-inner">
         <span className="navbar-brand">Nutritional Tracker</span>
+        {!authPage && (
         <div className="navbar-links">
           {LINKS.map((l) => {
             const active =
@@ -50,6 +54,7 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
             </form>
           )}
         </div>
+        )}
       </div>
       {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
     </nav>

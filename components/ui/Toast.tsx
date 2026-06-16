@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface ToastMessage {
   id: number;
@@ -10,10 +10,12 @@ export interface ToastMessage {
 
 const VISIBLE_MS = 3000;
 const EXIT_MS = 160; // matches --dur-quick settle-out
+const MAX_VISIBLE = 4; // never let the stack bury the controls beneath it
 
 /**
- * Bottom-right toasts, 3s visible, then a quiet settle-out (entry.py toast
- * behavior + the app's one motion gesture).
+ * Bottom-right toasts, 3s visible, then a quiet settle-out. Each toast is
+ * scheduled to leave exactly once (keyed by id) — adding a new toast must not
+ * restart the timers of the ones already showing, or they'd never dismiss.
  */
 export default function ToastContainer({
   toasts,
@@ -23,40 +25,52 @@ export default function ToastContainer({
   dismiss: (id: number) => void;
 }) {
   const [leaving, setLeaving] = useState<Set<number>>(new Set());
+  // Keep dismiss current without making it a timer-scheduling dependency.
+  const dismissRef = useRef(dismiss);
+  dismissRef.current = dismiss;
+  const scheduled = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    if (toasts.length === 0) return;
-    const timers = toasts.flatMap((t) => [
-      setTimeout(
-        () => setLeaving((prev) => new Set(prev).add(t.id)),
-        VISIBLE_MS,
-      ),
+    for (const t of toasts) {
+      if (scheduled.current.has(t.id)) continue; // already counting down
+      scheduled.current.add(t.id);
+      setTimeout(() => setLeaving((prev) => new Set(prev).add(t.id)), VISIBLE_MS);
       setTimeout(() => {
-        dismiss(t.id);
+        dismissRef.current(t.id);
         setLeaving((prev) => {
           const next = new Set(prev);
           next.delete(t.id);
           return next;
         });
-      }, VISIBLE_MS + EXIT_MS),
-    ]);
-    return () => timers.forEach(clearTimeout);
-  }, [toasts, dismiss]);
+        scheduled.current.delete(t.id);
+      }, VISIBLE_MS + EXIT_MS);
+    }
+  }, [toasts]);
 
   if (toasts.length === 0) return null;
 
+  // Show only the most recent few; older ones are dismissing on their own timers.
+  const visible = toasts.slice(-MAX_VISIBLE);
+
   return (
     <div className="toast-container">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`toast toast-${t.kind === "success" ? "success" : "error"}${
-            leaving.has(t.id) ? " leaving" : ""
-          }`}
-        >
-          {t.text}
-        </div>
-      ))}
+      {visible.map((t) => {
+        const ok = t.kind === "success";
+        return (
+          <div
+            key={t.id}
+            role="status"
+            className={`toast toast-${ok ? "success" : "error"}${
+              leaving.has(t.id) ? " leaving" : ""
+            }`}
+          >
+            <span className="toast-icon" aria-hidden="true">
+              {ok ? "✓" : "!"}
+            </span>
+            {t.text}
+          </div>
+        );
+      })}
     </div>
   );
 }
