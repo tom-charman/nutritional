@@ -43,6 +43,43 @@ Capture **before + after** for every action, at **both** viewports. Tear down: k
 
 ---
 
+## Analysing every screenshot (the actual point of the sweep)
+
+Capturing screenshots is worthless unless **every one is opened and read in full**.
+The sweep's value is a human/agent looking at each frame and asking "is anything here
+wrong, confusing, or ugly?" — **not** just confirming the one change you were testing.
+The recurring failure is "headline bias": you verify the bug you set out to fix and skim
+past everything else in the same image. Don't.
+
+**Rules:**
+1. **Open every screenshot. No sampling.** If the run produced 120 frames, 120 frames get
+   looked at. A frame you didn't open is a frame you didn't review.
+2. **Read the whole frame, not the diff.** For each screenshot, scan the entire UI in it —
+   every label, helper line, button, number, unit, badge, empty state, spacing gap — and
+   ask: would a first-time user understand this with no other context?
+3. **Actively hunt for the unexpected.** The goal is to catch problems nobody was looking
+   for. Treat each frame as "what's wrong here that isn't on my checklist?"
+
+**Per-screenshot detail checklist** — run against *every* frame:
+- **Symbols & legends:** every `*`, badge, icon, or colour has a visible explanation in
+  the same view. (Miss caught late: a required `*` on a field with no `*` legend.)
+- **Copy & ambiguity:** labels/instructions are unambiguous. Could a value be entered on
+  the wrong basis? (Miss caught late: a nutrient form that didn't say per-portion vs
+  per-100g.) Headings match the actual state (e.g. not "Today" on a past day).
+- **Spacing & alignment:** nothing cramped, overlapping, clipped, or mis-aligned; helper
+  text has room from its inputs; toasts/floating elements don't cover controls.
+- **Numbers & units:** correct precision, units shown, no raw floats, sensible
+  pluralisation (0/1/many), no misleading clamped values.
+- **States:** empty / loading / error / over-limit all read correctly; focus rings and
+  required/disabled affordances are present.
+- **Consistency:** the same datum/label/colour matches how it appears in other frames.
+
+If a frame shows something off — even unrelated to the change under test — **log it as a
+finding** (severity + screenshot + what's wrong). The sweep is only "clean" when every
+frame has been read against this list and nothing is outstanding.
+
+---
+
 ## The scenario matrix
 
 Apply **every** dimension below to **every** feature. If a dimension is "N/A" for a
@@ -81,7 +118,8 @@ For each area, run the matrix above; these are the area-specific must-tries.
 - **Auth & access** — signed-out view (nav hidden?); unauthorized email on `/denied` (does it name the email?); post-login redirect; brand presence.
 - **Food database** — per-100g **and** per-item create; flip unit type while editing (serving-size required affordance); empty/unknown nutrients (does blank become a silent 0?); duplicate name; delete a referenced food (clear blocked message); long supermarket names; search no-match; unbounded list (scroll ~500 rows on mobile).
 - **Meal templates** — mixed per-item + per-weight ingredients; 1-ingredient meal (plural); save → reload → re-open for edit (do amounts round-trip?); delete a meal that has logged history; expanded nutrient bars' scale/reference.
-- **Daily entry** — add by weight / by item / meal by **portions ≠ 1** (½, 1½, 2) then **reload**; same meal twice/day; edit a logged amount to 0/blank/huge; remove a food / whole meal / one ingredient; meal logged then modified (any "edited" cue?); **food not in the DB** (quick-add path?); date nav past/future/today-label; over-target hero; macro target-vs-limit indicators when exceeded.
+- **Daily entry** — add by weight / by item / meal by **portions ≠ 1** (½, 1½, 2) then **reload**; same meal twice/day; edit a logged amount to 0/blank/huge; edit a logged meal's portions; remove a food / whole meal / one ingredient; meal logged then modified (any "edited" cue?); date nav past/future/today-label; over-target hero; macro target-vs-limit indicators when exceeded.
+- **Quick-add (food not in DB)** — open the inline form: are all required fields marked **and the mark explained**? Is it clear what *basis* to enter values on (per-portion vs per-100g)? Is spacing un-cramped? Does it **dismiss** on Cancel, on a new search, and on selecting an existing food (never two inputs at once)? Are all nutrient fields present? Does it log + save for reuse?
 - **Daily targets** — target vs limit per nutrient; copy-previous when none exists; change mid-week (does it touch past days?); modal a11y (Esc/click-out/focus); toast overlap of Save.
 - **Body weight** — morning/evening independently; clear to empty (NULL not 0); >500 and plausible-but-wrong (e.g. 150 meaning lb); weight-only day with no food.
 - **Dashboard** — sparse/missing days (interpolation); < 14 weight points (maintenance hidden?); first-run with little data; all ranges + all tabs; axis labels/ticks; **mobile chart legibility**; tooltip.

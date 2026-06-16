@@ -246,6 +246,22 @@ async function run(vp: Viewport): Promise<void> {
     await settle();
     await shot("entry", "combobox-open");
   });
+  await step("entry.quick-add", async () => {
+    // food not in the DB → the "+ Quick add" option + the inline form
+    const search = page.getByTestId("food-search");
+    await search.click();
+    await search.fill("ZZ Sweep Takeaway");
+    await settle();
+    await shot("entry", "quick-add-offered");
+    await page.locator(".combobox-quick-add").click();
+    await settle();
+    await shot("entry", "quick-add-form"); // read this fully: required *, hint, basis, spacing
+    // abandon it cleanly (don't pollute the day) — typing a new search dismisses it
+    await search.click();
+    await search.fill("chicken");
+    await settle();
+    await shot("entry", "quick-add-dismissed-on-search");
+  });
   await step("entry.add-by-weight", async () => {
     const search = page.getByTestId("food-search");
     await search.click();
