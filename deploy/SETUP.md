@@ -198,8 +198,8 @@ The VM is now ready. Ship the first release from your workstation/CI — see
 Remote connections are blocked, so use an SSH tunnel for remote admin:
 
 ```bash
-# From your local machine
-ssh -L 5432:localhost:5432 user@your-server
+# From your local machine (use your ssh-config / gcloud alias — no user@ prefix)
+ssh -L 5432:localhost:5432 <ssh-host>
 # then, in another terminal
 psql -h localhost -p 5432 -U nutritional_user -d nutritional_db
 ```

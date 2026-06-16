@@ -3,10 +3,13 @@
 # The VM never runs `next build` (1GB RAM). GitHub Actions runs the same
 # steps via .github/workflows/deploy.yml; this script is the manual fallback.
 #
-# Usage: ./scripts/deploy.sh user@vm-host [app_dir]
+# Usage: ./scripts/deploy.sh <ssh-host> [app_dir]
+#   <ssh-host> is an `ssh`-resolvable target — typically the gcloud alias from
+#   `gcloud compute config-ssh`. Do NOT prefix a `user@`; the alias/ssh-config
+#   already carries the login user and a `user@` override breaks the connection.
 set -euo pipefail
 
-VM="${1:?usage: deploy.sh user@host [app_dir]}"
+VM="${1:?usage: deploy.sh <ssh-host> [app_dir]  (no user@ prefix — see deploy/README.md)}"
 APP_DIR="${2:-apps/nutritional}"
 SHA="$(git rev-parse --short HEAD)"
 RELEASE_DIR="$APP_DIR/releases/$SHA"
