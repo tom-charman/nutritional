@@ -12,6 +12,7 @@ import {
   addFoodEntryAction,
   addMealEntryAction,
   editEntryAmountAction,
+  editMealPortionsAction,
   removeEntryAction,
   updateWeightAction,
 } from "@/app/actions/entry";
@@ -202,11 +203,14 @@ export default function EntryClient({
   const handleEditAmount = (entryId: string, newAmount: number) =>
     startTransition(async () => refreshAfter(await editEntryAmountAction(date, entryId, newAmount)));
 
+  const handleEditPortions = (mealLogId: string, newPortions: number) =>
+    startTransition(async () => refreshAfter(await editMealPortionsAction(date, mealLogId, newPortions)));
+
   const handleRemoveFood = (entryId: string) =>
     startTransition(async () => refreshAfter(await removeEntryAction(date, { entryId })));
 
-  const handleRemoveMeal = (mealId: string) =>
-    startTransition(async () => refreshAfter(await removeEntryAction(date, { mealId })));
+  const handleRemoveMeal = (mealLogId: string) =>
+    startTransition(async () => refreshAfter(await removeEntryAction(date, { mealLogId })));
 
   // Last persisted weights — lets blur be a no-op when nothing changed
   // (e.g. tabbing through an empty field must not fire a "clear").
@@ -363,6 +367,7 @@ export default function EntryClient({
           <EntriesList
             entries={initialDay.entries}
             onEditAmount={handleEditAmount}
+            onEditPortions={handleEditPortions}
             onRemoveFood={handleRemoveFood}
             onRemoveMeal={handleRemoveMeal}
           />

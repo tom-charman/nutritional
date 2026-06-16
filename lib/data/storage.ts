@@ -291,28 +291,45 @@ export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | 
   if (entryRows.length === 0 && !summary) return null;
 
   const individual: DayEntry[] = [];
-  const mealGroups = new Map<string, FoodEntry[]>();
+  // Group a logged meal's ingredient rows. Prefer the per-log meal_log_id so the
+  // same meal eaten twice in a day stays as two entries; legacy rows (written
+  // before meal_log_id existed) have none, so fall back to grouping by meal_id.
+  interface Group {
+    mealId: string;
+    mealLogId: string;
+    portions: number;
+    ingredients: FoodEntry[];
+  }
+  const mealGroups = new Map<string, Group>();
 
   for (const { entry, foodName } of entryRows) {
     const fe = rowToFoodEntry(entry, foodName ?? "Unknown");
     if (entry.mealId) {
-      const group = mealGroups.get(entry.mealId) ?? [];
-      group.push(fe);
-      mealGroups.set(entry.mealId, group);
+      const key = entry.mealLogId ?? `legacy:${entry.mealId}`;
+      const group = mealGroups.get(key) ?? {
+        mealId: entry.mealId,
+        mealLogId: entry.mealLogId ?? entry.mealId,
+        // legacy rows have no stored portions → default to 1
+        portions: num(entry.portions) ?? 1.0,
+        ingredients: [],
+      };
+      group.ingredients.push(fe);
+      mealGroups.set(key, group);
     } else {
       individual.push({ kind: "food", entry: fe });
     }
   }
 
   const mealEntries: DayEntry[] = [];
-  for (const [mealId, ingredients] of mealGroups) {
-    const mealRows = await db.select().from(meals).where(eq(meals.id, mealId)).limit(1);
+  for (const group of mealGroups.values()) {
+    const mealRows = await db.select().from(meals).where(eq(meals.id, group.mealId)).limit(1);
     if (mealRows.length) {
       const me: MealEntry = {
-        meal_id: mealId,
+        meal_id: group.mealId,
+        meal_log_id: group.mealLogId,
         meal_name: mealRows[0].name,
-        portions: 1.0, // default on reload, as in python
-        ingredients,
+        portions: group.portions,
+        ingredients: group.ingredients,
       };
       mealEntries.push({ kind: "meal", entry: me });
     }
@@ -345,6 +362,8 @@ export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
           timestamp: new Date(e.entry.timestamp),
           foodId: e.entry.food_id,
           mealId: null,
+          mealLogId: null,
+          portions: null,
           weightG: decOrNull(e.entry.weight_g),
           quantity: decOrNull(e.entry.quantity),
           ...nutrientCols(e.entry.nutrients),
@@ -357,6 +376,8 @@ export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
             timestamp: new Date(ing.timestamp),
             foodId: ing.food_id,
             mealId: e.entry.meal_id,
+            mealLogId: e.entry.meal_log_id,
+            portions: dec(e.entry.portions),
             weightG: decOrNull(ing.weight_g),
             quantity: decOrNull(ing.quantity),
             ...nutrientCols(ing.nutrients),

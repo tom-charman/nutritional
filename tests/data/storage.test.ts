@@ -133,6 +133,7 @@ describe("daily entry save/load invariants", () => {
           kind: "meal",
           entry: {
             meal_id: mealId,
+            meal_log_id: randomUUID(),
             meal_name: "Test Breakfast",
             portions: 1,
             ingredients: [
@@ -337,6 +338,7 @@ describe("meal template CRUD", () => {
           kind: "meal",
           entry: {
             meal_id: mealId,
+            meal_log_id: randomUUID(),
             meal_name: "Crud Logged Meal",
             portions: 1,
             ingredients: [makeEntry(food.id, { entry_id: randomUUID(), weight_g: 40 })],
@@ -379,5 +381,64 @@ describe("meals", () => {
 
     const allMeals = await loadMeals(db);
     expect(allMeals.some((m) => m.id === mealId)).toBe(true);
+  });
+});
+
+describe("meal portions data integrity (UX review #1/#2)", () => {
+  async function seedMeal(name: string): Promise<{ mealId: string; food: FoodItem }> {
+    const food = makeFood();
+    await saveFoodItem(db, food);
+    const mealId = randomUUID();
+    await db.execute(sql`INSERT INTO meals (id, name) VALUES (${mealId}, ${name})`);
+    return { mealId, food };
+  }
+
+  function mealEntry(mealId: string, food: FoodItem, portions: number) {
+    return {
+      kind: "meal" as const,
+      entry: {
+        meal_id: mealId,
+        meal_log_id: randomUUID(),
+        meal_name: "x",
+        portions,
+        ingredients: [makeEntry(food.id, { entry_id: randomUUID() })],
+      },
+    };
+  }
+
+  it("persists fractional portions across reload (no reset to 1)", async () => {
+    const date = "2024-09-01";
+    const { mealId, food } = await seedMeal("Half Portion Meal");
+    await saveDailyEntry(db, {
+      date,
+      entries: [mealEntry(mealId, food, 0.5)],
+      measurements: { morning_weight_kg: null, evening_weight_kg: null },
+    });
+
+    const loaded = await loadDailyEntry(db, date);
+    const meal = loaded!.entries.find((e) => e.kind === "meal");
+    expect(meal?.kind === "meal" && meal.entry.portions).toBe(0.5);
+  });
+
+  it("keeps the same meal logged twice in a day as two separate entries", async () => {
+    const date = "2024-09-02";
+    const { mealId, food } = await seedMeal("Twice Meal");
+    await saveDailyEntry(db, {
+      date,
+      entries: [mealEntry(mealId, food, 1), mealEntry(mealId, food, 2)],
+      measurements: { morning_weight_kg: null, evening_weight_kg: null },
+    });
+
+    const loaded = await loadDailyEntry(db, date);
+    const meals = loaded!.entries.filter((e) => e.kind === "meal");
+    expect(meals).toHaveLength(2);
+    const logIds = new Set(
+      meals.map((m) => (m.kind === "meal" ? m.entry.meal_log_id : "")),
+    );
+    expect(logIds.size).toBe(2);
+    const portions = meals
+      .map((m) => (m.kind === "meal" ? m.entry.portions : 0))
+      .sort();
+    expect(portions).toEqual([1, 2]);
   });
 });

@@ -49,6 +49,10 @@ export const foodEntries = pgTable(
     timestamp: timestamp("timestamp").notNull(),
     foodId: uuid("food_id").references(() => foodItems.id),
     mealId: uuid("meal_id").references(() => meals.id),
+    /** Per-log meal instance id — groups one logged meal's ingredient rows. */
+    mealLogId: uuid("meal_log_id"),
+    /** Portions of the meal that were logged (e.g. 0.5). NULL for individual foods. */
+    portions: numeric("portions", { precision: 8, scale: 2 }),
     weightG: numeric("weight_g", { precision: 8, scale: 2 }),
     quantity: numeric("quantity", { precision: 8, scale: 2 }),
     energyKcal: nutrient("energy_kcal").notNull(),
@@ -67,6 +71,7 @@ export const foodEntries = pgTable(
     index("idx_food_entries_entry_date").on(t.entryDate),
     index("idx_food_entries_food_id").on(t.foodId),
     index("idx_food_entries_meal_id").on(t.mealId),
+    index("idx_food_entries_meal_log_id").on(t.mealLogId),
   ],
 );
 

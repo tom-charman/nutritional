@@ -23,6 +23,8 @@ export interface FoodEntry {
 /** Mirrors models.py MealEntry — ingredients pre-scaled for portions. */
 export interface MealEntry {
   meal_id: string;
+  /** Per-log instance id — distinguishes the same meal logged more than once a day. */
+  meal_log_id: string;
   meal_name: string;
   portions: number;
   ingredients: FoodEntry[];
