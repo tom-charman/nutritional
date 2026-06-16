@@ -109,6 +109,7 @@ describe("sumNutrients / dailyTotals", () => {
   it("dailyTotals sums food entries and meal entries", () => {
     const meal: MealEntry = {
       meal_id: "m1",
+      meal_log_id: "ml1",
       meal_name: "Breakfast",
       portions: 1,
       ingredients: [
@@ -129,6 +130,7 @@ describe("sumNutrients / dailyTotals", () => {
   it("mealEntryTotals sums ingredient nutrients", () => {
     const meal: MealEntry = {
       meal_id: "m1",
+      meal_log_id: "ml2",
       meal_name: "Lunch",
       portions: 2,
       ingredients: [entry({ energy_kcal: 120 }), entry({ energy_kcal: 80 })],

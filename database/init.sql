@@ -128,10 +128,21 @@ DO $$ BEGIN
     END IF;
 END $$;
 
+-- Persist a logged meal's portion count and a per-log instance id (if not exists).
+-- portions: how many portions of the meal were eaten (e.g. 0.5). Was previously
+--   discarded on save and reset to 1 on reload, misrepresenting intake.
+-- meal_log_id: groups the ingredient rows of ONE logged meal, so the same meal
+--   eaten twice in a day stays as two separate entries instead of merging.
+-- Both NULL for individual food rows (and for legacy meal rows, which fall back
+-- to grouping by meal_id with portions defaulting to 1).
+ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS portions DECIMAL(8,2);
+ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS meal_log_id UUID;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX IF NOT EXISTS idx_food_entries_food_id ON food_entries(food_id);
 CREATE INDEX IF NOT EXISTS idx_food_entries_meal_id ON food_entries(meal_id);
+CREATE INDEX IF NOT EXISTS idx_food_entries_meal_log_id ON food_entries(meal_log_id);
 CREATE INDEX IF NOT EXISTS idx_daily_summaries_summary_date ON daily_summaries(summary_date);
 CREATE INDEX IF NOT EXISTS idx_daily_targets_target_date ON daily_targets(target_date);
 CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);

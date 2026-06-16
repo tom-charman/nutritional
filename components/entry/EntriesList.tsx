@@ -47,13 +47,15 @@ function FoodRow({
 export default function EntriesList({
   entries,
   onEditAmount,
+  onEditPortions,
   onRemoveFood,
   onRemoveMeal,
 }: {
   entries: DayEntry[];
   onEditAmount: (entryId: string, amount: number) => void;
+  onEditPortions: (mealLogId: string, portions: number) => void;
   onRemoveFood: (entryId: string) => void;
-  onRemoveMeal: (mealId: string) => void;
+  onRemoveMeal: (mealLogId: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -84,18 +86,29 @@ export default function EntriesList({
           );
         }
         const meal = e.entry;
-        const isOpen = expanded.has(meal.meal_id);
+        const isOpen = expanded.has(meal.meal_log_id);
         const totals = mealEntryTotals(meal);
         return (
-          <div key={`${meal.meal_id}-${idx}`} className="ingredient-item" style={{ display: "block" }}>
-            <div className="meal-entry-header" onClick={() => toggle(meal.meal_id)}>
+          <div key={meal.meal_log_id} className="ingredient-item" style={{ display: "block" }}>
+            <div className="meal-entry-header" onClick={() => toggle(meal.meal_log_id)}>
               <span>
                 <span className="meal-entry-name">
                   {isOpen ? "▾" : "▸"} {meal.meal_name}
                 </span>{" "}
                 <span className="meal-entry-info">
-                  {meal.portions} portion{meal.portions === 1 ? "" : "s"} ·{" "}
-                  {meal.ingredients.length} ingredients
+                  {/* portions is click-to-edit; stop the click from toggling the meal */}
+                  <span
+                    className="meal-entry-portions"
+                    onClick={(ev) => ev.stopPropagation()}
+                  >
+                    <EditableAmount
+                      display={`${meal.portions} portion${meal.portions === 1 ? "" : "s"}`}
+                      value={meal.portions}
+                      onSave={(n) => onEditPortions(meal.meal_log_id, n)}
+                    />
+                  </span>{" "}
+                  · {meal.ingredients.length} ingredient
+                  {meal.ingredients.length === 1 ? "" : "s"}
                 </span>
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -107,7 +120,7 @@ export default function EntriesList({
                   title="Remove meal"
                   onClick={(ev) => {
                     ev.stopPropagation();
-                    onRemoveMeal(meal.meal_id);
+                    onRemoveMeal(meal.meal_log_id);
                   }}
                 >
                   ×

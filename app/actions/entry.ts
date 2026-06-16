@@ -116,7 +116,13 @@ export async function addMealEntryAction(
   const day = await loadOrEmptyDay(date);
   day.entries.push({
     kind: "meal",
-    entry: { meal_id: meal.id, meal_name: meal.name, portions, ingredients },
+    entry: {
+      meal_id: meal.id,
+      meal_log_id: randomUUID(),
+      meal_name: meal.name,
+      portions,
+      ingredients,
+    },
   });
   await saveDailyEntry(db, day);
   revalidate();
@@ -124,6 +130,45 @@ export async function addMealEntryAction(
     ok: true,
     message: `Added ${meal.name} (${portions} portion${portions === 1 ? "" : "s"})`,
   };
+}
+
+/** Rescale a logged meal to a new portion count (entry.py meal portion edit). */
+export async function editMealPortionsAction(
+  date: string,
+  mealLogId: string,
+  newPortions: number,
+): Promise<ActionResult> {
+  if (!Number.isFinite(newPortions) || newPortions <= 0) {
+    return { ok: false, message: "Please enter valid portions" };
+  }
+  const day = await loadDailyEntry(db, date);
+  if (!day) return { ok: false, message: "No entries for this date" };
+
+  const target = day.entries.find(
+    (e): e is Extract<DayEntry, { kind: "meal" }> =>
+      e.kind === "meal" && e.entry.meal_log_id === mealLogId,
+  );
+  if (!target) return { ok: false, message: "Meal not found" };
+
+  const old = target.entry.portions;
+  if (old <= 0) return { ok: false, message: "Meal not found" };
+  const factor = newPortions / old;
+
+  for (const ing of target.entry.ingredients) {
+    const food = await getFoodItem(db, ing.food_id);
+    if (!food) continue;
+    ing.weight_g = ing.weight_g !== null ? ing.weight_g * factor : null;
+    ing.quantity = ing.quantity !== null ? ing.quantity * factor : null;
+    ing.nutrients = calculateNutrients(food, {
+      weight_g: ing.weight_g,
+      quantity: ing.quantity,
+    });
+  }
+  target.entry.portions = newPortions;
+
+  await saveDailyEntry(db, day);
+  revalidate();
+  return { ok: true, message: `Updated ${target.entry.meal_name}` };
 }
 
 /** Inline-edit a food entry's amount (entry.py save-edit flow). */
@@ -166,7 +211,7 @@ export async function editEntryAmountAction(
 /** Remove an entry — food entry by entry_id, or a whole meal by meal_id. */
 export async function removeEntryAction(
   date: string,
-  ref: { entryId?: string; mealId?: string },
+  ref: { entryId?: string; mealLogId?: string },
 ): Promise<ActionResult> {
   const day = await loadDailyEntry(db, date);
   if (!day) return { ok: false, message: "No entries for this date" };
@@ -174,7 +219,7 @@ export async function removeEntryAction(
   let removed = false;
   day.entries = day.entries
     .map((e: DayEntry): DayEntry | null => {
-      if (ref.mealId && e.kind === "meal" && e.entry.meal_id === ref.mealId) {
+      if (ref.mealLogId && e.kind === "meal" && e.entry.meal_log_id === ref.mealLogId) {
         removed = true;
         return null; // remove the whole meal
       }
