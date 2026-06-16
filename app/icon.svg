@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Nutritional Tracker">
+  <!-- Hanko seal: rounded-square stamp in Bengara Rust, brush-cut N reversed in Kaolin White -->
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="#A04000"/>
+  <path
+    d="M9,24 V8 H13.5 L19,18.5 V8 H23 V24 H18.5 L13,13.5 V24 Z"
+    fill="#F2F0EB"
+    stroke="#F2F0EB"
+    stroke-width="0.8"
+    stroke-linejoin="round"/>
+</svg>
