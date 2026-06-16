@@ -71,11 +71,12 @@ describe("macroIndicator (entry.py create_macro_bar thresholds)", () => {
 });
 
 describe("calorieStatus (entry.py calories-remaining card)", () => {
-  it("over target → over + kcal over text, remaining clamped to 0", () => {
+  it("over target → over amount surfaced, remaining clamped to 0", () => {
     const s = calorieStatus(2200, 2000);
     expect(s.remaining).toBe(0);
+    expect(s.over).toBe(200);
     expect(s.status).toBe("over");
-    expect(s.statusText).toBe("200 kcal over target");
+    expect(s.statusText).toBe("over target");
   });
 
   it("within 200 kcal → near", () => {

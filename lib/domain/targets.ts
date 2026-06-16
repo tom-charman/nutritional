@@ -73,18 +73,21 @@ export type CalorieStatus = "over" | "near" | "default";
 export function calorieStatus(
   consumed: number,
   target: number,
-): { remaining: number; status: CalorieStatus; statusText: string } {
+): { remaining: number; over: number; status: CalorieStatus; statusText: string } {
   const rawRemaining = target - consumed;
   const remaining = Math.max(0, Math.round(rawRemaining));
   if (rawRemaining < 0) {
+    // Surface the overage as its own number so the card can show it prominently
+    // ("Calories Over: 1,725") instead of a misleading bare "0 remaining".
     return {
       remaining,
+      over: Math.round(-rawRemaining),
       status: "over",
-      statusText: `${Math.round(-rawRemaining)} kcal over target`,
+      statusText: "over target",
     };
   }
   if (rawRemaining < 200) {
-    return { remaining, status: "near", statusText: "Target nearly met" };
+    return { remaining, over: 0, status: "near", statusText: "Target nearly met" };
   }
-  return { remaining, status: "default", statusText: "On track" };
+  return { remaining, over: 0, status: "default", statusText: "On track" };
 }

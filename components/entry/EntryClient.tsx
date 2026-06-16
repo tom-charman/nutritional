@@ -362,7 +362,7 @@ export default function EntryClient({
           {preview && <NutrientPreview nutrients={preview} targets={targets} />}
 
           <div className="section-label" style={{ marginTop: 16 }}>
-            Today&apos;s Intake
+            {shownDate === today ? "Today's Intake" : `Intake — ${formatHeaderDate(shownDate)}`}
           </div>
           <EntriesList
             entries={initialDay.entries}
@@ -377,9 +377,11 @@ export default function EntryClient({
         <div className="mise-summary-column">
           <div className="section-label">Daily Summary</div>
           <div className="calories-remaining-card">
-            <div className="calories-remaining-label">Calories Remaining</div>
+            <div className="calories-remaining-label">
+              {calStatus.status === "over" ? "Calories Over" : "Calories Remaining"}
+            </div>
             <div className={`calories-remaining-number${statusClass}`}>
-              {calStatus.remaining}
+              {calStatus.status === "over" ? calStatus.over : calStatus.remaining}
             </div>
             <div className="calorie-status-indicator">{calStatus.statusText}</div>
           </div>

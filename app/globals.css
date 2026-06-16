@@ -1645,6 +1645,13 @@ input[type="radio"] {
     font-family: var(--font-mono);
 }
 
+/* Small explanatory helper line under a section label (e.g. "blank = 0"). */
+.field-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: -4px 0 10px;
+}
+
 .form-label-xs {
     font-size: 11px;
     color: var(--text-muted);
