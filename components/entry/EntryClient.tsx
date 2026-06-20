@@ -430,7 +430,9 @@ export default function EntryClient({
             />
           )}
 
-          {preview && <NutrientPreview nutrients={preview} targets={targets} />}
+          {preview && (
+            <NutrientPreview nutrients={preview} targets={targets} dayTotals={totals} />
+          )}
 
           <div className="intake-header" style={{ marginTop: 16 }}>
             <div className="section-label">

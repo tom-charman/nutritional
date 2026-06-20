@@ -263,6 +263,23 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 - **Implemented in:** `components/entry/NutrientPreview.tsx`,
   `components/entry/EntryClient.tsx`
 
+### A user is warned before adding an entry that would breach a daily limit
+- **What it does:** In the live preview, a limit nutrient (salt/sugar/saturated
+  fat) whose **projected** day total — what's already logged plus this pending
+  entry — would cross its cap raises a ⚠ warning *before* the entry is committed,
+  quantified as "Would put you 40% over your salt limit." A breach is never first
+  discovered after the fact on the committed macro bars.
+- **UI/UX considerations:** Reuses the exact `macroIndicator` thresholds the
+  committed macro bars use (over cap → warning, >110% → exceeded), so the
+  pre-commit warning and the post-commit bar verdict always agree. The warning is
+  rust (warning ≡ danger) — never false urgency. It only fires where a "day"
+  exists: the preview needs both the day's targets *and* its running totals, so
+  the meal composer (a template, not a day) never shows it. Recomputes live as the
+  amount changes and clears the instant the projected total is back within the cap.
+- **Implemented in:** `components/entry/NutrientPreview.tsx`,
+  `components/entry/EntryClient.tsx`, `lib/domain/targets.ts` (`macroIndicator`,
+  `limitOverPct`)
+
 ### A user can inline-edit the amount of a logged entry
 - **What it does:** Click a logged amount to edit it in place; Enter or blur commits
   (only if changed and valid), Escape cancels. Nutrients and daily totals
@@ -449,9 +466,10 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 ## 8. CSV export (modal from the navbar)
 
 ### A user can export their data to CSV
-- **What it does:** A modal offers five independent exports — Calories & Weight,
-  Macro Breakdown, Nutrients vs RDI, Daily Entries, and Meals — with a from/to date
-  range (default last 90 days). Each checked option downloads as its own file.
+- **What it does:** A modal offers six independent exports — Calories & Weight,
+  Macro Breakdown, Nutrients vs RDI, Daily Totals (clinician), Daily Entries, and
+  Meals — with a from/to date range (default last 90 days). Each checked option
+  downloads as its own file.
 - **UI/UX considerations:** Exported numbers must **match what's plotted** (the same
   rolling-average values), so a user reconciling a CSV against the chart sees no
   drift. The Daily Entries export expands meals into their individual ingredient
@@ -459,6 +477,21 @@ source of "looks right for one kind of food, wrong for the other" bugs.
   requires from ≤ to.
 - **Implemented in:** `components/export/ExportModal.tsx`, `app/actions/export.ts`,
   `lib/export/csv.ts`
+
+### A user can export daily totals against targets for a clinician
+- **What it does:** The "Daily Totals (clinician)" export gives one row per day in
+  range, each tracked nutrient in **absolute units** alongside **that day's target**
+  and a **hit/miss** flag, plus a trailing SUMMARY row (mean actual, mean target,
+  and a hits/days hit-rate per nutrient). Unlike "Nutrients vs RDI" (% of a generic
+  RDI), this is what a clinician working in grams against a personalised cap needs.
+- **UI/UX considerations:** Hit/miss honours each nutrient's **target vs limit**
+  mode — a limit is a hit when at or under the cap, a target is a hit when at or
+  above the goal — so the flag agrees with the entry-page bars and the live limit
+  alert for the same day. Days with no data logged leave the actual/status cells
+  blank but still show the target. Per-day targets are resolved read-only (the
+  export never writes target rows). Absolute units, not percentages.
+- **Implemented in:** `app/actions/export.ts` (`exportDailyTotalsCsv`),
+  `lib/export/dailyTotals.ts`, `components/export/ExportModal.tsx`
 
 ---
 
@@ -492,7 +525,8 @@ they are the places a change most often breaks something far from where it was m
 |---|---|---|
 | **Per-item vs per-weight foods** | The amount field, label, and display string differ by unit model | Foods form, entry selector & amount input, daily log rows, meal composer, nutrient previews, CSV daily-entries |
 | **Meal portion scaling** | One portions factor multiplies every ingredient and explodes into grouped rows | Add-meal flow, grouped log rows, inline edit of an ingredient, CSV (meals expand to ingredients) |
-| **Target vs limit modes** | The same bar/strip means "goal to hit" or "cap not to exceed" | Entry calories card, macro progress bars, meal-card comparison bars, nutrients-vs-RDI chart |
+| **Target vs limit modes** | The same bar/strip means "goal to hit" or "cap not to exceed" | Entry calories card, macro progress bars, meal-card comparison bars, nutrients-vs-RDI chart, pre-commit limit alert, clinician daily-totals hit/miss |
+| **Pre-commit limit alerts** | A breach must read identically before and after committing, and only where a "day" exists | Live entry preview (warning copy + ⚠), committed macro bars, meal composer (must NOT show it), clinician export status |
 | **Weight independence + clear-to-NULL** | Weight saves with no food rows; empty means NULL not 0 | Weight inputs, weight-only days, maintenance-calorie estimate, calories & weight chart, CSV |
 | **Rolling average + yesterday cap** | Charts smooth over 30 days and exclude today | All three dashboard charts, time-range windowing, CSV exports that mirror plotted values |
 | **Delete guards & history preservation** | Foods can't be deleted while referenced; deleting a meal keeps logged history | Food delete (FK message), meal delete (`meal_id` cleared), past days' logs |

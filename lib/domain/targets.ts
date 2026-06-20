@@ -63,6 +63,17 @@ export function macroIndicator(
   return value >= target ? "met" : null;
 }
 
+/**
+ * Whole-number percentage a projected value sits over a limit target, for the
+ * live preview copy ("…40% over your salt limit"). Only meaningful once
+ * `macroIndicator` has flagged the value as warning/exceeded (i.e. projected >
+ * target); guards a zero/negative target to avoid Infinity/NaN.
+ */
+export function limitOverPct(projected: number, target: number): number {
+  if (target <= 0) return 0;
+  return Math.round((projected / target - 1) * 100);
+}
+
 export type CalorieStatus = "over" | "near" | "default";
 
 /**
