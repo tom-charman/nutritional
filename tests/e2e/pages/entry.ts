@@ -63,6 +63,15 @@ export class EntryPage {
   comboOption(text: string | RegExp): Locator {
     return this.page.locator(".combobox-option").filter({ hasText: text }).first();
   }
+  comboSectionHeader(text: string | RegExp): Locator {
+    return this.page.locator(".combobox-section-header").filter({ hasText: text });
+  }
+  get copyYesterdayButton(): Locator {
+    return this.page.getByTestId("copy-yesterday");
+  }
+  get swapSearch(): Locator {
+    return this.page.getByTestId("swap-food-search");
+  }
   macroBar(label: string): Locator {
     const exact = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
     return this.page
@@ -99,6 +108,13 @@ export class EntryPage {
 
   async removeEntry(row: Locator) {
     await row.locator(".delete-icon").first().click();
+  }
+
+  /** Click a logged food's name to open the inline swap selector, pick a new food. */
+  async swapFood(row: Locator, query: string, optionText?: string | RegExp) {
+    await row.locator(".ingredient-name-swap").first().click();
+    await this.swapSearch.fill(query);
+    await this.comboOption(optionText ?? query).click();
   }
 
   async setWeight(which: "morning" | "evening", value: string) {

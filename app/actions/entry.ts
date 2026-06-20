@@ -201,6 +201,100 @@ export async function editMealPortionsAction(
   return { ok: true, message: `Updated ${target.entry.meal_name}` };
 }
 
+/**
+ * Copy a previous day's entries into the target day (default: the day before).
+ * Routine eaters log a near-identical day in one click, then tweak amounts in
+ * place. Clones carry fresh ids/timestamps so the copy is independent of its
+ * source (deleting a copied row never touches the original day).
+ */
+export async function copyDayEntriesAction(
+  targetDate: string,
+  sourceDate?: string,
+): Promise<ActionResult> {
+  const from =
+    sourceDate ??
+    new Date(Date.parse(`${targetDate}T00:00:00Z`) - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+
+  const source = await loadDailyEntry(db, from);
+  if (!source || source.entries.length === 0) {
+    return { ok: false, message: `Nothing to copy from ${from}` };
+  }
+
+  const now = new Date().toISOString();
+  const clones: DayEntry[] = source.entries.map((e): DayEntry =>
+    e.kind === "food"
+      ? {
+          kind: "food",
+          entry: { ...e.entry, entry_id: randomUUID(), timestamp: now },
+        }
+      : {
+          kind: "meal",
+          entry: {
+            ...e.entry,
+            meal_log_id: randomUUID(),
+            ingredients: e.entry.ingredients.map((ing) => ({
+              ...ing,
+              entry_id: randomUUID(),
+              timestamp: now,
+            })),
+          },
+        },
+  );
+
+  const day = await loadOrEmptyDay(targetDate);
+  day.entries.push(...clones);
+  await saveDailyEntry(db, day);
+  revalidate();
+  return {
+    ok: true,
+    message: `Copied ${clones.length} entr${clones.length === 1 ? "y" : "ies"} from ${from}`,
+  };
+}
+
+/**
+ * Swap the food behind a logged entry without losing the row (entry.py has no
+ * equivalent). Keeps the logged amount and reinterprets it for the new food's
+ * unit model, then recomputes nutrients. Works on both standalone food entries
+ * and ingredients inside a logged meal (mirrors editEntryAmountAction).
+ */
+export async function swapFoodEntryAction(
+  date: string,
+  entryId: string,
+  newFoodId: string,
+): Promise<ActionResult> {
+  const food = await getFoodItem(db, newFoodId);
+  if (!food) return { ok: false, message: "Food item not found" };
+
+  const day = await loadDailyEntry(db, date);
+  if (!day) return { ok: false, message: "No entries for this date" };
+
+  let swapped = false;
+  for (const e of day.entries) {
+    const targets: FoodEntry[] = e.kind === "food" ? [e.entry] : e.entry.ingredients;
+    for (const fe of targets) {
+      if (fe.entry_id !== entryId) continue;
+      const amount = fe.weight_g ?? fe.quantity ?? 0;
+      const isPerItem = food.unit_type === "per_item";
+      fe.food_id = food.id;
+      fe.food_name = food.name;
+      fe.weight_g = isPerItem ? null : amount;
+      fe.quantity = isPerItem ? amount : null;
+      fe.nutrients = calculateNutrients(food, {
+        weight_g: fe.weight_g,
+        quantity: fe.quantity,
+      });
+      swapped = true;
+    }
+  }
+  if (!swapped) return { ok: false, message: "Entry not found" };
+
+  await saveDailyEntry(db, day);
+  revalidate();
+  return { ok: true, message: `Swapped to ${food.name}` };
+}
+
 /** Inline-edit a food entry's amount (entry.py save-edit flow). */
 export async function editEntryAmountAction(
   date: string,

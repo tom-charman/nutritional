@@ -11,10 +11,12 @@ import { useRouter } from "next/navigation";
 import {
   addFoodEntryAction,
   addMealEntryAction,
+  copyDayEntriesAction,
   editEntryAmountAction,
   editMealPortionsAction,
   quickAddEntryAction,
   removeEntryAction,
+  swapFoodEntryAction,
   updateWeightAction,
 } from "@/app/actions/entry";
 import {
@@ -59,6 +61,7 @@ export default function EntryClient({
   today,
   foods,
   meals,
+  recentFoods,
   initialDay,
   targets,
 }: {
@@ -66,6 +69,7 @@ export default function EntryClient({
   today: string;
   foods: FoodItem[];
   meals: Meal[];
+  recentFoods: FoodItem[];
   initialDay: DailyData;
   targets: DailyTargets;
 }) {
@@ -117,20 +121,39 @@ export default function EntryClient({
   }, []);
 
   // --- selector options: foods + meals combined (entry.py update_food_options) ---
-  const options = useMemo(() => {
-    const foodOpts = foods.map((f) => ({
+  // Recently-logged foods are pinned in a "Recent" section atop the list; the
+  // rest fall under "All foods". Searching collapses both back to a flat match.
+  const foodOption = useCallback(
+    (f: FoodItem, section: string) => ({
       key: `food:${f.id}`,
       label:
         f.unit_type === "per_100g"
           ? `${f.name} (per 100g)`
           : `${f.name} (per item, ~${f.serving_size_g}g)`,
-    }));
+      section,
+    }),
+    [],
+  );
+
+  const options = useMemo(() => {
+    const recentIds = new Set(recentFoods.map((f) => f.id));
+    const recentOpts = recentFoods.map((f) => foodOption(f, "Recent"));
+    const restOpts = foods
+      .filter((f) => !recentIds.has(f.id))
+      .map((f) => foodOption(f, "All foods"));
     const mealOpts = meals.map((m) => ({
       key: `meal:${m.id}`,
       label: `${m.name} (meal)`,
+      section: "All foods",
     }));
-    return [...foodOpts, ...mealOpts];
-  }, [foods, meals]);
+    return [...recentOpts, ...restOpts, ...mealOpts];
+  }, [foods, meals, recentFoods, foodOption]);
+
+  // Foods-only, flat (no sections) — for the inline "swap food" selector.
+  const foodOptions = useMemo(
+    () => foods.map((f) => foodOption(f, "")),
+    [foods, foodOption],
+  );
 
   const handleSelect = useCallback(
     (key: string) => {
@@ -220,6 +243,14 @@ export default function EntryClient({
       }
     });
   }
+
+  const handleCopyYesterday = () => {
+    if (isPending) return;
+    startTransition(async () => refreshAfter(await copyDayEntriesAction(date)));
+  };
+
+  const handleSwapFood = (entryId: string, newFoodId: string) =>
+    startTransition(async () => refreshAfter(await swapFoodEntryAction(date, entryId, newFoodId)));
 
   const handleEditAmount = (entryId: string, newAmount: number) =>
     startTransition(async () => refreshAfter(await editEntryAmountAction(date, entryId, newAmount)));
@@ -401,13 +432,30 @@ export default function EntryClient({
 
           {preview && <NutrientPreview nutrients={preview} targets={targets} />}
 
-          <div className="section-label" style={{ marginTop: 16 }}>
-            {shownDate === today ? "Today's Intake" : `Intake — ${formatHeaderDate(shownDate)}`}
+          <div
+            className="section-label"
+            style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
+            <span>
+              {shownDate === today ? "Today's Intake" : `Intake — ${formatHeaderDate(shownDate)}`}
+            </span>
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              data-testid="copy-yesterday"
+              title="Copy the previous day's entries into this day"
+              onClick={handleCopyYesterday}
+              disabled={isPending}
+            >
+              Copy yesterday
+            </button>
           </div>
           <EntriesList
             entries={initialDay.entries}
+            foodOptions={foodOptions}
             onEditAmount={handleEditAmount}
             onEditPortions={handleEditPortions}
+            onSwapFood={handleSwapFood}
             onRemoveFood={handleRemoveFood}
             onRemoveMeal={handleRemoveMeal}
           />

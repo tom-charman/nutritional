@@ -30,6 +30,7 @@ export const E2E_DATES = {
   dates_b: "2024-01-16",
   targets: "2024-01-17",
   spare: "2024-01-18",
+  spare2: "2024-01-19",
 };
 
 const SCREENSHOT_ROOT = path.resolve(__dirname, "../screenshots");
