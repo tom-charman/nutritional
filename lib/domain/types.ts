@@ -73,6 +73,21 @@ export interface DailyTargets {
   modes: Record<keyof Nutrients, TargetMode | null>;
 }
 
+/**
+ * Cross-day user settings (user_settings, single row), coerced.
+ * All fields nullable — no goal / no rate target is a valid first-run state.
+ */
+export interface UserSettings {
+  /** Target body weight (kg), or null if no goal is set. */
+  goal_weight_kg: number | null;
+  /** Signed weekly rate target (kg/week): negative = cut, positive = lean bulk. */
+  weekly_rate_target_kg: number | null;
+  /** Optional baseline weight for progress framing. */
+  start_weight_kg: number | null;
+  /** Optional baseline date (ISO YYYY-MM-DD). */
+  start_date: string | null;
+}
+
 /** One daily_summaries row, coerced. */
 export interface DailySummary {
   /** ISO date (YYYY-MM-DD) */

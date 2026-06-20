@@ -113,6 +113,28 @@ export function rollingAverage(
 }
 
 /**
+ * Exponentially weighted moving average (the "trend weight" smoother, à la the
+ * Hacker's Diet / TrendWeight): trend[i] = trend[i-1] + alpha·(value[i] − trend[i-1]).
+ * Far more responsive than a long trailing mean — it weights recent weigh-ins, so a
+ * cutter sees this fortnight's change instead of a ~2-week-lagged average. Seeds from
+ * the first non-null value; null inputs carry the running trend forward unchanged
+ * (the input here is already daily-interpolated, so gaps are rare). Leading entries
+ * before any data stay null.
+ */
+export function ewma(values: Series, alpha: number): Series {
+  const result: Series = new Array(values.length).fill(null);
+  let trend: number | null = null;
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i];
+    if (v !== null) {
+      trend = trend === null ? v : trend + alpha * (v - trend);
+    }
+    result[i] = trend;
+  }
+  return result;
+}
+
+/**
  * Trailing least-squares regression slope over a window, in value-units per
  * index step (units/day for a daily-interpolated series). For each i, fit
  * y = a + b·x over the valid points in [i-window+1, i], using the LOCAL

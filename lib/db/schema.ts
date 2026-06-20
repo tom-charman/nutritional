@@ -14,6 +14,7 @@ import {
   date,
   timestamp,
   index,
+  integer,
 } from "drizzle-orm/pg-core";
 
 /** DECIMAL(8,2) nutrient column helper (NOT NULL). */
@@ -139,6 +140,22 @@ export const meals = pgTable(
   },
   (t) => [index("idx_meals_name").on(t.name)],
 );
+
+/**
+ * Cross-day user settings — the first config table NOT keyed by date.
+ * Single-row by design (the app is single-user): the DB enforces `id = 1` via a
+ * CHECK constraint (see init.sql), and all app writes upsert on that fixed id.
+ * Forward-compatible for roadmap #7 (target presets) via added nullable columns.
+ */
+export const userSettings = pgTable("user_settings", {
+  id: integer("id").primaryKey().default(1),
+  goalWeightKg: numeric("goal_weight_kg", { precision: 5, scale: 2 }),
+  weeklyRateTargetKg: numeric("weekly_rate_target_kg", { precision: 4, scale: 2 }),
+  startWeightKg: numeric("start_weight_kg", { precision: 5, scale: 2 }),
+  startDate: date("start_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const mealIngredients = pgTable(
   "meal_ingredients",

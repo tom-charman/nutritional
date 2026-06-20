@@ -9,12 +9,14 @@ import {
   MAX_WEIGHT_DELTA_KG,
   MAX_WEIGHT_SLOPE_KG_PER_DAY,
   RDI_GUIDELINES,
+  TREND_EWMA_ALPHA,
 } from "@/lib/constants";
 import type { DailySummary } from "@/lib/domain/types";
 import {
   calculateMacroCalories,
   clampSlope,
   estimateMaintenance,
+  ewma,
   interpolateDaily,
   normalizeToRdi,
   rejectWeightSpikes,
@@ -28,8 +30,15 @@ export interface CaloriesWeightData {
   calories_avg: Series;
   weight_morning: Series;
   weight_evening: Series;
+  /**
+   * Responsive EWMA-smoothed trend weight (kg) — the cutter-facing weight line.
+   * Deliberately shorter-horizon than `maintenance`'s 30-day slope (see constants).
+   */
+  weight_trend: Series;
   /** Estimated maintenance calories (adaptive TDEE); not plotted, shown as a readout. */
   maintenance: Series;
+  /** Goal weight (kg) for the chart's reference guide; null when no goal set. */
+  goal_weight_kg: number | null;
   y1Limits: [number, number];
   y2Limits: [number, number];
 }
@@ -122,15 +131,19 @@ export function windowCaloriesWeight(
   const calories_avg = data.calories_avg.slice(from);
   const weight_morning = data.weight_morning.slice(from);
   const weight_evening = data.weight_evening.slice(from);
+  const weight_trend = data.weight_trend.slice(from);
   const maintenance = data.maintenance.slice(from);
+  const goalGuide: Series = data.goal_weight_kg === null ? [] : [data.goal_weight_kg];
   return {
     dates,
     calories_avg,
     weight_morning,
     weight_evening,
+    weight_trend,
     maintenance,
+    goal_weight_kg: data.goal_weight_kg,
     y1Limits: caloriesAxisLimits(calories_avg),
-    y2Limits: weightAxisLimits(weight_morning, weight_evening),
+    y2Limits: weightAxisLimits(weight_morning, weight_evening, weight_trend, goalGuide),
   };
 }
 
@@ -170,6 +183,7 @@ export function windowNutrientsRdi(
 export function prepareCaloriesWeight(
   summaries: DailySummary[],
   rollingWindow: number,
+  goalWeightKg: number | null = null,
 ): CaloriesWeightData {
   const dates = summaries.map((s) => s.date);
   const { dates: commonDates, values: calInterp } = interpolateDaily(
@@ -196,16 +210,26 @@ export function prepareCaloriesWeight(
     MAX_WEIGHT_SLOPE_KG_PER_DAY,
   );
   const maintenance = estimateMaintenance(caloriesAvg, weightSlope, KCAL_PER_KG);
+  // Responsive trend line for the cutter card/chart — EWMA over the same clean
+  // base, NOT the 30-day-lagged regression that drives maintenance.
+  const weightTrend = ewma(trendWeight, TREND_EWMA_ALPHA);
 
   return {
     dates: commonDates,
     calories_avg: caloriesAvg,
     weight_morning: weightMorning,
     weight_evening: weightEvening,
+    weight_trend: weightTrend,
     maintenance,
+    goal_weight_kg: goalWeightKg,
     y1Limits: caloriesAxisLimits(caloriesAvg),
-    y2Limits: weightAxisLimits(weightMorning, weightEvening),
+    y2Limits: weightAxisLimits(weightMorning, weightEvening, weightTrend, goalGuideSeries(goalWeightKg)),
   };
+}
+
+/** A single-point series carrying the goal weight, so the axis includes the goal guide. */
+function goalGuideSeries(goalWeightKg: number | null): Series {
+  return goalWeightKg === null ? [] : [goalWeightKg];
 }
 
 /** prepare_macro_breakdown_data (transforms.py:112-217). */
