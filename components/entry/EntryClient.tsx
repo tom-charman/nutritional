@@ -432,16 +432,13 @@ export default function EntryClient({
 
           {preview && <NutrientPreview nutrients={preview} targets={targets} />}
 
-          <div
-            className="section-label"
-            style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}
-          >
-            <span>
+          <div className="intake-header" style={{ marginTop: 16 }}>
+            <div className="section-label">
               {shownDate === today ? "Today's Intake" : `Intake — ${formatHeaderDate(shownDate)}`}
-            </span>
+            </div>
             <button
               type="button"
-              className="btn-secondary btn-sm"
+              className="copy-day-btn"
               data-testid="copy-yesterday"
               title="Copy the previous day's entries into this day"
               onClick={handleCopyYesterday}
