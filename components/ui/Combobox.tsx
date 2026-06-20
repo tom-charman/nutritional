@@ -4,6 +4,15 @@
  * Searchable combobox — shared by the entry page (foods + meals) and the
  * meal composer (foods). Full keyboard support: ↑/↓ highlight, Enter
  * selects, Escape closes. Selected value renders as a clearable chip.
+ *
+ * Default mode opens ONLY on user intent (click/typing/arrows), never on
+ * programmatic focus — see the onClick comment below for why. `startOpen`
+ * (embedded/swap mode) is a DELIBERATE, SCOPED exception to that rule: there
+ * the open IS the user's intent — they clicked a logged food's name to swap
+ * it, so the menu should be ready without a second click. Don't use
+ * `startOpen` anywhere the combobox can receive focus without an explicit
+ * user action, or it'll pop the menu unbidden. (Documented in
+ * docs/design-system.md §6.)
  */
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
@@ -44,7 +53,12 @@ export default function Combobox({
   maxResults?: number;
   /** Lets the parent re-focus the search input (e.g. after a successful add). */
   inputRef?: React.RefObject<HTMLInputElement | null>;
-  /** Embedded mode: open the menu immediately and autofocus the input. */
+  /**
+   * Embedded mode: open the menu immediately and autofocus the input.
+   * Deliberate exception to "never open on programmatic focus" — only valid
+   * when the open is itself the user's action (e.g. click-to-swap). See the
+   * file header.
+   */
   startOpen?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -133,6 +147,8 @@ export default function Combobox({
         data-testid={testId}
         placeholder={placeholder}
         value={query}
+        // autoFocus only in embedded/swap mode — the scoped exception to the
+        // "never open/focus programmatically" rule (see file header).
         autoFocus={startOpen}
         onChange={(e) => {
           setQuery(e.target.value);

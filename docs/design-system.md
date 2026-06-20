@@ -138,7 +138,10 @@ Stable selectors/roles asserted by `tests/e2e/` — **do not rename**:
 `meal-*`, `save-meal`, `prev-day`/`next-day`).
 
 Shared primitives: `ui/Combobox` (keyboard nav; opens on click/typing,
-NEVER on programmatic focus), `ui/EditableAmount` (click→input,
+NEVER on programmatic focus — with ONE scoped exception: `startOpen`
+embedded mode, used by click-to-swap on a logged entry, opens + autofocuses
+immediately because the open IS the user's action; never use it where the
+combobox can be focused without an explicit click), `ui/EditableAmount` (click→input,
 Enter/blur commit, Esc cancel), `ui/Toast` (settle in/out, 3s),
 `entry/NutrientPreview` (with targets → slim pigment channels mirroring the
 daily bars, the entry's slice of the day; without targets → ink dots),
