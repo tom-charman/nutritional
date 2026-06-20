@@ -43,14 +43,23 @@ newest releases.
 There is no ORM migration tool — `database/init.sql` is the single source of truth and
 is **idempotent** (`CREATE TABLE IF NOT EXISTS`, `INSERT … ON CONFLICT DO NOTHING`,
 `DROP TRIGGER IF EXISTS`+`CREATE TRIGGER`, and a guarded `GRANT … TO nutritional_user`).
-For any release that changes the schema, **before `deploy.sh`**:
+For any release that changes the schema, **before `deploy.sh`**, apply it to prod.
+
+The VM does **not** keep a repo clone, so the reliable path is to pipe the *current local*
+`init.sql` straight to the prod DB over ssh (run from your local repo root):
 
 ```bash
-# on the VM, from the cloned repo's database/ dir (git pull first so init.sql is current)
-./db.sh backup           # safety net (nightly backups also exist)
-./db.sh migrate          # applies init.sql idempotently + re-grants the app role, then
-                         # verifies nutritional_user can read the new tables
+VM=<ssh-host>   # the gcloud alias, no user@ prefix
+# safety net first (nightly backups also exist):
+ssh "$VM" 'sudo -u postgres pg_dump nutritional_db | gzip > ~/predeploy_$(date +%Y%m%d_%H%M%S).sql.gz'
+# apply the idempotent schema (creates new tables + re-grants the app role):
+ssh "$VM" 'sudo -u postgres psql -v ON_ERROR_STOP=1 -d nutritional_db' < database/init.sql
+# verify the app role can read a newly-added table (catches the grant trap below):
+ssh "$VM" "sudo -u postgres psql -d nutritional_db -c \"SET ROLE nutritional_user; SELECT 1 FROM <new_table>;\""
 ```
+
+(If a repo *is* cloned on the VM, `cd …/database && git pull && ./db.sh migrate` does the
+same thing with the verification built in.)
 
 **Ownership/grants gotcha (the reason `migrate` re-grants):** the VM applies `init.sql`
 as the `postgres` superuser, so every table it creates is owned by `postgres` and is
