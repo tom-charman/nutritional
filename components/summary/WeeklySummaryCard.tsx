@@ -8,6 +8,7 @@
  * the deficit is within the noise floor we say "holding" and show no ETA. Numbers are
  * neutral ink — the sign + words carry direction, never colour (brand rule).
  */
+import type { ReactNode } from "react";
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 
 const MONTHS_SHORT = [
@@ -103,6 +104,81 @@ function Empty({
   );
 }
 
+/**
+ * Dashboard variant — a single quiet mono line, NOT a hero card: it sits just above
+ * the chart (which already shows maintenance / trend weight in its readout), so it
+ * carries only the non-duplicated story — deficit, predicted rate, goal ETA.
+ */
+function StripSummary({
+  readout,
+  hasGoal,
+  onSetGoal,
+  onHide,
+}: {
+  readout: WeeklyReadout;
+  hasGoal: boolean;
+  onSetGoal: () => void;
+  onHide?: () => void;
+}) {
+  const d = readout.deficit_kcal_per_day;
+  const p = readout.projection;
+  const rate = readout.predicted_rate_kg_per_week;
+
+  let main: ReactNode;
+  if (d === null) {
+    main = <span className="weekly-strip-muted">add a couple of weeks of weigh-ins for an estimate</span>;
+  } else if (Math.abs(d) < 75) {
+    main = <>holding · eating near maintenance</>;
+  } else {
+    main = (
+      <>
+        <strong className="weekly-strip-num">
+          {d > 0 ? "−" : "+"}
+          {Math.abs(Math.round(d)).toLocaleString("en-GB")}
+        </strong>{" "}
+        kcal/day {d > 0 ? "below" : "above"} maintenance
+      </>
+    );
+  }
+
+  let proj: ReactNode = null;
+  if (p) {
+    if (p.status === "at_goal") proj = "at goal — maintaining";
+    else if (p.weeks_to_goal !== null && p.projected_date)
+      proj = (
+        <>
+          {rate !== null && <>{Math.abs(rate).toFixed(2)} kg/wk · </>}
+          goal {(readout.trend_weight_kg! - p.kg_to_go).toFixed(1)} kg · ~{fmtDate(p.projected_date)}
+        </>
+      );
+    else proj = `${Math.abs(p.kg_to_go).toFixed(1)} kg to go`;
+  }
+
+  return (
+    <div className="weekly-summary-card is-strip">
+      <span className="weekly-strip-label">Weekly trend</span>
+      <span className="weekly-strip-main">{main}</span>
+      {proj && <span className="weekly-strip-proj">{proj}</span>}
+      <span className="weekly-strip-actions">
+        {hasGoal ? (
+          <button type="button" className="weekly-goal-edit" onClick={onSetGoal}>
+            edit goal
+          </button>
+        ) : d !== null ? (
+          <button type="button" className="weekly-goal-edit" onClick={onSetGoal}>
+            set a goal
+          </button>
+        ) : null}
+        {onHide && (
+          <button type="button" className="weekly-hide-link" onClick={onHide}>
+            hide
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
 export default function WeeklySummaryCard({
   readout,
   hasGoal,
@@ -116,6 +192,9 @@ export default function WeeklySummaryCard({
   onHide?: () => void;
   variant?: "portrait" | "strip";
 }) {
+  if (variant === "strip") {
+    return <StripSummary readout={readout} hasGoal={hasGoal} onSetGoal={onSetGoal} onHide={onHide} />;
+  }
   if (readout.deficit_kcal_per_day === null || readout.avg_intake_kcal === null) {
     return (
       <Empty
@@ -133,7 +212,7 @@ export default function WeeklySummaryCard({
   const word = deficit > 0 ? "below maintenance" : "above maintenance";
 
   return (
-    <div className={`weekly-summary-card${variant === "strip" ? " is-strip" : ""}`}>
+    <div className="weekly-summary-card">
       <Head onHide={onHide} />
 
       {/* HERO — the energy deficit (the engine). Neutral ink; sign + word carry direction. */}

@@ -2244,43 +2244,42 @@ button.ingredient-name-swap:hover {
     font-feature-settings: "tnum";
 }
 
-/* Dashboard strip — a DENSE packed row inside the Calories & Weight tab (no
-   stretched grid, so no deadspace): hero | intake·maintenance·trend | goal. */
-.weekly-summary-card.is-strip { margin-bottom: 20px; padding: 16px 20px; }
-@media (min-width: 720px) {
-    .weekly-summary-card.is-strip {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 12px 36px;
-    }
-    .weekly-summary-card.is-strip .weekly-summary-head { margin: 0; }
-    .weekly-summary-card.is-strip .weekly-deficit-hero { margin: 0; text-align: left; }
-    .weekly-summary-card.is-strip .weekly-deficit-number { font-size: 2.1rem; }
-    .weekly-summary-card.is-strip .weekly-deficit-unit { display: inline; margin-left: 8px; }
-    /* stat rows become inline chips, packed (not justified apart) */
-    .weekly-summary-card.is-strip .weekly-stat-rows {
-        display: flex;
-        gap: 24px;
-    }
-    .weekly-summary-card.is-strip .weekly-stat-row { flex-direction: column; gap: 2px; padding: 0; }
-    .weekly-summary-card.is-strip .weekly-goal-block {
-        margin: 0;
-        padding: 0;
-        border: none;
-        margin-left: auto;
-    }
-    .weekly-summary-card.is-strip .weekly-goal-affordance {
-        width: auto;
-        margin: 0;
-        padding: 0;
-        border: none;
-        margin-left: auto;
-    }
-}
-
 @media (max-width: 480px) {
     .weekly-deficit-number { font-size: 2.4rem; }
+}
+
+/* Dashboard strip — ONE quiet engraved line above the chart (the chart's own
+   readout already carries maintenance/trend weight, so this carries only the
+   deficit + predicted rate + goal ETA). No hero, no stat grid, no deadspace. */
+.weekly-summary-card.is-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    margin-bottom: 16px;
+    padding: 12px 18px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-body);
+    font-feature-settings: "tnum";
+}
+.weekly-strip-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.weekly-strip-main { color: var(--text-body); }
+.weekly-strip-num { color: var(--text-main); font-weight: 600; }
+.weekly-strip-proj { color: var(--text-muted); }
+.weekly-strip-proj::before { content: "· "; color: var(--text-disabled); }
+.weekly-strip-muted { color: var(--text-muted); }
+.weekly-strip-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
 }
 
 /* Narrow modal for the small goal form */
