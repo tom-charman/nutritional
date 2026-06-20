@@ -10,6 +10,10 @@ question — *"what would real users with different nutritional goals want next?
 > (High / Medium / Low). Six candidates were dropped and one was reframed — see *Dropped in review*
 > and item #11. The ranking now reflects those decisions, not the original value estimate.
 
+> **Shipped 2026-06-20.** The "fast repeat-logging" cluster — **#1 Recent & favourite foods**,
+> **#2 Copy yesterday**, **#4 Swap food in a logged entry** — shipped together (they shared the
+> `Combobox` and a new cross-day `food_entries` read). Rows kept below for history, marked ✅.
+
 ## Method
 
 Each of the six personas walked all nine `FEATURES.md` sections and judged every feature against
@@ -35,10 +39,10 @@ services, or a data-model change?
 
 | # | Capability | Personas | Priority | Effort | Notes |
 |---|---|---|---|---|---|
-| 1 | **Recent & favourite foods** in the selector | Builder, Casual | High | S | Order `food_entries` by recent `entry_date`; pin a "Recents" section atop the Combobox |
-| 2 | **Copy yesterday / repeat last entry** | Casual, Builder | High | S | Reuse `saveDailyEntry`; clone a prior day's rows into today, editable in place |
+| 1 | **Recent & favourite foods** in the selector | Builder, Casual | ✅ Done | S | Order `food_entries` by recent `entry_date`; pin a "Recents" section atop the Combobox |
+| 2 | **Copy yesterday / repeat last entry** | Casual, Builder | ✅ Done | S | Reuse `saveDailyEntry`; clone a prior day's rows into today, editable in place |
 | 3 | **Real-time limit alerts in the entry preview** | Patient | High | S–M | Extend `NutrientPreview` with `macroIndicator` so a previewed add warns *before* breaching a limit-mode cap |
-| 4 | **Swap food in a logged entry** | Builder | High | S–M | Click food name → selector → recompute nutrients, avoiding delete + re-add |
+| 4 | **Swap food in a logged entry** | Builder | ✅ Done | S–M | Click food name → selector → recompute nutrients, avoiding delete + re-add |
 | 5 | **Add/substitute ingredients in a logged meal** *(open UX #12)* | Patient, Builder | High | M | New action + a "+ add ingredient" affordance in `EntriesList`; mark entry "(modified)" |
 | 6 | **Clinician-ready export** (daily totals + targets, absolute units, summary row) | Patient | High | M | New shape in `lib/export/csv.ts` + `app/actions/export.ts`; today's RDI-% export is unusable for medical caps |
 | 7 | **Target presets + cyclical/weekly targets** (cut/bulk/carb-cycle) | Cutter, Data Nerd | High | M | Save/load named target sets; per-weekday overrides. **Depends on the `user_settings` table from #9** |
@@ -55,13 +59,13 @@ services, or a data-model change?
 
 ## Top items — detail
 
-**1. Recent & favourite foods.** The single strongest cross-persona signal: both the Builder (logs
+**1. Recent & favourite foods.** ✅ *Shipped 2026-06-20.* The single strongest cross-persona signal: both the Builder (logs
 chicken/rice/oats dozens of times) and the Casual (re-types the same breakfast daily) pay a full
 search tax every time. The selector lists foods alphabetically only. Reuse `food_entries` to compute
 most-recently / most-frequently logged and pin them above the search in the Combobox. Low effort,
 high daily payoff.
 
-**2. Copy yesterday / repeat last entry.** Targets already have "Copy Previous Targets"; *entries*
+**2. Copy yesterday / repeat last entry.** ✅ *Shipped 2026-06-20.* Targets already have "Copy Previous Targets"; *entries*
 don't. A "Copy yesterday" button reusing `saveDailyEntry` would let routine eaters log a near-identical
 day in one click and tweak amounts in place. Smallest effort in the top tier.
 
@@ -70,7 +74,7 @@ committing. The Patient (salt/sugar/protein caps) needs the warning in the live 
 *before* adding — "this would put you 40% over your salt limit." Reuses `macroIndicator`; directly
 serves the brand's "never lie to the user / never let them breach silently" bar.
 
-**4. Swap food in a logged entry.** Logging the wrong food currently means delete + re-search + re-add.
+**4. Swap food in a logged entry.** ✅ *Shipped 2026-06-20.* Logging the wrong food currently means delete + re-search + re-add.
 Make the food name clickable to open the selector in place and recompute nutrients from the new food —
 fast correction without losing the row. Small build on the existing inline-edit pattern.
 

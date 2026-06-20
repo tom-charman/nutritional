@@ -5,11 +5,13 @@
  * meal composer (foods). Full keyboard support: ↑/↓ highlight, Enter
  * selects, Escape closes. Selected value renders as a clearable chip.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 export interface ComboOption {
   key: string;
   label: string;
+  /** Optional group heading; pinned sections (e.g. "Recent") render first. */
+  section?: string;
 }
 
 export default function Combobox({
@@ -20,9 +22,11 @@ export default function Combobox({
   onClear,
   onQuickAdd,
   onQueryChange,
+  onCancel,
   testId,
   maxResults = 50,
   inputRef,
+  startOpen = false,
 }: {
   options: ComboOption[];
   placeholder: string;
@@ -34,13 +38,17 @@ export default function Combobox({
   onQuickAdd?: (query: string) => void;
   /** Fires as the user edits the search text (lets the parent react to typing). */
   onQueryChange?: (query: string) => void;
+  /** Embedded mode: called on Escape / click-away so the parent can dismiss. */
+  onCancel?: () => void;
   testId?: string;
   maxResults?: number;
   /** Lets the parent re-focus the search input (e.g. after a successful add). */
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Embedded mode: open the menu immediately and autofocus the input. */
+  startOpen?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [highlight, setHighlight] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -52,6 +60,10 @@ export default function Combobox({
       : options;
     return matches.slice(0, maxResults);
   }, [options, query, maxResults]);
+
+  // Section headers only show on the un-searched list; typing collapses to a
+  // flat substring match so a recent food still surfaces by name.
+  const showSections = query.trim() === "" && filtered.some((o) => o.section);
 
   // keep highlight in range as the list filters down
   useEffect(() => {
@@ -89,6 +101,7 @@ export default function Combobox({
       if (open && filtered[highlight]) choose(filtered[highlight].key);
     } else if (e.key === "Escape") {
       setOpen(false);
+      onCancel?.();
     }
   }
 
@@ -120,6 +133,7 @@ export default function Combobox({
         data-testid={testId}
         placeholder={placeholder}
         value={query}
+        autoFocus={startOpen}
         onChange={(e) => {
           setQuery(e.target.value);
           setHighlight(0);
@@ -131,7 +145,10 @@ export default function Combobox({
         onClick={() => setOpen(true)}
         onKeyDown={onKeyDown}
         onBlur={() => {
-          blurTimer.current = setTimeout(() => setOpen(false), 150);
+          blurTimer.current = setTimeout(() => {
+            setOpen(false);
+            onCancel?.();
+          }, 150);
         }}
       />
       {open && (
@@ -155,20 +172,32 @@ export default function Combobox({
               <div className="combobox-empty">No matches</div>
             )
           ) : (
-            filtered.map((opt, i) => (
-              <div
-                key={opt.key}
-                data-index={i}
-                className={`combobox-option${i === highlight ? " focused" : ""}`}
-                onMouseEnter={() => setHighlight(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  choose(opt.key);
-                }}
-              >
-                {opt.label}
-              </div>
-            ))
+            filtered.map((opt, i) => {
+              // On the un-searched list, print a heading when the section
+              // changes. Highlight/data-index still track selectable options.
+              const header =
+                showSections && opt.section !== filtered[i - 1]?.section ? (
+                  <div className="combobox-section-header" key={`hdr:${opt.key}`}>
+                    {opt.section}
+                  </div>
+                ) : null;
+              return (
+                <Fragment key={opt.key}>
+                  {header}
+                  <div
+                    data-index={i}
+                    className={`combobox-option${i === highlight ? " focused" : ""}`}
+                    onMouseEnter={() => setHighlight(i)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      choose(opt.key);
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                </Fragment>
+              );
+            })
           )}
         </div>
       )}

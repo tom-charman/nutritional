@@ -13,7 +13,7 @@
  *    → defaults.
  *  - updated_at is maintained by DB triggers — never written here.
  */
-import { and, asc, desc, eq, ilike, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, lt, max } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { NUTRIENT_KEYS, type Nutrients, type TargetMode, type UnitType } from "@/lib/constants";
 import { num, num0, dec, decOrNull } from "@/lib/db/coerce";
@@ -112,6 +112,27 @@ const NULL_NUTRIENT_COLS = {
 export async function loadFoodDatabase(db: DB): Promise<FoodItem[]> {
   const rows = await db.select().from(foodItems).orderBy(asc(foodItems.name));
   return rows.map(rowToFoodItem);
+}
+
+/**
+ * Distinct foods the user has logged, ranked by recency (most-recent
+ * `entry_date` first) then frequency (the "favourite" signal). Powers the
+ * pinned "Recent" section atop the entry-page selector. Uses the existing
+ * `idx_food_entries_food_id` index; no schema change.
+ *
+ * v1 covers foods only (the dominant repeat case) — foods logged as meal
+ * ingredients also count, since `food_id` is set on those rows too. Meals
+ * themselves are intentionally excluded.
+ */
+export async function loadRecentFoods(db: DB, limit = 8): Promise<FoodItem[]> {
+  const ranked = await db
+    .select({ food: foodItems })
+    .from(foodEntries)
+    .innerJoin(foodItems, eq(foodEntries.foodId, foodItems.id))
+    .groupBy(foodItems.id)
+    .orderBy(desc(max(foodEntries.entryDate)), desc(count()))
+    .limit(limit);
+  return ranked.map((r) => rowToFoodItem(r.food));
 }
 
 export async function searchFoodItems(db: DB, query: string): Promise<FoodItem[]> {

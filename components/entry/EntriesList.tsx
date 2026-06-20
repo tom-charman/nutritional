@@ -9,6 +9,7 @@ import { useState } from "react";
 import { mealEntryTotals } from "@/lib/domain/nutrients";
 import type { DayEntry, FoodEntry } from "@/lib/domain/types";
 import EditableAmount from "@/components/ui/EditableAmount";
+import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 
 function amountText(e: FoodEntry): string {
   if (e.weight_g !== null) return `${Number.isInteger(e.weight_g) ? e.weight_g : e.weight_g.toFixed(1)} g`;
@@ -17,17 +18,50 @@ function amountText(e: FoodEntry): string {
 
 function FoodRow({
   entry,
+  foodOptions,
   onEdit,
+  onSwap,
   onRemove,
 }: {
   entry: FoodEntry;
+  foodOptions: ComboOption[];
   onEdit: (entryId: string, amount: number) => void;
+  onSwap: (entryId: string, newFoodId: string) => void;
   onRemove: () => void;
 }) {
+  const [swapping, setSwapping] = useState(false);
+
+  if (swapping) {
+    return (
+      <div className="ingredient-item" style={{ display: "block" }}>
+        <Combobox
+          options={foodOptions}
+          placeholder={`Swap ${entry.food_name} for…`}
+          testId="swap-food-search"
+          selectedLabel={null}
+          startOpen
+          onSelect={(key) => {
+            setSwapping(false);
+            onSwap(entry.entry_id, key.slice(5)); // strip "food:" prefix
+          }}
+          onClear={() => setSwapping(false)}
+          onCancel={() => setSwapping(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="ingredient-item">
       <div className="ingredient-item-header">
-        <span className="ingredient-name">{entry.food_name}</span>
+        <button
+          type="button"
+          className="ingredient-name ingredient-name-swap"
+          title="Swap this food"
+          onClick={() => setSwapping(true)}
+        >
+          {entry.food_name}
+        </button>
         <EditableAmount
           display={amountText(entry)}
           value={entry.weight_g ?? entry.quantity ?? 0}
@@ -47,14 +81,18 @@ function FoodRow({
 
 export default function EntriesList({
   entries,
+  foodOptions,
   onEditAmount,
   onEditPortions,
+  onSwapFood,
   onRemoveFood,
   onRemoveMeal,
 }: {
   entries: DayEntry[];
+  foodOptions: ComboOption[];
   onEditAmount: (entryId: string, amount: number) => void;
   onEditPortions: (mealLogId: string, portions: number) => void;
+  onSwapFood: (entryId: string, newFoodId: string) => void;
   onRemoveFood: (entryId: string) => void;
   onRemoveMeal: (mealLogId: string) => void;
 }) {
@@ -81,7 +119,9 @@ export default function EntriesList({
             <FoodRow
               key={e.entry.entry_id}
               entry={e.entry}
+              foodOptions={foodOptions}
               onEdit={onEditAmount}
+              onSwap={onSwapFood}
               onRemove={() => onRemoveFood(e.entry.entry_id)}
             />
           );
@@ -134,7 +174,9 @@ export default function EntriesList({
                   <FoodRow
                     key={ing.entry_id}
                     entry={ing}
+                    foodOptions={foodOptions}
                     onEdit={onEditAmount}
+                    onSwap={onSwapFood}
                     onRemove={() => onRemoveFood(ing.entry_id)}
                   />
                 ))}

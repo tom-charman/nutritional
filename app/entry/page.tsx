@@ -5,6 +5,7 @@ import {
   loadDailyEntry,
   loadFoodDatabase,
   loadMeals,
+  loadRecentFoods,
 } from "@/lib/data/storage";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +24,10 @@ export default async function EntryPage({
   let date = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : today;
   if (date > today) date = today; // max allowed = today
 
-  const [foods, meals, day, targets] = await Promise.all([
+  const [foods, meals, recentFoods, day, targets] = await Promise.all([
     loadFoodDatabase(db),
     loadMeals(db),
+    loadRecentFoods(db),
     loadDailyEntry(db, date),
     getOrCreateDailyTargets(db, date),
   ]);
@@ -36,6 +38,7 @@ export default async function EntryPage({
       today={today}
       foods={foods}
       meals={meals}
+      recentFoods={recentFoods}
       initialDay={
         day ?? {
           date,

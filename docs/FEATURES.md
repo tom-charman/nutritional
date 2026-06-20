@@ -240,6 +240,19 @@ source of "looks right for one kind of food, wrong for the other" bugs.
   `components/ui/Combobox.tsx` (`onQuickAdd`), `app/actions/entry.ts`
   (`quickAddEntryAction`)
 
+### A user sees recently-logged foods pinned atop the selector
+- **What it does:** The food/meal selector opens with a **"Recent"** section listing the
+  foods the user has logged most recently (ties broken by how often they're logged),
+  above the full alphabetical list — so habitual foods (oats, chicken, the daily
+  breakfast) are one click away instead of a full search.
+- **UI/UX considerations:** Sections only show on the un-searched list; typing collapses
+  back to a flat substring match so a recent food still surfaces by name. A recent food
+  is **not** duplicated lower down. The ranking is by `entry_date` (recency) then
+  frequency, computed across all days — no manual "favouriting". Foods logged as meal
+  ingredients count too.
+- **Implemented in:** `lib/data/storage.ts` (`loadRecentFoods`), `app/entry/page.tsx`,
+  `components/entry/EntryClient.tsx`, `components/ui/Combobox.tsx` (`section` grouping)
+
 ### A user can preview an entry's nutrition before adding it
 - **What it does:** As soon as a food/meal and a valid amount are chosen, a live
   preview shows the exact nutrients the entry would add, with slim bars showing each
@@ -264,6 +277,20 @@ source of "looks right for one kind of food, wrong for the other" bugs.
   `components/entry/EntriesList.tsx`, `app/actions/entry.ts`
   (`editEntryAmountAction`)
 
+### A user can swap the food behind a logged entry in place
+- **What it does:** Clicking a logged food's **name** opens the selector inline on that
+  row; picking a different food rewrites the entry to the new food — keeping the logged
+  amount and recomputing nutrients — instead of delete + re-search + re-add. Works for
+  standalone food rows and for single ingredients inside a logged meal.
+- **UI/UX considerations:** The logged amount is **carried over and reinterpreted** for
+  the new food's unit model (a "200 g" weight becomes a "× 200" count if the new food is
+  per-item, and vice-versa), so the number stays but its meaning follows the food. Daily
+  totals and the calories card must update on swap. Escape / clicking away cancels
+  without changing the row.
+- **Implemented in:** `components/entry/EntriesList.tsx`,
+  `components/ui/Combobox.tsx` (embedded `startOpen`/`onCancel` mode),
+  `app/actions/entry.ts` (`swapFoodEntryAction`)
+
 ### A user can remove a logged food, a whole meal, or one ingredient of a meal
 - **What it does:** ✕ controls remove a standalone food entry, an entire meal
   entry (all its ingredients), or a single ingredient inside a meal. A meal whose
@@ -281,6 +308,19 @@ source of "looks right for one kind of food, wrong for the other" bugs.
   there's no logging the future. Switching days updates optimistically (the shown
   date changes immediately) while the server data follows.
 - **Implemented in:** `components/entry/EntryClient.tsx`, `app/entry/page.tsx`
+
+### A user can copy a previous day's entries into the current day
+- **What it does:** A **"Copy yesterday"** button clones the prior day's logged entries
+  (foods and meals) into the day being viewed, so routine eaters log a near-identical day
+  in one click and then tweak amounts in place. (Mirrors the targets' "Copy Previous
+  Targets" affordance, now for entries.)
+- **UI/UX considerations:** Clones get **fresh ids/timestamps** so the copy is fully
+  independent of its source — deleting or editing a copied row never touches the original
+  day. Copying onto a day that already has entries **appends** rather than replaces; an
+  empty source day reports "Nothing to copy" rather than failing silently. The button
+  must not crowd the intake list header.
+- **Implemented in:** `components/entry/EntryClient.tsx`, `app/actions/entry.ts`
+  (`copyDayEntriesAction`)
 
 ### A user can see calories remaining for the day
 - **What it does:** A card shows logged calories against the day's target with
@@ -456,3 +496,6 @@ they are the places a change most often breaks something far from where it was m
 | **Weight independence + clear-to-NULL** | Weight saves with no food rows; empty means NULL not 0 | Weight inputs, weight-only days, maintenance-calorie estimate, calories & weight chart, CSV |
 | **Rolling average + yesterday cap** | Charts smooth over 30 days and exclude today | All three dashboard charts, time-range windowing, CSV exports that mirror plotted values |
 | **Delete guards & history preservation** | Foods can't be deleted while referenced; deleting a meal keeps logged history | Food delete (FK message), meal delete (`meal_id` cleared), past days' logs |
+| **Swap food in a logged entry** | Rewrites an entry's food, reinterprets the amount for the new unit model, recomputes nutrients | Inline swap selector (standalone rows & meal ingredients), per-item↔per-100g amount semantics, daily totals & calories card, macro bars |
+| **Copy yesterday** | Clones prior-day entries with fresh ids; appends to the current day | Copy-yesterday button, daily totals after copy, copied-row edit/delete independence from the source day, empty-source message |
+| **Recent foods in the selector** | A `food_entries` recency/frequency ranking pins a "Recent" section atop the list | Entry selector (un-searched vs searched states), recent de-dup vs alphabetical list, foods logged via meals appearing as recent |
