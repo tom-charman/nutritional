@@ -14,6 +14,10 @@ question — *"what would real users with different nutritional goals want next?
 > **#2 Copy yesterday**, **#4 Swap food in a logged entry** — shipped together (they shared the
 > `Combobox` and a new cross-day `food_entries` read). Rows kept below for history, marked ✅.
 
+> **Shipped 2026-06-20.** The Patient cluster — **#3 Real-time limit alerts in the entry preview**
+> and **#6 Clinician-ready export** — shipped together (PR #45): both serve the "never let them
+> breach silently / never lie to the user" bar, neither needed a schema change. Rows kept below, marked ✅.
+
 ## Method
 
 Each of the six personas walked all nine `FEATURES.md` sections and judged every feature against
@@ -41,10 +45,10 @@ services, or a data-model change?
 |---|---|---|---|---|---|
 | 1 | **Recent & favourite foods** in the selector | Builder, Casual | ✅ Done | S | Order `food_entries` by recent `entry_date`; pin a "Recents" section atop the Combobox |
 | 2 | **Copy yesterday / repeat last entry** | Casual, Builder | ✅ Done | S | Reuse `saveDailyEntry`; clone a prior day's rows into today, editable in place |
-| 3 | **Real-time limit alerts in the entry preview** | Patient | High | S–M | Extend `NutrientPreview` with `macroIndicator` so a previewed add warns *before* breaching a limit-mode cap |
+| 3 | **Real-time limit alerts in the entry preview** | Patient | ✅ Done | S–M | Extend `NutrientPreview` with `macroIndicator` so a previewed add warns *before* breaching a limit-mode cap |
 | 4 | **Swap food in a logged entry** | Builder | ✅ Done | S–M | Click food name → selector → recompute nutrients, avoiding delete + re-add |
 | 5 | **Add/substitute ingredients in a logged meal** *(open UX #12)* | Patient, Builder | High | M | New action + a "+ add ingredient" affordance in `EntriesList`; mark entry "(modified)" |
-| 6 | **Clinician-ready export** (daily totals + targets, absolute units, summary row) | Patient | High | M | New shape in `lib/export/csv.ts` + `app/actions/export.ts`; today's RDI-% export is unusable for medical caps |
+| 6 | **Clinician-ready export** (daily totals + targets, absolute units, summary row) | Patient | ✅ Done | M | New shape in `lib/export/dailyTotals.ts` + `app/actions/export.ts`; today's RDI-% export is unusable for medical caps |
 | 7 | **Target presets + cyclical/weekly targets** (cut/bulk/carb-cycle) | Cutter, Data Nerd | High | M | Save/load named target sets; per-weekday overrides. **Depends on the `user_settings` table from #9** |
 | 8 | **Weekly summary & trend-weight readout** (7-day avg, kg/week, deficit) | Cutter | Medium | M | Reuse chart-prep + `estimateMaintenance`; surface a card on `/entry` and `/` |
 | 9 | **Goal weight + projection** (+ `user_settings` table) | Cutter | Medium | M | First cross-day, per-user config; foundation for #7 and the projection card |
@@ -69,7 +73,7 @@ high daily payoff.
 don't. A "Copy yesterday" button reusing `saveDailyEntry` would let routine eaters log a near-identical
 day in one click and tweak amounts in place. Smallest effort in the top tier.
 
-**3. Real-time limit alerts in the preview.** Today, limit breaches only show on the macro bars *after*
+**3. Real-time limit alerts in the preview.** ✅ *Shipped 2026-06-20.* Today, limit breaches only show on the macro bars *after*
 committing. The Patient (salt/sugar/protein caps) needs the warning in the live `NutrientPreview`
 *before* adding — "this would put you 40% over your salt limit." Reuses `macroIndicator`; directly
 serves the brand's "never lie to the user / never let them breach silently" bar.
@@ -83,10 +87,10 @@ fast correction without losing the row. Small build on the existing inline-edit 
 "Dinner Base" some days must delete and re-log. Add a "+ add ingredient" affordance inside the expanded
 meal entry and mark it "(modified)" so the diary still reflects reality. New action + `EntriesList` work.
 
-**6. Clinician-ready export.** The current "Nutrients vs RDI" CSV exports *% of generic RDI* — useless
+**6. Clinician-ready export.** ✅ *Shipped 2026-06-20.* The current "Nutrients vs RDI" CSV exports *% of generic RDI* — useless
 when a clinician works in absolute grams against a personalised cap. The Patient needs a daily-totals
 export: one row per day, each nutrient in absolute units, alongside that day's *targets* and a hit/miss
-flag. New shape in `lib/export/csv.ts`; the data is already computed for the charts.
+flag. New shape in `lib/export/dailyTotals.ts`; the data is already computed for the charts.
 
 **7. Target presets + cyclical/weekly targets.** Save named target sets (Cut / Lean Bulk / Maintain) and
 optional per-weekday overrides (carb-cycling, refeed days), so the Cutter and Data Nerd aren't re-typing
