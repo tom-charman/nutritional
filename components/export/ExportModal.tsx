@@ -9,6 +9,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   exportCaloriesWeightCsv,
   exportDailyEntriesCsv,
+  exportDailyTotalsCsv,
   exportMacroBreakdownCsv,
   exportMealsCsv,
   exportNutrientsRdiCsv,
@@ -21,6 +22,7 @@ type OptionKey =
   | "caloriesWeight"
   | "macroBreakdown"
   | "nutrientsRdi"
+  | "dailyTotals"
   | "dailyEntries"
   | "meals";
 
@@ -52,6 +54,12 @@ const OPTIONS: ExportOption[] = [
     run: exportNutrientsRdiCsv,
   },
   {
+    key: "dailyTotals",
+    label: "Daily Totals (clinician)",
+    hint: "One row per day: absolute nutrient totals vs that day's targets, with hit/miss",
+    run: exportDailyTotalsCsv,
+  },
+  {
     key: "dailyEntries",
     label: "Daily Entries",
     hint: "One row per logged food item in the range",
@@ -80,6 +88,7 @@ export default function ExportModal({ onClose }: { onClose: () => void }) {
     caloriesWeight: true,
     macroBreakdown: false,
     nutrientsRdi: false,
+    dailyTotals: false,
     dailyEntries: false,
     meals: false,
   });

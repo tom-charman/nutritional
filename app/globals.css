@@ -2143,6 +2143,22 @@ button.ingredient-name-swap:hover {
     border-radius: 3.5px 0 0 3.5px;
 }
 
+/* Breach warning surfaced before the entry is committed. Warning ≡ danger:
+   colour comes from the shared .target-warning/.target-exceeded tokens. */
+.preview-limit-alert {
+    margin: 4px 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    font-feature-settings: "tnum";
+    line-height: 1.3;
+}
+
+.preview-limit-alert .preview-limit-alert-mark {
+    display: inline-block;
+    animation: stamp-in var(--dur-quick) var(--ease-settle);
+}
+
 .nutrient-dot {
     display: inline-block;
     width: 8px;

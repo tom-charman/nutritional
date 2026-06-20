@@ -10,14 +10,21 @@
  */
 import { ROLLING_WINDOW_DAYS, NUTRIENT_KEYS } from "@/lib/constants";
 import { db } from "@/lib/db/client";
-import { loadAllSummaries, loadDailyEntry, loadMeals } from "@/lib/data/storage";
+import {
+  getOrCreateDailyTargets,
+  loadAllSummaries,
+  loadDailyEntry,
+  loadMeals,
+} from "@/lib/data/storage";
 import {
   prepareCaloriesWeight,
   prepareMacroBreakdown,
   prepareNutrientsRdi,
 } from "@/lib/domain/charts/prepare";
+import type { DailyTargets } from "@/lib/domain/types";
 import type { CsvValue } from "@/lib/export/csv";
 import { round2, toCsv } from "@/lib/export/csv";
+import { buildDailyTotalsRows } from "@/lib/export/dailyTotals";
 
 export interface CsvPayload {
   ok: true;
@@ -130,6 +137,31 @@ export async function exportNutrientsRdiCsv(
     ...keys.map((k) => round2(data.series[k][i])),
   ]);
   return { ok: true, filename: `nutrients-rdi_${from}_${to}.csv`, csv: toCsv(headers, rows) };
+}
+
+/**
+ * Clinician daily totals — one row per day in range: each nutrient's absolute
+ * total, that day's personalised target, and a hit/miss flag, plus a trailing
+ * SUMMARY row. `getOrCreateDailyTargets` is read-only (it never persists), so
+ * resolving per-day targets here has no side effects.
+ */
+export async function exportDailyTotalsCsv(
+  from: string,
+  to: string,
+): Promise<ExportResult> {
+  const invalid = validateRange(from, to);
+  if (invalid) return invalid;
+
+  const summaries = (await summariesUpToYesterday()).filter(
+    (s) => s.date >= from && s.date <= to,
+  );
+  const targetsByDate: Record<string, DailyTargets> = {};
+  for (const s of summaries) {
+    targetsByDate[s.date] = await getOrCreateDailyTargets(db, s.date);
+  }
+
+  const { headers, rows } = buildDailyTotalsRows(summaries, targetsByDate);
+  return { ok: true, filename: `daily-totals_${from}_${to}.csv`, csv: toCsv(headers, rows) };
 }
 
 /** Daily entries — one row per logged food item across the date range. */

@@ -3,6 +3,7 @@ import {
   calorieStatus,
   getDefaultTargets,
   getNutrientMode,
+  limitOverPct,
   macroIndicator,
 } from "@/lib/domain/targets";
 
@@ -67,6 +68,33 @@ describe("macroIndicator (entry.py create_macro_bar thresholds)", () => {
 
   it("target mode: below target → null", () => {
     expect(macroIndicator(149, 150, "target")).toBeNull();
+  });
+});
+
+describe("limitOverPct (live preview breach copy)", () => {
+  it("rounds the percentage a projected total sits over the limit", () => {
+    expect(limitOverPct(8.4, 6)).toBe(40); // 8.4g salt vs 6g cap → 40% over
+    expect(limitOverPct(6.6, 6)).toBe(10);
+    expect(limitOverPct(12, 6)).toBe(100);
+  });
+
+  it("guards a zero/negative target", () => {
+    expect(limitOverPct(5, 0)).toBe(0);
+  });
+});
+
+describe("limit alert projection (committed total + pending entry)", () => {
+  // The preview feeds projected = dayTotals + entry into macroIndicator, the
+  // same function the committed macro bars use.
+  it("warns once the pending entry pushes the day past a cap", () => {
+    // 5g salt already logged, adding 1.5g → 6.5g vs 6g cap (≤1.1x) → warning
+    expect(macroIndicator(5 + 1.5, 6, "limit")).toBe("warning");
+    // adding 2g → 7g vs 6g (>1.1x) → exceeded
+    expect(macroIndicator(5 + 2, 6, "limit")).toBe("exceeded");
+  });
+
+  it("stays silent while the projected total is within the cap", () => {
+    expect(macroIndicator(3 + 2, 6, "limit")).toBeNull();
   });
 });
 

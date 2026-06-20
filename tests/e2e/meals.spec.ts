@@ -79,7 +79,7 @@ test.describe("meal entries", () => {
     await entry.removeEntry(milk);
     await expectToast(page, "Entry removed");
     await entry.goto(DATE);
-    await expect(entry.mealRow("E2E Breakfast")).toContainText("1 ingredients");
+    await expect(entry.mealRow("E2E Breakfast")).toContainText("1 ingredient");
     await expect(entry.mealRow("E2E Breakfast")).toContainText("120 kcal");
   });
 
