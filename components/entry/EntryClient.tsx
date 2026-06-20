@@ -19,6 +19,7 @@ import {
   swapFoodEntryAction,
   updateWeightAction,
 } from "@/app/actions/entry";
+import { setWeeklyPanelHiddenAction } from "@/app/actions/settings";
 import {
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
@@ -514,11 +515,32 @@ export default function EntryClient({
             </div>
           </div>
 
-          <WeeklySummaryCard
-            readout={weeklyReadout}
-            hasGoal={userSettings.goal_weight_kg !== null}
-            onSetGoal={() => setGoalModalOpen(true)}
-          />
+          {userSettings.hide_weekly_panel ? (
+            <button
+              type="button"
+              className="weekly-show-affordance"
+              onClick={() =>
+                startTransition(async () => {
+                  await setWeeklyPanelHiddenAction(false);
+                  router.refresh();
+                })
+              }
+            >
+              Show weekly trend
+            </button>
+          ) : (
+            <WeeklySummaryCard
+              readout={weeklyReadout}
+              hasGoal={userSettings.goal_weight_kg !== null}
+              onSetGoal={() => setGoalModalOpen(true)}
+              onHide={() =>
+                startTransition(async () => {
+                  await setWeeklyPanelHiddenAction(true);
+                  router.refresh();
+                })
+              }
+            />
+          )}
         </div>
       </div>
 

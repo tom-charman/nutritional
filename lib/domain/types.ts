@@ -86,6 +86,8 @@ export interface UserSettings {
   start_weight_kg: number | null;
   /** Optional baseline date (ISO YYYY-MM-DD). */
   start_date: string | null;
+  /** User dismissed the Weekly Trend panel (e.g. while maintaining). */
+  hide_weekly_panel: boolean;
 }
 
 /** One daily_summaries row, coerced. */

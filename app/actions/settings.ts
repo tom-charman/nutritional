@@ -34,3 +34,12 @@ export async function saveUserSettingsAction(s: UserSettings): Promise<ActionRes
   revalidatePath("/entry");
   return { ok: true, message: "Goal saved" };
 }
+
+/** Show/hide the Weekly Trend panel (a single-field update). */
+export async function setWeeklyPanelHiddenAction(hidden: boolean): Promise<ActionResult> {
+  const current = await loadUserSettings(db);
+  await saveUserSettings(db, { ...current, hide_weekly_panel: hidden });
+  revalidatePath("/");
+  revalidatePath("/entry");
+  return { ok: true, message: hidden ? "Weekly trend hidden" : "Weekly trend shown" };
+}

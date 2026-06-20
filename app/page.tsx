@@ -1,5 +1,4 @@
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
-import WeeklySummarySection from "@/components/summary/WeeklySummarySection";
 import { ROLLING_WINDOW_DAYS, type NutrientKey, type TargetMode } from "@/lib/constants";
 import { db } from "@/lib/db/client";
 import { getOrCreateDailyTargets, loadAllSummaries, loadUserSettings } from "@/lib/data/storage";
@@ -40,12 +39,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="visualizations-container">
-      <WeeklySummarySection readout={weeklyReadout} settings={settings} today={today} />
       <DashboardTabs
         caloriesWeight={caloriesWeight}
         macroBreakdown={macroBreakdown}
         nutrientsRdi={nutrientsRdi}
         rdiModes={rdiModes}
+        weeklyReadout={weeklyReadout}
+        userSettings={settings}
+        today={today}
       />
     </div>
   );

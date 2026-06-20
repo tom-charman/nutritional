@@ -25,19 +25,18 @@ export const MAX_WEIGHT_SLOPE_KG_PER_DAY = 0.5; // ~3.5 kg/week ceiling on trend
 export const MAX_WEIGHT_DELTA_KG = 3; // day-over-day jump beyond this = a fat-finger
 
 /**
- * Weekly trend & goal projection (the Cutter card). These are a DELIBERATELY
- * shorter horizon than the 30-day maintenance/TDEE estimate above: a cutter needs
- * to see this fortnight's change, not a month-lagged average.
- * - TREND_EWMA_ALPHA: smoothing for the responsive "trend weight" (≈9-day
- *   responsiveness; Hacker's Diet uses ~0.1).
- * - RATE_WINDOW_DAYS: span over which the trend's change → kg/week rate is measured.
+ * Weekly trend & goal projection (the Cutter card).
+ * - TREND_EWMA_ALPHA: smoothing for the responsive "trend weight" line/number
+ *   (≈9-day responsiveness; Hacker's Diet uses ~0.1). A 30-day mean lags a cutter
+ *   by ~2 weeks, so the trend weight uses this instead.
  * - MAINTENANCE_BAND_KG: |trend − goal| within this → "at goal / maintaining".
- * - RATE_TOLERANCE_KG_PER_WEEK: dead-band for on-track vs the user's target rate.
+ * - MIN_MEANINGFUL_DEFICIT_KCAL: the projection is energy-balance-driven
+ *   (maintenance − intake); a |deficit| below this is treated as "holding" (no
+ *   spurious ETA from noise). ~75 kcal/day ≈ 0.07 kg/week.
  */
 export const TREND_EWMA_ALPHA = 0.1;
-export const RATE_WINDOW_DAYS = 14;
 export const MAINTENANCE_BAND_KG = 0.5;
-export const RATE_TOLERANCE_KG_PER_WEEK = 0.1;
+export const MIN_MEANINGFUL_DEFICIT_KCAL = 75;
 
 /** The 9 tracked nutrients, canonical input/display order (models.py NUTRIENT_INPUT_ORDER). */
 export const NUTRIENT_KEYS = [

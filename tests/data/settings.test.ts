@@ -15,13 +15,14 @@ afterAll(async () => {
 });
 
 describe("user settings storage", () => {
-  it("returns the seeded all-null row by default", async () => {
+  it("returns the seeded default row", async () => {
     const s = await loadUserSettings(db);
     expect(s).toEqual({
       goal_weight_kg: null,
       weekly_rate_target_kg: null,
       start_weight_kg: null,
       start_date: null,
+      hide_weekly_panel: false,
     });
   });
 
@@ -31,6 +32,7 @@ describe("user settings storage", () => {
       weekly_rate_target_kg: -0.5,
       start_weight_kg: 84.2,
       start_date: "2026-01-01",
+      hide_weekly_panel: false,
     });
     const s = await loadUserSettings(db);
     expect(s.goal_weight_kg).toBe(78);
@@ -44,10 +46,22 @@ describe("user settings storage", () => {
       weekly_rate_target_kg: null,
       start_weight_kg: 84.2,
       start_date: "2026-01-01",
+      hide_weekly_panel: false,
     });
     const s2 = await loadUserSettings(db);
     expect(s2.goal_weight_kg).toBe(75);
     expect(s2.weekly_rate_target_kg).toBeNull();
+  });
+
+  it("persists the hide-weekly-panel flag", async () => {
+    await saveUserSettings(db, {
+      goal_weight_kg: 75,
+      weekly_rate_target_kg: null,
+      start_weight_kg: null,
+      start_date: null,
+      hide_weekly_panel: true,
+    });
+    expect((await loadUserSettings(db)).hide_weekly_panel).toBe(true);
   });
 
   it("clears the goal back to nulls", async () => {
@@ -56,6 +70,7 @@ describe("user settings storage", () => {
       weekly_rate_target_kg: null,
       start_weight_kg: null,
       start_date: null,
+      hide_weekly_panel: false,
     });
     const s = await loadUserSettings(db);
     expect(s.goal_weight_kg).toBeNull();

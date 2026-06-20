@@ -10,6 +10,7 @@ const NO_GOAL: UserSettings = {
   weekly_rate_target_kg: null,
   start_weight_kg: null,
   start_date: null,
+  hide_weekly_panel: false,
 };
 
 function addDays(iso: string, days: number): string {
@@ -72,7 +73,9 @@ describe("ewma responsiveness", () => {
   });
 });
 
-describe("weekly readout — rate, deficit, consistency", () => {
+describe("energy balance — deficit & predicted rate", () => {
+  // Steady decline + steady intake: maintenance is weight-derived, so
+  // deficit = slope×7700 and predicted rate recovers the true −0.5 kg/wk.
   const summaries = genSummaries({
     start: "2026-01-01",
     n: 40,
@@ -82,79 +85,67 @@ describe("weekly readout — rate, deficit, consistency", () => {
   });
   const asOf = summaries[summaries.length - 1].date;
 
-  it("recovers ~ the true weekly rate", () => {
+  it("derives deficit from maintenance − intake and predicts the right rate", () => {
     const r = readoutFor(summaries, NO_GOAL, asOf);
     expect(r.reason).toBeNull();
-    expect(r.rate_kg_per_week!).toBeCloseTo(-0.5, 1);
-    expect(r.trend_weight_kg).not.toBeNull();
-  });
-
-  it("keeps deficit consistent with rate (deficit = -(rate/7)*7700)", () => {
-    const r = readoutFor(summaries, NO_GOAL, asOf);
-    const expected = -(r.rate_kg_per_week! / 7) * 7700;
-    expect(r.implied_deficit_kcal_per_day!).toBeCloseTo(expected, 5);
-    // Losing weight ⇒ a positive (energy) deficit.
-    expect(r.implied_deficit_kcal_per_day!).toBeGreaterThan(0);
-  });
-
-  it("reports a recent 7-day intake as context", () => {
-    const r = readoutFor(summaries, NO_GOAL, asOf);
     expect(r.avg_intake_kcal).toBeCloseTo(2000, 5);
+    // maintenance ≈ intake + 550 (0.5 kg/wk worth of energy), deficit ≈ 550.
+    expect(r.est_maintenance_kcal!).toBeCloseTo(2550, 0);
+    expect(r.deficit_kcal_per_day!).toBeCloseTo(550, 0);
+    expect(r.predicted_rate_kg_per_week!).toBeCloseTo(-0.5, 1);
+  });
+
+  it("keeps predicted rate consistent with the deficit", () => {
+    const r = readoutFor(summaries, NO_GOAL, asOf);
+    const expected = (-r.deficit_kcal_per_day! * 7) / 7700;
+    expect(r.predicted_rate_kg_per_week!).toBeCloseTo(expected, 6);
   });
 });
 
 describe("weekly readout — projection", () => {
-  const summaries = genSummaries({
+  const losing = genSummaries({
     start: "2026-01-01",
     n: 40,
     startWeight: 85,
     kgPerWeek: -0.5,
     intake: 2000,
   });
-  const asOf = summaries[summaries.length - 1].date;
+  const asOf = losing[losing.length - 1].date;
 
-  it("projects weeks-to-goal and a date when converging toward the goal", () => {
-    const r = readoutFor(
-      summaries,
-      { ...NO_GOAL, goal_weight_kg: 80, weekly_rate_target_kg: -0.5 },
-      asOf,
-    );
-    expect(r.projection).not.toBeNull();
-    expect(r.projection!.at_goal).toBe(false);
-    expect(r.projection!.kg_to_go).toBeGreaterThan(0); // still must lose
+  it("projects a date when a real deficit moves toward the goal", () => {
+    const r = readoutFor(losing, { ...NO_GOAL, goal_weight_kg: 80 }, asOf);
+    expect(r.projection!.status).toBe("losing");
+    expect(r.projection!.kg_to_go).toBeGreaterThan(0);
     expect(r.projection!.weeks_to_goal!).toBeGreaterThan(0);
     expect(r.projection!.projected_date).toBeTruthy();
-    expect(r.projection!.on_track).toBe("on_track");
   });
 
-  it("flags 'at goal' within the maintenance band", () => {
-    const r = readoutFor(summaries, { ...NO_GOAL, goal_weight_kg: 999 }, asOf);
-    // goal far above current → not at goal; use a goal near the trend instead:
-    const trend = r.trend_weight_kg!;
-    const r2 = readoutFor(summaries, { ...NO_GOAL, goal_weight_kg: trend }, asOf);
-    expect(r2.projection!.at_goal).toBe(true);
-    expect(r2.projection!.weeks_to_goal).toBe(0);
+  it("flags 'at goal' within the maintenance band (no ETA)", () => {
+    const trend = readoutFor(losing, NO_GOAL, asOf).trend_weight_kg!;
+    const r = readoutFor(losing, { ...NO_GOAL, goal_weight_kg: trend }, asOf);
+    expect(r.projection!.status).toBe("at_goal");
+    expect(r.projection!.weeks_to_goal).toBeNull();
   });
 
-  it("does not project when moving away from the goal", () => {
-    // Gaining weight, but goal is below current ⇒ wrong direction.
-    const gaining = genSummaries({
-      start: "2026-01-01",
-      n: 40,
-      startWeight: 80,
-      kgPerWeek: +0.4,
-      intake: 2600,
-    });
-    const asOfG = gaining[gaining.length - 1].date;
-    const r = readoutFor(gaining, { ...NO_GOAL, goal_weight_kg: 75, weekly_rate_target_kg: -0.5 }, asOfG);
+  it("says 'holding' with no ETA when eating near maintenance", () => {
+    // Flat weight + steady intake ⇒ deficit ≈ 0 ⇒ holding.
+    const flat = genSummaries({ start: "2026-01-01", n: 40, startWeight: 85, kgPerWeek: 0, intake: 2000 });
+    const r = readoutFor(flat, { ...NO_GOAL, goal_weight_kg: 80 }, flat[flat.length - 1].date);
+    expect(r.projection!.status).toBe("holding");
     expect(r.projection!.weeks_to_goal).toBeNull();
     expect(r.projection!.projected_date).toBeNull();
-    expect(r.projection!.on_track).toBe("wrong_direction");
+  });
+
+  it("does not project when gaining while the goal is below", () => {
+    const gaining = genSummaries({ start: "2026-01-01", n: 40, startWeight: 80, kgPerWeek: +0.4, intake: 2600 });
+    const r = readoutFor(gaining, { ...NO_GOAL, goal_weight_kg: 75 }, gaining[gaining.length - 1].date);
+    expect(r.projection!.status).toBe("gaining");
+    expect(r.projection!.weeks_to_goal).toBeNull();
+    expect(r.projection!.projected_date).toBeNull();
   });
 
   it("omits projection entirely when no goal is set", () => {
-    const r = readoutFor(summaries, NO_GOAL, asOf);
-    expect(r.projection).toBeNull();
+    expect(readoutFor(losing, NO_GOAL, asOf).projection).toBeNull();
   });
 });
 
@@ -164,17 +155,17 @@ describe("weekly readout — insufficient data", () => {
     const r = readoutFor(s, NO_GOAL, s[s.length - 1].date);
     expect(r.reason).toBe("no_weight_data");
     expect(r.trend_weight_kg).toBeNull();
-    expect(r.rate_kg_per_week).toBeNull();
-    // intake is still reported.
-    expect(r.avg_intake_kcal).toBeCloseTo(2100, 5);
+    expect(r.deficit_kcal_per_day).toBeNull();
+    expect(r.predicted_rate_kg_per_week).toBeNull();
+    expect(r.avg_intake_kcal).toBeCloseTo(2100, 5); // intake still reported
   });
 
-  it("reports insufficient_points with <14 days of history but still shows trend weight", () => {
+  it("reports insufficient_points with <14 days but still shows trend weight", () => {
     const s = genSummaries({ start: "2026-01-01", n: 10, startWeight: 85, kgPerWeek: -0.5, intake: 2000 });
     const r = readoutFor(s, NO_GOAL, s[s.length - 1].date);
     expect(r.reason).toBe("insufficient_points");
-    expect(r.rate_kg_per_week).toBeNull();
-    expect(r.implied_deficit_kcal_per_day).toBeNull();
+    expect(r.deficit_kcal_per_day).toBeNull();
+    expect(r.predicted_rate_kg_per_week).toBeNull();
     expect(r.trend_weight_kg).not.toBeNull();
   });
 });
