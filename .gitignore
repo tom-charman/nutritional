@@ -245,3 +245,7 @@ auth.txt
 tests/e2e/screenshots/
 test-results/
 playwright-report/
+
+# Emacs lock files
+.\#*
+\#*\#
