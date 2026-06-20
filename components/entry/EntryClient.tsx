@@ -27,12 +27,15 @@ import {
 } from "@/lib/constants";
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
-import type { DailyData, DailyTargets, FoodItem, Meal } from "@/lib/domain/types";
+import type { DailyData, DailyTargets, FoodItem, Meal, UserSettings } from "@/lib/domain/types";
+import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 import Combobox from "@/components/ui/Combobox";
 import EntriesList from "./EntriesList";
 import MacroProgressBars from "./MacroProgressBars";
 import NutrientPreview from "./NutrientPreview";
 import TargetsModal from "./TargetsModal";
+import WeeklySummaryCard from "@/components/summary/WeeklySummaryCard";
+import GoalModal from "@/components/summary/GoalModal";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
 type Selection =
@@ -64,6 +67,8 @@ export default function EntryClient({
   recentFoods,
   initialDay,
   targets,
+  weeklyReadout,
+  userSettings,
 }: {
   date: string;
   today: string;
@@ -72,6 +77,8 @@ export default function EntryClient({
   recentFoods: FoodItem[];
   initialDay: DailyData;
   targets: DailyTargets;
+  weeklyReadout: WeeklyReadout;
+  userSettings: UserSettings;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -109,6 +116,7 @@ export default function EntryClient({
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
 
   const pushToast = useCallback((text: string, ok: boolean) => {
     if (!text) return;
@@ -505,8 +513,27 @@ export default function EntryClient({
               </div>
             </div>
           </div>
+
+          <WeeklySummaryCard
+            readout={weeklyReadout}
+            hasGoal={userSettings.goal_weight_kg !== null}
+            onSetGoal={() => setGoalModalOpen(true)}
+          />
         </div>
       </div>
+
+      {goalModalOpen && (
+        <GoalModal
+          initial={userSettings}
+          currentTrendWeight={weeklyReadout.trend_weight_kg}
+          today={today}
+          onClose={() => setGoalModalOpen(false)}
+          onSaved={(msg, ok) => {
+            pushToast(msg, ok);
+            if (ok) router.refresh();
+          }}
+        />
+      )}
 
       {modalOpen && (
         <TargetsModal

@@ -18,6 +18,13 @@ question — *"what would real users with different nutritional goals want next?
 > and **#6 Clinician-ready export** — shipped together (PR #45): both serve the "never let them
 > breach silently / never lie to the user" bar, neither needed a schema change. Rows kept below, marked ✅.
 
+> **Shipped 2026-06-20.** The Cutter cluster — **#8 Weekly summary & trend-weight readout** and
+> **#9 Goal weight + projection** — shipped together: they share one surface (the Weekly Trend card on
+> `/entry` and `/`) and one math (a responsive EWMA trend feeding rate, deficit, and projection). #8's
+> "7-day avg" was reframed to a responsive EWMA trend (a 30-day mean lags a cutter ~2 weeks). #9 adds the
+> first cross-day config table (`user_settings`), which **unblocks #7**. The Calories & Weight chart now
+> draws the EWMA trend as its heavy weight datum (raw weigh-ins demoted to a faint band) plus a goal guide.
+
 ## Method
 
 Each of the six personas walked all nine `FEATURES.md` sections and judged every feature against
@@ -49,9 +56,9 @@ services, or a data-model change?
 | 4 | **Swap food in a logged entry** | Builder | ✅ Done | S–M | Click food name → selector → recompute nutrients, avoiding delete + re-add |
 | 5 | **Add/substitute ingredients in a logged meal** *(open UX #12)* | Patient, Builder | High | M | New action + a "+ add ingredient" affordance in `EntriesList`; mark entry "(modified)" |
 | 6 | **Clinician-ready export** (daily totals + targets, absolute units, summary row) | Patient | ✅ Done | M | New shape in `lib/export/dailyTotals.ts` + `app/actions/export.ts`; today's RDI-% export is unusable for medical caps |
-| 7 | **Target presets + cyclical/weekly targets** (cut/bulk/carb-cycle) | Cutter, Data Nerd | High | M | Save/load named target sets; per-weekday overrides. **Depends on the `user_settings` table from #9** |
-| 8 | **Weekly summary & trend-weight readout** (7-day avg, kg/week, deficit) | Cutter | Medium | M | Reuse chart-prep + `estimateMaintenance`; surface a card on `/entry` and `/` |
-| 9 | **Goal weight + projection** (+ `user_settings` table) | Cutter | Medium | M | First cross-day, per-user config; foundation for #7 and the projection card |
+| 7 | **Target presets + cyclical/weekly targets** (cut/bulk/carb-cycle) | Cutter, Data Nerd | High | M | Save/load named target sets; per-weekday overrides. **`user_settings` now exists (shipped with #9) — unblocked** |
+| 8 | **Weekly summary & trend-weight readout** (trend weight, kg/week, deficit) | Cutter | ✅ Done | M | EWMA trend line + Weekly Trend card on `/entry` and `/`; shipped with #9 |
+| 9 | **Goal weight + projection** (+ `user_settings` table) | Cutter | ✅ Done | M | First cross-day config (`user_settings`); projection + on/off-track. **Unblocks #7** |
 | 10 | **Food tags / categories + filter** | Builder | Medium | M | Optional `category` on foods; filter the selector (e.g. "protein sources") |
 | 11 | **Batch-cook → single-serving meal generator** | Home Cook | Medium | M | Enter total batch ingredient weights + servings; app divides and saves a normal **single-serving** meal. A meal stays a meal-for-one — this just builds one from a batch without hand-division. *(Reframed from "meal yield metadata")* |
 | 12 | **Finish toast/auth polish** *(open UX #16, partial)* | — | Medium | S | Auth-specific items unverified: logged-out navbar, brand mark, modal fade |
@@ -97,15 +104,18 @@ optional per-weekday overrides (carb-cycling, refeed days), so the Cutter and Da
 nine fields. **Prerequisite:** the `user_settings` table introduced by #9 — sequence #9 first even though
 it sits in the Medium tier.
 
-**8. Weekly summary & trend-weight readout.** The dashboard shows a 30-day line but no readable
-"−0.5 kg/week" or weekly deficit, and the entry page shows raw daily weight with no smoothing. A
-7-day trend-weight readout next to the weight input plus a weekly-summary card (avg intake, weight
-change, implied deficit) gives the Cutter the week-scoped feedback the daily-only UI lacks. Reuses
-existing chart-prep and `estimateMaintenance`.
+**8. Weekly summary & trend-weight readout.** ✅ *Shipped 2026-06-20 (with #9).* The dashboard showed a
+30-day line but no readable "−0.5 kg/week" or weekly deficit, and the entry page showed raw daily weight
+with no smoothing. Now a **Weekly Trend card** (on `/entry` Col 3 and atop `/`) shows trend weight, the
+weekly rate, and the implied deficit, and the chart gained a responsive **EWMA trend line** as its heavy
+weight datum. The "7-day avg" was reframed to a responsive EWMA trend: a 30-day mean lags a cutter by
+~2 weeks, so trend weight uses an EWMA and the rate is the trend's change over the last 14 days (rate and
+deficit derive from the same change, so they never disagree).
 
-**9. Goal weight + projection.** The app has no cross-day, per-user configuration — every setting is
-per-day. A small `user_settings` table (goal weight, weekly-rate target) is the foundation for the
-Cutter's projection card ("at −0.5 kg/week you reach 75 kg in ~8 weeks") **and** for #7's target presets.
+**9. Goal weight + projection.** ✅ *Shipped 2026-06-20 (with #8).* The app had no cross-day configuration —
+every setting was per-day. A new single-row `user_settings` table (goal weight, weekly-rate target) now
+powers the Cutter's projection ("2.5 kg to go · projected …") and an on/off-track verdict against the
+declared target rate, **and** is the foundation #7's target presets build on.
 
 **11. Batch-cook → single-serving meal generator.** Instead of recording how many servings a meal yields,
 work the other way: the Home Cook enters the total weights of everything that went into a batch (e.g.

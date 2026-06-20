@@ -29,11 +29,13 @@ import type {
   FoodItem,
   Meal,
   MealEntry,
+  UserSettings,
 } from "@/lib/domain/types";
 
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-const { foodItems, foodEntries, dailySummaries, dailyTargets, meals, mealIngredients } = schema;
+const { foodItems, foodEntries, dailySummaries, dailyTargets, meals, mealIngredients, userSettings } =
+  schema;
 
 // ============= Row mappers (decimal-string → number in one place) =============
 
@@ -586,6 +588,44 @@ export async function loadAllSummaries(db: DB): Promise<DailySummary[]> {
     morning_weight_kg: num(row.morningWeightKg),
     evening_weight_kg: num(row.eveningWeightKg),
   }));
+}
+
+// ============= User Settings (cross-day, single row) =============
+
+/**
+ * Load the single user_settings row (id = 1). Returns all-null defaults if the
+ * seed row is somehow absent, so callers never have to null-check the result.
+ */
+export async function loadUserSettings(db: DB): Promise<UserSettings> {
+  const rows = await db
+    .select()
+    .from(userSettings)
+    .where(eq(userSettings.id, 1))
+    .limit(1);
+  const r = rows[0];
+  return {
+    goal_weight_kg: num(r?.goalWeightKg),
+    weekly_rate_target_kg: num(r?.weeklyRateTargetKg),
+    start_weight_kg: num(r?.startWeightKg),
+    start_date: r?.startDate ?? null,
+  };
+}
+
+/**
+ * Upsert the single user_settings row on the fixed id = 1. updated_at is left to
+ * the DB trigger (never written here), matching the daily-targets invariant.
+ */
+export async function saveUserSettings(db: DB, s: UserSettings): Promise<void> {
+  const set = {
+    goalWeightKg: decOrNull(s.goal_weight_kg),
+    weeklyRateTargetKg: decOrNull(s.weekly_rate_target_kg),
+    startWeightKg: decOrNull(s.start_weight_kg),
+    startDate: s.start_date,
+  };
+  await db
+    .insert(userSettings)
+    .values({ id: 1, ...set })
+    .onConflictDoUpdate({ target: userSettings.id, set });
 }
 
 // keep NUTRIENT_KEYS referenced for editors that tree-shake unused imports

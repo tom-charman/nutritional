@@ -138,6 +138,22 @@ END $$;
 ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS portions DECIMAL(8,2);
 ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS meal_log_id UUID;
 
+-- Cross-day user settings (the first config table NOT keyed by date).
+-- Single-row by design (single-user app): a fixed id + CHECK makes a second row
+-- impossible; app writes always upsert on id = 1. The seed INSERT is idempotent
+-- (ON CONFLICT DO NOTHING) so re-applying init.sql never clobbers edited values.
+-- Foundation for goal weight + projection (#9) and, later, target presets (#7).
+CREATE TABLE IF NOT EXISTS user_settings (
+    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    goal_weight_kg DECIMAL(5,2),            -- NULL = no goal set
+    weekly_rate_target_kg DECIMAL(4,2),     -- signed: negative = cut; NULL = no target
+    start_weight_kg DECIMAL(5,2),
+    start_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO user_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX IF NOT EXISTS idx_food_entries_food_id ON food_entries(food_id);
@@ -182,4 +198,8 @@ CREATE TRIGGER update_meals_updated_at BEFORE UPDATE ON meals
 
 DROP TRIGGER IF EXISTS update_meal_ingredients_updated_at ON meal_ingredients;
 CREATE TRIGGER update_meal_ingredients_updated_at BEFORE UPDATE ON meal_ingredients
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

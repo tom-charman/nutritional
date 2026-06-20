@@ -2074,6 +2074,217 @@ button.ingredient-name-swap:hover {
     font-family: var(--font-mono);
 }
 
+/* ==================== Weekly Trend & Goal Card ==================== */
+/* A quiet plate with one carved reading — echoes .calories-remaining-card.
+   Lives below the weigh-in (entry Col 3) and as a strip atop the dashboard. */
+.weekly-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+}
+
+.weekly-summary-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.weekly-summary-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.weekly-summary-window {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-disabled);
+    letter-spacing: 0.04em;
+}
+
+/* HERO — Fraunces, carved, NEUTRAL ink. No green/red verdict here; the minus
+   sign carries direction and the word below disambiguates it. */
+.weekly-rate-number {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 600;
+    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 0;
+    font-feature-settings: "tnum";
+    color: var(--text-main);
+    line-height: 1;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.weekly-rate-hero { text-align: center; }
+
+.weekly-rate-unit {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--success); /* Wakatake Bamboo = weight identity */
+    padding-bottom: 2px;
+    font-feature-settings: "tnum";
+}
+
+.weekly-rate-dir {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    margin: 8px 0 16px;
+}
+
+.weekly-stat-rows { margin: 0; }
+
+.weekly-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+}
+
+.weekly-stat-row dt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.weekly-stat-row dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-body);
+    font-feature-settings: "tnum";
+}
+
+.weekly-deficit {
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-body);
+    font-feature-settings: "tnum";
+    text-align: center;
+}
+
+.weekly-summary-empty { padding: 16px 8px; }
+
+/* Quiet engraved affordance, not a boxed CTA (Ma). */
+.weekly-goal-affordance {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px 0 0;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--primary);
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    text-align: center;
+}
+.weekly-goal-affordance:hover { text-decoration: underline; }
+
+/* Goal block — only when a goal is set */
+.weekly-goal-block {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+.weekly-goal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+.weekly-goal-sublabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.weekly-goal-target {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-body);
+    font-feature-settings: "tnum";
+}
+/* Reuse the .progress channel; tint the fill bamboo (the weight pigment). */
+.progress.weekly-goal-channel { height: 8px; }
+.progress.weekly-goal-channel .progress-bar { background: var(--success); }
+
+.weekly-goal-detail {
+    margin: 8px 0 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+}
+/* Verdict colour comes from the appended .target-met/.target-warning/.target-exceeded. */
+.weekly-goal-verdict {
+    margin: 6px 0 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Dashboard strip variant — one low horizontal row above the chart tabs. */
+.weekly-summary-card.is-strip {
+    margin-bottom: 24px;
+}
+@media (min-width: 760px) {
+    .weekly-summary-card.is-strip {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        column-gap: 32px;
+        padding: 16px 24px;
+    }
+    .weekly-summary-card.is-strip .weekly-summary-head {
+        grid-column: 1 / -1;
+        margin-bottom: 8px;
+    }
+    .weekly-summary-card.is-strip .weekly-rate-dir { margin: 6px 0 0; }
+    .weekly-summary-card.is-strip .weekly-deficit {
+        border: none;
+        padding: 0;
+        text-align: left;
+    }
+    .weekly-summary-card.is-strip .weekly-goal-block {
+        margin: 0;
+        padding: 0;
+        border: none;
+        min-width: 200px;
+    }
+    .weekly-summary-card.is-strip .weekly-goal-affordance {
+        margin: 0;
+        padding: 0;
+        border: none;
+        text-align: right;
+    }
+}
+
+@media (max-width: 480px) {
+    .weekly-rate-number { font-size: 2.4rem; }
+}
+
+/* Narrow modal for the small goal form */
+.modal-narrow { max-width: 420px; }
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
     .mise-en-place-container {

@@ -3,7 +3,11 @@
 /**
  * Calories vs Weight — the instrument version.
  *  - Calories (left axis): Sumi ink line, 30-day rolling avg, monotone curve
- *  - Morning/Evening weight: bamboo dashdot/dash with a pencil-shaded band
+ *  - Weight trend (right axis): the HEAVY bamboo datum — a responsive EWMA curve,
+ *    the cutter's actual trajectory. Raw morning/evening are demoted to faint
+ *    pencil guides + a shaded band (detail on hover), per "one heavy line + faint
+ *    guides".
+ *  - Goal weight (when set): a faint dotted bamboo guide, labelled at its end.
  *  - Engraved readouts at the line ends replace the legend; latest values
  *    head the plot; hover is a caliper with contact dots.
  */
@@ -76,9 +80,11 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
     (i: number) => {
       const rows = [];
       const cal = data.calories_avg[i];
+      const t = data.weight_trend[i];
       const m = data.weight_morning[i];
       const e = data.weight_evening[i];
       if (cal !== null) rows.push({ label: "Calories", value: `${Math.round(cal)} kcal`, color: CALORIES_COLOR });
+      if (t !== null) rows.push({ label: "Weight (trend)", value: `${t.toFixed(1)} kg`, color: WEIGHT_COLOR });
       if (m !== null) rows.push({ label: "Weight (morning)", value: `${m.toFixed(1)} kg`, color: WEIGHT_COLOR });
       if (e !== null) rows.push({ label: "Weight (evening)", value: `${e.toFixed(1)} kg`, color: WEIGHT_COLOR });
       return rows;
@@ -99,9 +105,10 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
 
   // Latest readings — the instrument's primary display
   const lastCal = lastDefined(data.calories_avg);
-  const lastM = lastDefined(data.weight_morning);
-  const lastE = lastDefined(data.weight_evening);
+  const lastTrend = lastDefined(data.weight_trend);
   const lastMaint = lastDefined(data.maintenance);
+  const goal = data.goal_weight_kg;
+  const goalInRange = goal !== null && goal >= data.y2Limits[0] && goal <= data.y2Limits[1];
   const readout = [
     ...(lastCal
       ? [{ value: Math.round(lastCal.value).toLocaleString("en-US"), unit: "kcal", label: "30-day avg" }]
@@ -109,16 +116,8 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
     ...(lastMaint
       ? [{ value: Math.round(lastMaint.value).toLocaleString("en-US"), unit: "kcal", label: "maintenance (est.)" }]
       : []),
-    ...(lastM || lastE
-      ? [
-          {
-            value: [lastM?.value.toFixed(1), lastE?.value.toFixed(1)]
-              .filter(Boolean)
-              .join(" / "),
-            unit: "kg",
-            label: "morning / evening",
-          },
-        ]
+    ...(lastTrend
+      ? [{ value: lastTrend.value.toFixed(1), unit: "kg", label: "trend weight" }]
       : []),
   ];
 
@@ -133,23 +132,23 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
           },
         ]
       : []),
-    ...(lastM
+    ...(lastTrend
       ? [
           {
-            label: "Morning",
-            value: `${lastM.value.toFixed(1)} kg`,
+            label: "Trend",
+            value: `${lastTrend.value.toFixed(1)} kg`,
             color: WEIGHT_COLOR,
-            y: yWeight(lastM.value),
+            y: yWeight(lastTrend.value),
           },
         ]
       : []),
-    ...(lastE
+    ...(goalInRange
       ? [
           {
-            label: "Evening",
-            value: `${lastE.value.toFixed(1)} kg`,
+            label: "Goal",
+            value: `${goal.toFixed(1)} kg`,
             color: WEIGHT_COLOR,
-            y: yWeight(lastE.value),
+            y: yWeight(goal),
           },
         ]
       : []),
@@ -162,8 +161,7 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
         <Legend
           items={[
             { label: "Calories (30-day avg)", color: CALORIES_COLOR },
-            { label: "Morning", color: WEIGHT_COLOR, dash: "6 2 1 2" },
-            { label: "Evening", color: WEIGHT_COLOR, dash: "5 4" },
+            { label: "Weight (trend)", color: WEIGHT_COLOR },
           ]}
         />
       )}
@@ -190,7 +188,39 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
           />
           <XAxis xScale={xScale} innerHeight={innerHeight} />
 
+          {/* Goal guide — a faint dotted pencil line, labelled at its end (no legend). */}
+          {goalInRange && (
+            <line
+              x1={0}
+              x2={innerWidth}
+              y1={yWeight(goal)}
+              y2={yWeight(goal)}
+              stroke={WEIGHT_COLOR}
+              strokeWidth={0.75}
+              strokeOpacity={0.55}
+              strokeDasharray="1 5"
+            />
+          )}
+
+          {/* Raw morning/evening: faint pencil guides + shaded band (detail on hover) */}
           <path d={band(bandPoints) ?? undefined} fill="url(#weightBand)" stroke="none" />
+          <path
+            d={weightLine(toPoints(data.weight_morning)) ?? undefined}
+            fill="none"
+            stroke={WEIGHT_COLOR}
+            strokeWidth={1}
+            strokeOpacity={0.3}
+            strokeDasharray="6 2 1 2"
+          />
+          <path
+            d={weightLine(toPoints(data.weight_evening)) ?? undefined}
+            fill="none"
+            stroke={WEIGHT_COLOR}
+            strokeWidth={1}
+            strokeOpacity={0.3}
+            strokeDasharray="5 4"
+          />
+
           <path
             d={calLine(toPoints(data.calories_avg)) ?? undefined}
             fill="none"
@@ -199,19 +229,15 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+
+          {/* Weight trend — the heavy bamboo datum */}
           <path
-            d={weightLine(toPoints(data.weight_morning)) ?? undefined}
+            d={weightLine(toPoints(data.weight_trend)) ?? undefined}
             fill="none"
             stroke={WEIGHT_COLOR}
-            strokeWidth={1.25}
-            strokeDasharray="6 2 1 2"
-          />
-          <path
-            d={weightLine(toPoints(data.weight_evening)) ?? undefined}
-            fill="none"
-            stroke={WEIGHT_COLOR}
-            strokeWidth={1.25}
-            strokeDasharray="5 4"
+            strokeWidth={2.25}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
 
           {!narrow && (
@@ -236,6 +262,13 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
                   x={hover.x}
                   y={yCal(data.calories_avg[hover.index] as number)}
                   color={CALORIES_COLOR}
+                />
+              )}
+              {data.weight_trend[hover.index] !== null && (
+                <ContactDot
+                  x={hover.x}
+                  y={yWeight(data.weight_trend[hover.index] as number)}
+                  color={WEIGHT_COLOR}
                 />
               )}
               {data.weight_morning[hover.index] !== null && (
