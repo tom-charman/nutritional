@@ -729,10 +729,10 @@ input[type="checkbox"]:focus {
 
 .combobox-section-header {
     padding: 6px 12px 2px;
-    font-size: var(--font-size-xs, 0.7rem);
+    font-size: var(--font-size-tiny);
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: var(--text-muted);
 }
 
@@ -1755,6 +1755,48 @@ input[type="radio"] {
 
 .mise-en-place-container .section-label {
     margin-bottom: 0;
+}
+
+/* Intake header: section label keeps its scribed rule (block ::after) while a
+   quiet action sits to its right — the label is NOT the flex parent, so the
+   28px engraved rule stays tucked under the text instead of becoming a stray
+   flex item. */
+.intake-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* "Copy yesterday" is a quiet utility, not a competing CTA — an engraved text
+   action (Zen Essentialism / Ma), not a boxed button. */
+.copy-day-btn {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    height: auto;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--dur-quick) var(--ease-press);
+}
+
+.copy-day-btn:hover:not(:disabled) {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.copy-day-btn:active:not(:disabled) {
+    transform: translateY(1px); /* material honesty: it presses, doesn't blink */
+}
+
+.copy-day-btn:disabled {
+    color: var(--text-disabled);
+    cursor: default;
 }
 
 /* Column 1: The Ingredients (Input & Edit) */
