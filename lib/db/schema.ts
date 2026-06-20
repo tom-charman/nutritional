@@ -15,6 +15,7 @@ import {
   timestamp,
   index,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /** DECIMAL(8,2) nutrient column helper (NOT NULL). */
@@ -153,6 +154,7 @@ export const userSettings = pgTable("user_settings", {
   weeklyRateTargetKg: numeric("weekly_rate_target_kg", { precision: 4, scale: 2 }),
   startWeightKg: numeric("start_weight_kg", { precision: 5, scale: 2 }),
   startDate: date("start_date"),
+  hideWeeklyPanel: boolean("hide_weekly_panel").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

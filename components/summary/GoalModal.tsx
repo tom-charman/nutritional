@@ -25,9 +25,6 @@ export default function GoalModal({
   const [goal, setGoal] = useState(
     initial.goal_weight_kg !== null ? String(initial.goal_weight_kg) : "",
   );
-  const [rate, setRate] = useState(
-    initial.weekly_rate_target_kg !== null ? String(initial.weekly_rate_target_kg) : "",
-  );
   const [isPending, startTransition] = useTransition();
   const firstInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -53,7 +50,7 @@ export default function GoalModal({
     startTransition(async () => {
       const next: UserSettings = {
         goal_weight_kg: goalVal,
-        weekly_rate_target_kg: numOrNull(rate),
+        weekly_rate_target_kg: null, // projection is energy-balance-driven, not a set rate
         // Capture a baseline on first goal-set so progress has an anchor.
         start_weight_kg:
           goalVal !== null && initial.start_weight_kg === null
@@ -63,6 +60,7 @@ export default function GoalModal({
           goalVal !== null && initial.start_weight_kg === null
             ? today
             : initial.start_date,
+        hide_weekly_panel: initial.hide_weekly_panel,
       };
       const result = await saveUserSettingsAction(next);
       onSaved(result.ok ? "Goal saved" : result.message, result.ok);
@@ -77,6 +75,7 @@ export default function GoalModal({
         weekly_rate_target_kg: null,
         start_weight_kg: null,
         start_date: null,
+        hide_weekly_panel: initial.hide_weekly_panel,
       });
       onSaved(result.ok ? "Goal cleared" : result.message, result.ok);
       if (result.ok) onClose();
@@ -106,24 +105,12 @@ export default function GoalModal({
               min={0}
               step={0.1}
               value={goal}
-              placeholder="e.g. 78"
+              placeholder="e.g. 63"
               onChange={(e) => setGoal(e.target.value)}
             />
-          </div>
-          <div className="compact-input" style={{ marginTop: 12 }}>
-            <label className="form-label-sm" htmlFor="goal-rate">
-              Target rate (kg/week, optional)
-            </label>
-            <input
-              id="goal-rate"
-              type="number"
-              step={0.05}
-              value={rate}
-              placeholder="e.g. −0.5 to cut"
-              onChange={(e) => setRate(e.target.value)}
-            />
             <p className="field-hint">
-              Negative to cut, positive to bulk. Leave blank to just track progress.
+              The projected date comes from your intake vs estimated maintenance — no
+              need to set a rate.
             </p>
           </div>
         </div>

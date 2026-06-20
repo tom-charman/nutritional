@@ -608,6 +608,7 @@ export async function loadUserSettings(db: DB): Promise<UserSettings> {
     weekly_rate_target_kg: num(r?.weeklyRateTargetKg),
     start_weight_kg: num(r?.startWeightKg),
     start_date: r?.startDate ?? null,
+    hide_weekly_panel: r?.hideWeeklyPanel ?? false,
   };
 }
 
@@ -621,6 +622,7 @@ export async function saveUserSettings(db: DB, s: UserSettings): Promise<void> {
     weeklyRateTargetKg: decOrNull(s.weekly_rate_target_kg),
     startWeightKg: decOrNull(s.start_weight_kg),
     startDate: s.start_date,
+    hideWeeklyPanel: s.hide_weekly_panel,
   };
   await db
     .insert(userSettings)

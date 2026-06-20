@@ -149,10 +149,13 @@ CREATE TABLE IF NOT EXISTS user_settings (
     weekly_rate_target_kg DECIMAL(4,2),     -- signed: negative = cut; NULL = no target
     start_weight_kg DECIMAL(5,2),
     start_date DATE,
+    hide_weekly_panel BOOLEAN NOT NULL DEFAULT false,  -- user dismissed the Weekly Trend panel
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 INSERT INTO user_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+-- Idempotent add for databases created before this column existed.
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS hide_weekly_panel BOOLEAN NOT NULL DEFAULT false;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);

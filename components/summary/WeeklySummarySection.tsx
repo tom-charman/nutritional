@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Client island for the dashboard (a server component): holds the goal-modal +
- * toast state around the WeeklySummaryCard strip. The entry page manages this
- * state inline instead (it already has a toast container).
+ * Client island for the dashboard (a server component): holds goal-modal + toast
+ * state around the WeeklySummaryCard strip, and the show/hide toggle.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import WeeklySummaryCard from "./WeeklySummaryCard";
 import GoalModal from "./GoalModal";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
+import { setWeeklyPanelHiddenAction } from "@/app/actions/settings";
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 import type { UserSettings } from "@/lib/domain/types";
 
@@ -26,6 +26,7 @@ export default function WeeklySummarySection({
   const [open, setOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
+  const [, startTransition] = useTransition();
 
   const pushToast = useCallback((text: string, ok: boolean) => {
     if (!text) return;
@@ -36,12 +37,31 @@ export default function WeeklySummarySection({
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
+  const toggleHidden = useCallback(
+    (hidden: boolean) => {
+      startTransition(async () => {
+        await setWeeklyPanelHiddenAction(hidden);
+        router.refresh();
+      });
+    },
+    [router],
+  );
+
+  if (settings.hide_weekly_panel) {
+    return (
+      <button type="button" className="weekly-show-affordance" onClick={() => toggleHidden(false)}>
+        Show weekly trend
+      </button>
+    );
+  }
+
   return (
     <>
       <WeeklySummaryCard
         readout={readout}
         hasGoal={settings.goal_weight_kg !== null}
         onSetGoal={() => setOpen(true)}
+        onHide={() => toggleHidden(true)}
         variant="strip"
       />
       {open && (

@@ -13,6 +13,9 @@ import {
 import CaloriesWeightChart from "./CaloriesWeightChart";
 import MacroBreakdownChart from "./MacroBreakdownChart";
 import NutrientsRdiChart from "./NutrientsRdiChart";
+import WeeklySummarySection from "@/components/summary/WeeklySummarySection";
+import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
+import type { UserSettings } from "@/lib/domain/types";
 
 const TABS = [
   "Calories & Weight",
@@ -43,11 +46,17 @@ export default function DashboardTabs({
   macroBreakdown,
   nutrientsRdi,
   rdiModes,
+  weeklyReadout,
+  userSettings,
+  today,
 }: {
   caloriesWeight: CaloriesWeightData;
   macroBreakdown: MacroBreakdownData;
   nutrientsRdi: NutrientsRdiData;
   rdiModes: Record<string, TargetMode>;
+  weeklyReadout: WeeklyReadout;
+  userSettings: UserSettings;
+  today: string;
 }) {
   const [active, setActive] = useState(0);
   // Default 3M: the daily question is "how am I trending lately?" —
@@ -108,6 +117,10 @@ export default function DashboardTabs({
           ))}
         </div>
       </div>
+      {/* The weekly summary belongs to the weight/calories view only. */}
+      {active === 0 && (
+        <WeeklySummarySection readout={weeklyReadout} settings={userSettings} today={today} />
+      )}
       {/* keyed by view: range/tab changes settle the new reading into place */}
       <div className="graph-wrapper" key={`${active}-${range}`}>
         {active === 0 && <CaloriesWeightChart data={windowed.caloriesWeight} />}

@@ -1,14 +1,12 @@
 "use client";
 
 /**
- * Weekly Trend card — the Cutter's "is my cut working, and how fast?" readout.
+ * Weekly Trend card — the Cutter's "am I in a deficit, and when do I hit my goal?".
  *
- * Brand notes:
- *  - The hero rate is NEUTRAL Sumi ink; the minus sign carries direction and a
- *    word ("losing"/"holding"/"gaining") disambiguates it — no red/green on the
- *    rate itself (goal direction is the user's choice).
- *  - Bamboo green appears only as weight-series IDENTITY (the unit underscore),
- *    and as a verdict ONLY against a user-declared target rate.
+ * The story is energy-balance first: recent intake vs estimated maintenance gives a
+ * deficit (the hero), which predicts a rate, which drives the goal projection. When
+ * the deficit is within the noise floor we say "holding" and show no ETA. Numbers are
+ * neutral ink — the sign + words carry direction, never colour (brand rule).
  */
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 
@@ -17,83 +15,81 @@ const MONTHS_SHORT = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-function fmtShortDate(iso: string): string {
+function fmtDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
   return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** Signed rate with a typographic minus and 2dp. */
-function fmtRate(rate: number): { sign: string; mag: string } {
-  return { sign: rate < 0 ? "−" : "+", mag: Math.abs(rate).toFixed(2) };
-}
+const kcal = (v: number) => `${Math.round(v).toLocaleString("en-GB")} kcal`;
 
-function directionWord(rate: number): string {
-  if (Math.abs(rate) < 0.05) return "holding";
-  return rate < 0 ? "losing" : "gaining";
-}
-
-function GoalBlock({ readout }: { readout: WeeklyReadout }) {
+/** The goal + projection block (shown when a goal is set). */
+function GoalBlock({ readout, onSetGoal }: { readout: WeeklyReadout; onSetGoal: () => void }) {
   const p = readout.projection;
   if (!p) return null;
-  const verdict =
-    p.on_track === "on_track"
-      ? { cls: "target-met", mark: "✓", text: "on track" }
-      : p.on_track === "too_slow"
-        ? { cls: "target-warning", mark: "⚠", text: "slower than planned" }
-        : p.on_track === "too_fast"
-          ? { cls: "target-warning", mark: "⚠", text: "faster than planned" }
-          : p.on_track === "wrong_direction"
-            ? { cls: "target-exceeded", mark: "⚠", text: "moving away from goal" }
-            : null;
+  const goalKg = readout.trend_weight_kg! - p.kg_to_go;
+  const rate = readout.predicted_rate_kg_per_week;
+
+  let line: string;
+  if (p.status === "at_goal") {
+    line = "At goal — maintaining";
+  } else if (p.weeks_to_goal !== null && p.projected_date) {
+    const ratePart = rate !== null ? ` · ${Math.abs(rate).toFixed(2)} kg/wk` : "";
+    line = `${Math.abs(p.kg_to_go).toFixed(1)} kg to go${ratePart} · ~${fmtDate(p.projected_date)}`;
+  } else if (p.status === "holding") {
+    line = `${Math.abs(p.kg_to_go).toFixed(1)} kg to go · holding — eat below maintenance to lose`;
+  } else {
+    // gaining while the goal is below, or otherwise moving away
+    line = `${Math.abs(p.kg_to_go).toFixed(1)} kg to go · not losing at the moment`;
+  }
 
   return (
     <div className="weekly-goal-block">
       <div className="weekly-goal-head">
         <span className="weekly-goal-sublabel">Goal</span>
-        <span className="weekly-goal-target">
-          {(readout.trend_weight_kg! - p.kg_to_go).toFixed(1)} kg
-        </span>
+        <span className="weekly-goal-target">{goalKg.toFixed(1)} kg</span>
+        <button type="button" className="weekly-goal-edit" onClick={onSetGoal}>
+          edit
+        </button>
       </div>
-      {p.at_goal ? (
-        <p className="weekly-goal-detail">At goal — maintaining</p>
-      ) : (
-        <>
-          <div className="progress weekly-goal-channel" aria-hidden>
-            <div className="progress-bar" style={{ width: `${p.pct_to_goal}%` }} />
-          </div>
-          <p className="weekly-goal-detail">
-            {Math.abs(p.kg_to_go).toFixed(1)} kg to go
-            {p.projected_date && <> · projected {fmtShortDate(p.projected_date)}</>}
-          </p>
-        </>
-      )}
-      {verdict && (
-        <p className={`weekly-goal-verdict ${verdict.cls}`}>
-          <span aria-hidden>{verdict.mark}</span> {verdict.text}
-        </p>
+      <p className="weekly-goal-detail">{line}</p>
+    </div>
+  );
+}
+
+/** Title row with the optional "hide" affordance. */
+function Head({ onHide }: { onHide?: () => void }) {
+  return (
+    <div className="weekly-summary-head">
+      <span className="weekly-summary-label">Weekly Trend</span>
+      {onHide && (
+        <button type="button" className="weekly-hide-link" onClick={onHide} title="Hide this panel">
+          hide
+        </button>
       )}
     </div>
   );
 }
 
-function WeeklySummaryEmpty({
+function Empty({
   readout,
   hasGoal,
   onSetGoal,
+  onHide,
   variant,
 }: {
   readout: WeeklyReadout;
   hasGoal: boolean;
   onSetGoal: () => void;
+  onHide?: () => void;
   variant: "portrait" | "strip";
 }) {
   return (
     <div className={`weekly-summary-card${variant === "strip" ? " is-strip" : ""}`}>
-      <div className="weekly-summary-head">
-        <span className="weekly-summary-label">Weekly Trend</span>
-      </div>
+      <Head onHide={onHide} />
       <p className="empty-state weekly-summary-empty">
-        A trend needs about two weeks of weigh-ins to settle.
+        {readout.trend_weight_kg === null
+          ? "Log a couple of weeks of weigh-ins and a maintenance estimate will appear here."
+          : "Need about two weeks of weigh-ins to estimate maintenance."}
         {readout.trend_weight_kg !== null && (
           <> Latest trend weight {readout.trend_weight_kg.toFixed(1)} kg.</>
         )}
@@ -111,69 +107,67 @@ export default function WeeklySummaryCard({
   readout,
   hasGoal,
   onSetGoal,
+  onHide,
   variant = "portrait",
 }: {
   readout: WeeklyReadout;
   hasGoal: boolean;
   onSetGoal: () => void;
+  onHide?: () => void;
   variant?: "portrait" | "strip";
 }) {
-  if (readout.rate_kg_per_week === null) {
+  if (readout.deficit_kcal_per_day === null || readout.avg_intake_kcal === null) {
     return (
-      <WeeklySummaryEmpty
+      <Empty
         readout={readout}
         hasGoal={hasGoal}
         onSetGoal={onSetGoal}
+        onHide={onHide}
         variant={variant}
       />
     );
   }
 
-  const rate = readout.rate_kg_per_week;
-  const { sign, mag } = fmtRate(rate);
-  const deficit = readout.implied_deficit_kcal_per_day ?? 0;
-  const deficitWord =
-    Math.abs(deficit) < 25 ? "at maintenance" : deficit > 0 ? "below maintenance" : "above maintenance";
+  const deficit = readout.deficit_kcal_per_day;
+  const atMaintenance = Math.abs(deficit) < 75;
+  const word = deficit > 0 ? "below maintenance" : "above maintenance";
 
   return (
     <div className={`weekly-summary-card${variant === "strip" ? " is-strip" : ""}`}>
-      <div className="weekly-summary-head">
-        <span className="weekly-summary-label">Weekly Trend</span>
-        <span className="weekly-summary-window">14-day</span>
-      </div>
+      <Head onHide={onHide} />
 
-      <div className="weekly-rate-hero">
-        <div className="weekly-rate-number">
-          {sign}
-          {mag}
-          <span className="weekly-rate-unit">kg / wk</span>
-        </div>
-        <div className="weekly-rate-dir">{directionWord(rate)}</div>
+      {/* HERO — the energy deficit (the engine). Neutral ink; sign + word carry direction. */}
+      <div className="weekly-deficit-hero">
+        {atMaintenance ? (
+          <div className="weekly-deficit-flat">≈ at maintenance</div>
+        ) : (
+          <>
+            <div className="weekly-deficit-number">
+              {deficit > 0 ? "−" : "+"}
+              {Math.abs(Math.round(deficit)).toLocaleString("en-GB")}
+            </div>
+            <div className="weekly-deficit-unit">kcal / day · {word}</div>
+          </>
+        )}
       </div>
 
       <dl className="weekly-stat-rows">
         <div className="weekly-stat-row">
+          <dt>Intake · 7-day</dt>
+          <dd>{kcal(readout.avg_intake_kcal)}</dd>
+        </div>
+        <div className="weekly-stat-row">
+          <dt>Maintenance · est.</dt>
+          <dd>{readout.est_maintenance_kcal !== null ? kcal(readout.est_maintenance_kcal) : "—"}</dd>
+        </div>
+        <div className="weekly-stat-row">
           <dt>Trend weight</dt>
           <dd>{readout.trend_weight_kg !== null ? `${readout.trend_weight_kg.toFixed(1)} kg` : "—"}</dd>
         </div>
-        <div className="weekly-stat-row">
-          <dt>Avg intake</dt>
-          <dd>
-            {readout.avg_intake_kcal !== null
-              ? `${Math.round(readout.avg_intake_kcal).toLocaleString("en-GB")} kcal`
-              : "—"}
-          </dd>
-        </div>
       </dl>
 
-      <p className="weekly-deficit">
-        {deficitWord === "at maintenance"
-          ? "≈ at maintenance"
-          : `≈ ${Math.abs(Math.round(deficit)).toLocaleString("en-GB")} kcal/day ${deficitWord}`}
-      </p>
-
       {readout.projection ? (
-        <GoalBlock readout={readout} />
+        <GoalBlock readout={readout} onSetGoal={onSetGoal} />
       ) : (
         <button type="button" className="weekly-goal-affordance" onClick={onSetGoal}>
           Set a goal weight
