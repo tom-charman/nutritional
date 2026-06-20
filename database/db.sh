@@ -74,6 +74,19 @@ case "${1:-help}" in
         fi
         ;;
 
+    migrate)
+        # Apply the idempotent schema to an EXISTING database — the non-destructive
+        # path for a schema-changing deploy (unlike `reset`, never drops data).
+        # init.sql is all IF NOT EXISTS / ON CONFLICT DO NOTHING / DROP+CREATE TRIGGER,
+        # and (re)grants the app role on all objects, so it is safe to re-run.
+        echo "Applying init.sql to $DB_NAME (idempotent)..."
+        sudo -u postgres psql -v ON_ERROR_STOP=1 -d $DB_NAME -f "$SCRIPT_DIR/init.sql"
+        echo "Verifying app-role access..."
+        sudo -u postgres psql -d $DB_NAME -c "SET ROLE nutritional_user; SELECT count(*) FROM user_settings;" >/dev/null \
+            && echo "✓ Migration applied; nutritional_user can read new tables" \
+            || { echo "✗ App role cannot read a new table — check grants"; exit 1; }
+        ;;
+
     logs)
         PG_VERSION=$(ls /etc/postgresql/ | head -n1)
         sudo tail -f /var/log/postgresql/postgresql-${PG_VERSION}-main.log
@@ -108,6 +121,7 @@ case "${1:-help}" in
         echo "  connect   - Open psql console"
         echo "  backup    - Create database backup"
         echo "  restore   - Restore from backup file"
+        echo "  migrate   - Apply init.sql to the existing DB (idempotent, non-destructive)"
         echo "  reset     - Drop and recreate database (DESTRUCTIVE!)"
         echo "  logs      - Tail PostgreSQL logs"
         echo "  size      - Show database size and statistics"

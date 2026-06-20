@@ -203,3 +203,25 @@ CREATE TRIGGER update_meal_ingredients_updated_at BEFORE UPDATE ON meal_ingredie
 DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
 CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Grant the application role access to EVERY object in the schema.
+--
+-- WHY THIS EXISTS: in production this file is applied as the `postgres`
+-- superuser (deploy/README + db.sh), so any table created here is owned by
+-- `postgres` and is INVISIBLE to the app role `nutritional_user` until granted
+-- — a missing grant on a newly-added table 500s the whole app. (Locally the
+-- docker entrypoint runs this AS nutritional_user, so ownership already covers
+-- it; this block is then a harmless no-op.) Run on every schema apply so new
+-- tables are covered automatically, and set DEFAULT PRIVILEGES so future tables
+-- created by the same role are granted without a re-apply.
+--
+-- Guarded on role existence so the PGlite test harness (no such role) skips it.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'nutritional_user') THEN
+        GRANT ALL ON ALL TABLES IN SCHEMA public TO nutritional_user;
+        GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO nutritional_user;
+        EXECUTE 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO nutritional_user';
+        EXECUTE 'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO nutritional_user';
+    END IF;
+END $$;

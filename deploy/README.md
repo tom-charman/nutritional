@@ -31,6 +31,36 @@ repoint the `current` symlink, `sudo systemctl restart nutritional-next`,
 smoke-check `http://127.0.0.1:8050/api/auth/providers`, and prune to the 3
 newest releases.
 
+> ⚠️ **`deploy.sh` is a code swap only — it never migrates the database.** If the
+> release adds or changes a table/column, you MUST apply the schema FIRST or the new
+> code 500s against the old DB. The smoke check (`/api/auth/providers`) and an
+> unauthenticated `curl /` (which 307-redirects to signin *before* the page's server
+> component runs) both pass even when the authed pages are broken — so they won't
+> catch a missing migration. See **Schema changes** below.
+
+## Schema changes (migrations)
+
+There is no ORM migration tool — `database/init.sql` is the single source of truth and
+is **idempotent** (`CREATE TABLE IF NOT EXISTS`, `INSERT … ON CONFLICT DO NOTHING`,
+`DROP TRIGGER IF EXISTS`+`CREATE TRIGGER`, and a guarded `GRANT … TO nutritional_user`).
+For any release that changes the schema, **before `deploy.sh`**:
+
+```bash
+# on the VM, from the cloned repo's database/ dir (git pull first so init.sql is current)
+./db.sh backup           # safety net (nightly backups also exist)
+./db.sh migrate          # applies init.sql idempotently + re-grants the app role, then
+                         # verifies nutritional_user can read the new tables
+```
+
+**Ownership/grants gotcha (the reason `migrate` re-grants):** the VM applies `init.sql`
+as the `postgres` superuser, so every table it creates is owned by `postgres` and is
+invisible to the app role `nutritional_user` until granted — a missing grant on a new
+table 500s the whole app with `permission denied for table …`. `init.sql` now re-grants
+`ALL` on all tables/sequences to `nutritional_user` (and sets DEFAULT PRIVILEGES) on
+every apply, so new tables are covered automatically. (Locally, docker runs `init.sql`
+as `nutritional_user`, so ownership already covers it and the grant is a no-op.) Verify
+after migrating: `sudo -u postgres psql -d nutritional_db -c "SET ROLE nutritional_user; SELECT 1 FROM <new_table>;"`.
+
 ## Layout on the VM
 
 ```
