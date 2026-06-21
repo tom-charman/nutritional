@@ -9,7 +9,7 @@
  * Desktop renders a 7-day grid; the same markup stacks into a vertical day-list
  * on mobile (a 7-column grid is unusable on a phone).
  */
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -85,19 +85,19 @@ export default function PlannerClient({
   const [isPending, startTransition] = useTransition();
 
   // --- toasts ---
+  // A ref counter (not state) keeps the id derivation OUT of a setState updater —
+  // an impure updater is double-invoked in dev/StrictMode and would mint two
+  // toasts with the same id (React "duplicate key" warning). Mirrors MealsClient.
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [toastSeq, setToastSeq] = useState(0);
-  function pushToast(text: string, ok: boolean) {
+  const toastId = useRef(0);
+  const pushToast = useCallback((text: string, ok: boolean) => {
     if (!text) return;
-    setToastSeq((n) => {
-      const id = n + 1;
-      setToasts((t) => [...t, { id, kind: ok ? "success" : "error", text }]);
-      return id;
-    });
-  }
-  function dismissToast(id: number) {
+    toastId.current += 1;
+    setToasts((t) => [...t, { id: toastId.current, kind: ok ? "success" : "error", text }]);
+  }, []);
+  const dismissToast = useCallback((id: number) => {
     setToasts((t) => t.filter((x) => x.id !== id));
-  }
+  }, []);
 
   function run(fn: () => Promise<{ ok: boolean; message: string }>) {
     startTransition(async () => {
