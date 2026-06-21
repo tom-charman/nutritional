@@ -81,6 +81,14 @@ test.describe("weekly planner", () => {
     await expect(
       page.getByTestId("planner-day-4").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item"),
     ).toHaveCount(0);
+
+    // Brand: the weekly macro readout carries the per-nutrient pigment system,
+    // and planned meals read as portions (not the ambiguous "× 1" that collides
+    // with the × delete icon).
+    await expect(page.locator(".planner-week-summary .planner-nutrient-dot").first()).toBeVisible();
+    await expect(
+      page.getByTestId("planner-day-0").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item").first(),
+    ).toContainText(/portion/);
     await shot(page, "planner", "01-painted-week");
   });
 

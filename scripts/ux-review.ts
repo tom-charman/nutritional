@@ -47,6 +47,15 @@ const REAL_DAY = "2026-06-05";
 const REFERENCED_FOOD = "Semi skimmed milk";
 /** A real saved meal — used for add-meal-by-portions and expand/edit. */
 const REAL_MEAL = "Chicken, Edamame, Rice";
+/** A data-rich week (real logged days exist here) for planner readouts + plan-vs-actual. */
+const PLANNER_WEEK = "2026-06-15";
+
+/** Monday (ISO) on or before an ISO date — mirrors lib/domain/plan/week.mondayOf. */
+function mondayOf(iso: string): string {
+  const day = new Date(`${iso}T00:00:00Z`).getUTCDay();
+  const back = (day + 6) % 7;
+  return new Date(Date.parse(`${iso}T00:00:00Z`) - back * 86_400_000).toISOString().slice(0, 10);
+}
 
 async function cleanup(): Promise<void> {
   const sql = postgres(DB_URL, { max: 1 });
@@ -60,6 +69,49 @@ async function cleanup(): Promise<void> {
     }
     await sql`DELETE FROM meals WHERE name LIKE 'ZZ Review%'`;
     await sql`DELETE FROM food_items WHERE name LIKE 'ZZ Review%'`;
+    // Planner: wipe seeded plan rows (review DB is a throwaway clone — no real plans).
+    await sql`DELETE FROM meal_plan_items`;
+    await sql`DELETE FROM meal_plans`;
+  } finally {
+    await sql.end();
+  }
+}
+
+/**
+ * Seed plan items so the planner captures show populated state: a real meal painted
+ * across the data-rich week (so plan-vs-actual has logged days to compare) and onto
+ * today (so the today-only apply affordance is capturable). Idempotent after cleanup().
+ */
+async function seedPlanner(): Promise<void> {
+  const sql = postgres(DB_URL, { max: 1 });
+  try {
+    const [owner] = await sql<{ id: string }[]>`
+      SELECT id FROM users
+      ORDER BY (SELECT count(*) FROM food_entries fe WHERE fe.user_id = users.id) DESC
+      LIMIT 1`;
+    const [meal] = await sql<{ id: string }[]>`
+      SELECT id FROM meals WHERE user_id = ${owner.id} ORDER BY name LIMIT 1`;
+    if (!owner || !meal) return;
+    const today = new Date().toISOString().slice(0, 10);
+    for (const week of [PLANNER_WEEK, mondayOf(today)]) {
+      const [plan] = await sql<{ id: string }[]>`
+        INSERT INTO meal_plans (user_id, week_start) VALUES (${owner.id}, ${week})
+        ON CONFLICT (user_id, week_start) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+        RETURNING id`;
+      const cells: [number, string][] =
+        week === PLANNER_WEEK
+          ? [[0, "lunch"], [1, "lunch"], [2, "lunch"], [3, "lunch"], [4, "lunch"], [0, "dinner"], [1, "dinner"]]
+          : // current week: cover today + neighbours so the apply affordance shows
+            [[0, "lunch"], [1, "lunch"], [2, "lunch"], [3, "lunch"], [4, "lunch"], [5, "lunch"], [6, "lunch"]];
+      for (const [offset, slot] of cells) {
+        const planDate = new Date(Date.parse(`${week}T00:00:00Z`) + offset * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        await sql`
+          INSERT INTO meal_plan_items (plan_id, user_id, plan_date, slot, position, meal_id, portions)
+          VALUES (${plan.id}, ${owner.id}, ${planDate}, ${slot}, 0, ${meal.id}, 1)`;
+      }
+    }
   } finally {
     await sql.end();
   }
@@ -423,6 +475,54 @@ async function run(vp: Viewport): Promise<void> {
     }
   });
 
+  // ============ WEEKLY PLANNER ============
+  await step("planner.week", async () => {
+    await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
+    await page.waitForSelector(".planner-week");
+    await settle();
+    await shot("planner", "week-grid", true);
+  });
+  await step("planner.summary", async () => {
+    await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
+    await page.waitForSelector(".planner-week-summary");
+    await settle();
+    await shot("planner", "week-summary");
+    await page.getByTestId("denom-toggle").click();
+    await settle();
+    await shot("planner", "week-summary-denom");
+  });
+  await step("planner.pva", async () => {
+    await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
+    await page.waitForSelector(".planner-pva");
+    await page.locator(".planner-pva").scrollIntoViewIfNeeded();
+    await settle();
+    await shot("planner", "plan-vs-actual", true);
+  });
+  await step("planner.paint", async () => {
+    await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
+    await page.getByTestId("paint-toggle").click();
+    await page.waitForSelector('[data-testid="paint-panel"]');
+    await page.getByTestId("paint-meal").click();
+    await page.locator(".combobox-option").first().click().catch(() => {});
+    await page.getByTestId("paint-day-0").click();
+    await page.getByTestId("paint-day-1").click();
+    await settle();
+    await shot("planner", "paint-panel");
+  });
+  await step("planner.addcell", async () => {
+    await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
+    await page.locator('[data-testid^="add-open-"]').first().click();
+    await settle();
+    await shot("planner", "add-cell-combobox");
+  });
+  await step("planner.current", async () => {
+    // Default (current) week — today's column carries the today-only apply affordance.
+    await page.goto(`${BASE}/planner`);
+    await page.waitForSelector(".planner-week");
+    await settle();
+    await shot("planner", "current-week", true);
+  });
+
   // ============ ACCOUNT MENU ============
   await step("account.menu", async () => {
     await page.locator(".account-menu-trigger").click();
@@ -474,6 +574,7 @@ async function main() {
   const viewports = only ? VIEWPORTS.filter((v) => v.tag === only) : VIEWPORTS;
   console.log(`Cleaning up prior artifacts…`);
   await cleanup();
+  await seedPlanner();
   for (const vp of viewports) {
     console.log(`\n=== Capturing ${vp.tag} (${vp.width}×${vp.height}) ===`);
     await run(vp);

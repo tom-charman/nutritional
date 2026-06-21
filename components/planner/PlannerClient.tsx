@@ -32,6 +32,7 @@ import {
   type WeekPlan,
 } from "@/lib/domain/types";
 import {
+  NUTRIENT_COLORS,
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
   NUTRIENT_UNITS,
@@ -452,7 +453,8 @@ function PlanItemRow({
   if (ref.kind === "meal") {
     name = ref.meal_name;
     value = ref.portions;
-    display = `× ${ref.portions}`;
+    // Match the diary's wording ("1 portion") — and avoid "× 1" colliding with the × delete icon.
+    display = `${ref.portions} portion${ref.portions === 1 ? "" : "s"}`;
   } else {
     name = ref.food_name;
     if (ref.weight_g !== null) {
@@ -510,7 +512,14 @@ function PlanVsActual({ comparison }: { comparison: WeekComparison }) {
         const unit = NUTRIENT_UNITS[k];
         return (
           <div key={k} className="planner-pva-row">
-            <span className="planner-pva-label">{NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}</span>
+            <span className="planner-pva-label">
+              <span
+                className="planner-nutrient-dot"
+                style={{ background: NUTRIENT_COLORS[k].ink }}
+                aria-hidden="true"
+              />
+              {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
+            </span>
             <span className="planner-pva-num">{d.planned === null ? "—" : `${round1(d.planned)}`}</span>
             <span className="planner-pva-num">{d.actual === null ? "—" : `${round1(d.actual)}`}</span>
             <span className="planner-pva-delta">
@@ -609,6 +618,11 @@ function WeekSummary({
           return (
             <div key={k} className="planner-nutrient-row">
               <span className="planner-nutrient-label">
+                <span
+                  className="planner-nutrient-dot"
+                  style={{ background: NUTRIENT_COLORS[k].ink }}
+                  aria-hidden="true"
+                />
                 {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
               </span>
               <span className="planner-nutrient-val">

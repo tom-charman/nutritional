@@ -32,7 +32,10 @@ question — *"what would real users with different nutritional goals want next?
 > today-only/idempotent/non-destructive (entries gain `source`/`plan_item_id` provenance). It also
 > partially addresses **#13** (the planner spans future weeks; the *log* stays today-capped by
 > design). **#11 batch-cook** and **#7 cyclical/per-weekday targets** are explicitly still future —
-> the planner's slots + per-day verdicts lay the groundwork but neither is built.
+> the planner's slots + per-day verdicts lay the groundwork but neither is built. **Deferred polish
+> (from the 2026-06-21 sweep):** the planner's per-day verdict should *stamp in like a hanko* per the
+> brand motion grammar (it currently just appears) — a low-priority motion nicety, not a correctness
+> issue.
 
 ## Method
 

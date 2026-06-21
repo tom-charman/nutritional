@@ -3177,6 +3177,15 @@ button.ingredient-name-swap:hover {
     font-size: var(--font-size-sm, 13px);
     color: var(--text-body);
 }
+/* Nutrient identity dot — the app's one-pigment-per-nutrient system (also used by
+   NutrientPreview's ink dots); keeps "blue = protein" learnable across surfaces. */
+.planner-nutrient-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: var(--space-sm);
+}
 .planner-nutrient-val {
     font-family: var(--font-mono);
     font-size: var(--font-size-sm, 13px);
