@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/lib/auth";
+import WaitlistButton from "@/components/WaitlistButton";
 
 export default async function DeniedPage() {
   const session = await auth();
@@ -15,16 +16,19 @@ export default async function DeniedPage() {
               : "You are not signed in."}
           </p>
           {email ? (
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-            >
-              <button type="submit" className="btn-secondary">
-                Sign out
-              </button>
-            </form>
+            <div className="denied-actions">
+              <WaitlistButton />
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/signin" });
+                }}
+              >
+                <button type="submit" className="btn-secondary">
+                  Sign out
+                </button>
+              </form>
+            </div>
           ) : (
             <a href="/signin" className="btn-primary btn">
               Sign in
