@@ -18,6 +18,14 @@ export interface FoodEntry {
   weight_g: number | null;
   quantity: number | null;
   nutrients: Nutrients;
+  /**
+   * Provenance (Weekly Planner). undefined/'manual' = hand-logged; 'plan' = this
+   * row was materialised by applying a plan item. MUST round-trip through
+   * saveDailyEntry's delete+reinsert or a later edit silently wipes it.
+   */
+  source?: "manual" | "plan";
+  /** The plan item this row was applied from (idempotency + plan-vs-actual link). */
+  plan_item_id?: string | null;
 }
 
 /** Mirrors models.py MealEntry — ingredients pre-scaled for portions. */
@@ -88,6 +96,43 @@ export interface UserSettings {
   start_date: string | null;
   /** User dismissed the Weekly Trend panel (e.g. while maintaining). */
   hide_weekly_panel: boolean;
+}
+
+/** Meal slots a planned day is divided into. */
+export type PlanSlot = "breakfast" | "lunch" | "dinner" | "snack";
+export const PLAN_SLOTS: PlanSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+
+/**
+ * One planned item in a (day, slot) cell. References EITHER a meal template OR a
+ * single food. `nutrients` is computed server-side (never persisted); `applied`
+ * is true when a logged food_entries row already references this item.
+ */
+export interface PlanItem {
+  id: string;
+  /** ISO date (YYYY-MM-DD) */
+  plan_date: string;
+  slot: PlanSlot;
+  position: number;
+  ref:
+    | { kind: "meal"; meal_id: string; meal_name: string; portions: number }
+    | {
+        kind: "food";
+        food_id: string;
+        food_name: string;
+        weight_g: number | null;
+        quantity: number | null;
+      };
+  /** Planned nutrients for this item (meal = scaled ingredients summed). */
+  nutrients: Nutrients;
+  /** A logged food_entries row with this plan_item_id exists on plan_date. */
+  applied: boolean;
+}
+
+/** A week's plan: all items keyed by the Monday it starts. */
+export interface WeekPlan {
+  /** ISO date (YYYY-MM-DD) of the Monday this week starts. */
+  week_start: string;
+  items: PlanItem[];
 }
 
 /** One daily_summaries row, coerced. */

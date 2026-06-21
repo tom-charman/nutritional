@@ -19,21 +19,30 @@ import {
   count,
   desc,
   eq,
+  gte,
   ilike,
   isNull,
   isNotNull,
   lt,
+  lte,
   max,
   notInArray,
   or,
   type SQL,
 } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
-import { NUTRIENT_KEYS, type Nutrients, type TargetMode, type UnitType } from "@/lib/constants";
+import {
+  NUTRIENT_KEYS,
+  ZERO_NUTRIENTS,
+  type Nutrients,
+  type TargetMode,
+  type UnitType,
+} from "@/lib/constants";
 import { num, num0, dec, decOrNull } from "@/lib/db/coerce";
 import * as schema from "@/lib/db/schema";
-import { dailyTotals } from "@/lib/domain/nutrients";
+import { calculateNutrients, dailyTotals, sumNutrients } from "@/lib/domain/nutrients";
 import { getDefaultTargets } from "@/lib/domain/targets";
+import { weekDates } from "@/lib/domain/plan/week";
 import type {
   DailyData,
   DailySummary,
@@ -43,13 +52,25 @@ import type {
   FoodItem,
   Meal,
   MealEntry,
+  PlanItem,
+  PlanSlot,
   UserSettings,
+  WeekPlan,
 } from "@/lib/domain/types";
 
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-const { foodItems, foodEntries, dailySummaries, dailyTargets, meals, mealIngredients, userSettings } =
-  schema;
+const {
+  foodItems,
+  foodEntries,
+  dailySummaries,
+  dailyTargets,
+  meals,
+  mealIngredients,
+  userSettings,
+  mealPlans,
+  mealPlanItems,
+} = schema;
 
 // ============= Row mappers (decimal-string → number in one place) =============
 
@@ -94,6 +115,9 @@ function rowToFoodEntry(row: FoodEntryRow, foodName: string): FoodEntry {
       salt_g: num0(row.saltG),
       calcium_mg: num0(row.calciumMg),
     },
+    // Provenance — preserved across saveDailyEntry's delete+reinsert.
+    source: (row.source as "manual" | "plan" | null) ?? undefined,
+    plan_item_id: row.planItemId ?? null,
   };
 }
 
@@ -500,6 +524,8 @@ export async function saveDailyEntry(db: DB, userId: string, daily: DailyData): 
           portions: null,
           weightG: decOrNull(e.entry.weight_g),
           quantity: decOrNull(e.entry.quantity),
+          source: e.entry.source ?? null,
+          planItemId: e.entry.plan_item_id ?? null,
           ...nutrientCols(e.entry.nutrients),
         });
       } else {
@@ -515,6 +541,8 @@ export async function saveDailyEntry(db: DB, userId: string, daily: DailyData): 
             portions: dec(e.entry.portions),
             weightG: decOrNull(ing.weight_g),
             quantity: decOrNull(ing.quantity),
+            source: ing.source ?? null,
+            planItemId: ing.plan_item_id ?? null,
             ...nutrientCols(ing.nutrients),
           });
         }
@@ -765,6 +793,303 @@ export async function saveUserSettings(
     .insert(userSettings)
     .values({ userId, ...set })
     .onConflictDoUpdate({ target: userSettings.userId, set });
+}
+
+// ============= Weekly Planner =============
+
+/** Scale a nutrient bundle by a factor (e.g. meal portions). */
+function scaleNutrients(n: Nutrients, factor: number): Nutrients {
+  const out = { ...ZERO_NUTRIENTS };
+  for (const key of NUTRIENT_KEYS) out[key] = n[key] * factor;
+  return out;
+}
+
+/**
+ * Load a week's plan (Monday `weekStart` .. +6). Computes each item's planned
+ * nutrients (meal = template ingredients summed × portions; food = scaled by
+ * amount) and an `applied` flag — true when a logged food_entries row already
+ * references the item (the apply idempotency key + plan-vs-actual link).
+ */
+export async function loadWeekPlan(
+  db: DB,
+  userId: string,
+  weekStart: string,
+): Promise<WeekPlan> {
+  const dates = weekDates(weekStart);
+  const weekEnd = dates[dates.length - 1];
+
+  const rows = await db
+    .select()
+    .from(mealPlanItems)
+    .where(
+      and(
+        eq(mealPlanItems.userId, userId),
+        gte(mealPlanItems.planDate, weekStart),
+        lte(mealPlanItems.planDate, weekEnd),
+      ),
+    )
+    .orderBy(asc(mealPlanItems.planDate), asc(mealPlanItems.position), asc(mealPlanItems.createdAt));
+
+  // Which items are already applied? One grouped read over the week's log.
+  const appliedRows = await db
+    .selectDistinct({ planItemId: foodEntries.planItemId })
+    .from(foodEntries)
+    .where(
+      and(
+        eq(foodEntries.userId, userId),
+        gte(foodEntries.entryDate, weekStart),
+        lte(foodEntries.entryDate, weekEnd),
+        isNotNull(foodEntries.planItemId),
+      ),
+    );
+  const applied = new Set(appliedRows.map((r) => r.planItemId).filter((id): id is string => !!id));
+
+  // Prefetch meal templates once; fetch foods lazily with a cache.
+  const mealList = await loadMeals(db, userId);
+  const mealMap = new Map(mealList.map((m) => [m.id, m] as const));
+  const foodCache = new Map<string, FoodItem | null>();
+
+  const items: PlanItem[] = [];
+  for (const row of rows) {
+    let ref: PlanItem["ref"];
+    let nutrients: Nutrients;
+
+    if (row.mealId) {
+      const meal = mealMap.get(row.mealId);
+      if (!meal) continue; // template gone (FK cascade normally prevents this)
+      const portions = num(row.portions) ?? 1;
+      const base = sumNutrients(meal.ingredients.map((i) => i.nutrients));
+      nutrients = scaleNutrients(base, portions);
+      ref = { kind: "meal", meal_id: meal.id, meal_name: meal.name, portions };
+    } else if (row.foodId) {
+      let food = foodCache.get(row.foodId);
+      if (food === undefined) {
+        food = await getFoodItem(db, userId, row.foodId);
+        foodCache.set(row.foodId, food);
+      }
+      if (!food) continue; // food removed — skip rather than invent zeros
+      const weightG = num(row.weightG);
+      const quantity = num(row.quantity);
+      nutrients = calculateNutrients(food, { weight_g: weightG, quantity });
+      ref = {
+        kind: "food",
+        food_id: food.id,
+        food_name: food.name,
+        weight_g: weightG,
+        quantity,
+      };
+    } else {
+      continue; // malformed row (CHECK should prevent this)
+    }
+
+    items.push({
+      id: row.id,
+      plan_date: row.planDate,
+      slot: row.slot as PlanSlot,
+      position: row.position,
+      ref,
+      nutrients,
+      applied: applied.has(row.id),
+    });
+  }
+
+  return { week_start: weekStart, items };
+}
+
+/**
+ * Get (or create) the meal_plans container row for (user, week). Mirrors the
+ * getOrCreateUserId concurrency pattern: insert-or-nothing, then select.
+ */
+export async function getOrCreatePlan(
+  db: DB,
+  userId: string,
+  weekStart: string,
+): Promise<string> {
+  await db
+    .insert(mealPlans)
+    .values({ userId, weekStart })
+    .onConflictDoNothing({ target: [mealPlans.userId, mealPlans.weekStart] });
+  const rows = await db
+    .select({ id: mealPlans.id })
+    .from(mealPlans)
+    .where(and(eq(mealPlans.userId, userId), eq(mealPlans.weekStart, weekStart)))
+    .limit(1);
+  return rows[0].id;
+}
+
+/** A planned item to insert/update. Exactly one of mealId/foodId must be set. */
+export interface PlanItemInput {
+  /** Set to update an existing item in place; omit to insert. */
+  id?: string;
+  weekStart: string;
+  planDate: string;
+  slot: PlanSlot;
+  position?: number;
+  mealId?: string | null;
+  portions?: number | null;
+  foodId?: string | null;
+  weightG?: number | null;
+  quantity?: number | null;
+}
+
+function validatePlanRef(input: PlanItemInput): void {
+  const hasMeal = !!input.mealId;
+  const hasFood = !!input.foodId;
+  if (hasMeal === hasFood) {
+    throw new Error("A plan item must reference exactly one of a meal or a food");
+  }
+  if (hasMeal && !((input.portions ?? 0) > 0)) {
+    throw new Error("Meal portions must be greater than 0");
+  }
+  if (hasFood) {
+    const amount = input.weightG ?? input.quantity ?? 0;
+    if (!(amount > 0)) throw new Error("Food amount must be greater than 0");
+  }
+}
+
+/** Insert or update a single plan item. Returns its id. */
+export async function savePlanItem(
+  db: DB,
+  userId: string,
+  input: PlanItemInput,
+): Promise<string> {
+  validatePlanRef(input);
+  const planId = await getOrCreatePlan(db, userId, input.weekStart);
+  const values = {
+    planId,
+    userId,
+    planDate: input.planDate,
+    slot: input.slot,
+    position: input.position ?? 0,
+    mealId: input.mealId ?? null,
+    foodId: input.foodId ?? null,
+    portions: decOrNull(input.portions ?? null),
+    weightG: decOrNull(input.weightG ?? null),
+    quantity: decOrNull(input.quantity ?? null),
+  };
+
+  if (input.id) {
+    const updated = await db
+      .update(mealPlanItems)
+      .set(values)
+      .where(and(eq(mealPlanItems.id, input.id), eq(mealPlanItems.userId, userId)))
+      .returning({ id: mealPlanItems.id });
+    if (updated.length) return updated[0].id;
+    // Fall through to insert if the id wasn't this user's row.
+  }
+  const inserted = await db.insert(mealPlanItems).values(values).returning({ id: mealPlanItems.id });
+  return inserted[0].id;
+}
+
+/**
+ * Edit a plan item's amount in place (user-scoped): meal refs update `portions`,
+ * food refs update whichever of weight_g/quantity the item already uses.
+ */
+export async function updatePlanItemAmount(
+  db: DB,
+  userId: string,
+  itemId: string,
+  amount: number,
+): Promise<boolean> {
+  if (!(amount > 0)) throw new Error("Amount must be greater than 0");
+  const rows = await db
+    .select()
+    .from(mealPlanItems)
+    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.userId, userId)))
+    .limit(1);
+  if (!rows.length) return false;
+  const row = rows[0];
+  const set = row.mealId
+    ? { portions: dec(amount) }
+    : row.weightG !== null
+      ? { weightG: dec(amount) }
+      : { quantity: dec(amount) };
+  await db
+    .update(mealPlanItems)
+    .set(set)
+    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.userId, userId)));
+  return true;
+}
+
+/** Delete a plan item (user-scoped). Applied food_entries survive (FK SET NULL). */
+export async function deletePlanItem(db: DB, userId: string, itemId: string): Promise<boolean> {
+  const deleted = await db
+    .delete(mealPlanItems)
+    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.userId, userId)))
+    .returning({ id: mealPlanItems.id });
+  return deleted.length > 0;
+}
+
+/** Copy every plan item from `fromDate` to `toDate` (same week). Returns count. */
+export async function copyPlanDay(
+  db: DB,
+  userId: string,
+  weekStart: string,
+  fromDate: string,
+  toDate: string,
+): Promise<number> {
+  const planId = await getOrCreatePlan(db, userId, weekStart);
+  const rows = await db
+    .select()
+    .from(mealPlanItems)
+    .where(and(eq(mealPlanItems.userId, userId), eq(mealPlanItems.planDate, fromDate)))
+    .orderBy(asc(mealPlanItems.position));
+  if (rows.length === 0) return 0;
+  await db.insert(mealPlanItems).values(
+    rows.map((r) => ({
+      planId,
+      userId,
+      planDate: toDate,
+      slot: r.slot,
+      position: r.position,
+      mealId: r.mealId,
+      foodId: r.foodId,
+      portions: r.portions,
+      weightG: r.weightG,
+      quantity: r.quantity,
+    })),
+  );
+  return rows.length;
+}
+
+/** Stamp one meal into `slot` on each of `dates`. Returns count inserted. */
+export async function paintMealAcrossDays(
+  db: DB,
+  userId: string,
+  weekStart: string,
+  mealId: string,
+  portions: number,
+  slot: PlanSlot,
+  dates: string[],
+): Promise<number> {
+  if (!(portions > 0)) throw new Error("Meal portions must be greater than 0");
+  if (dates.length === 0) return 0;
+  const planId = await getOrCreatePlan(db, userId, weekStart);
+  await db.insert(mealPlanItems).values(
+    dates.map((d) => ({
+      planId,
+      userId,
+      planDate: d,
+      slot,
+      position: 0,
+      mealId,
+      portions: dec(portions),
+    })),
+  );
+  return dates.length;
+}
+
+/** Remove all plan items for a day (user-scoped). Returns count. */
+export async function clearPlanDay(
+  db: DB,
+  userId: string,
+  planDate: string,
+): Promise<number> {
+  const deleted = await db
+    .delete(mealPlanItems)
+    .where(and(eq(mealPlanItems.userId, userId), eq(mealPlanItems.planDate, planDate)))
+    .returning({ id: mealPlanItems.id });
+  return deleted.length;
 }
 
 // keep NUTRIENT_KEYS referenced for editors that tree-shake unused imports

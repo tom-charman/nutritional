@@ -2825,3 +2825,250 @@ button.ingredient-name-swap:hover {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ============================================================
+   Weekly Planner
+   A ruled worksheet of intent: 7 day-columns on desktop that
+   stack into a vertical day-list on mobile. Pencil-draft until
+   applied; applied items are inked in bamboo. ============================================================ */
+.planner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+}
+
+.planner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-lg);
+}
+.planner-weeknav {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+}
+.planner-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-xl, 24px);
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+/* Paint panel — load a meal, choose a slot, stamp it across selected days. */
+.planner-paint {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+.planner-paint-row {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.planner-paint-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+}
+.planner-amount-input,
+.planner-paint-field select {
+    height: 36px;
+    width: 110px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    padding: 0 var(--space-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05);
+}
+.planner-paint-days {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+/* Day chips behave like detented switches: pressed = inked indigo. */
+.planner-day-chip {
+    height: 32px;
+    padding: 0 var(--space-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-press),
+        border-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-day-chip:hover { border-color: var(--border-hover); }
+.planner-day-chip:active { transform: translateY(1px); }
+.planner-day-chip.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-press);
+}
+
+.planner-empty-aside {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--text-muted);
+    margin: var(--space-xl) 0;
+}
+
+/* The week: 7 columns on desktop, stacks on mobile. */
+.planner-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+.planner-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+.planner-day.today {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md), inset 2px 0 0 var(--primary);
+}
+.planner-day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-xs);
+}
+.planner-day-name {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-day-num {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+.planner-today-badge {
+    margin-left: var(--space-xs);
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.planner-day-kcal {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-muted);
+}
+
+.planner-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.planner-slot-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.planner-slot-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-disabled);
+}
+.planner-slot-apply {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+}
+.planner-slot-apply:hover { text-decoration: underline; }
+
+/* A planned item: debossed ruled line; applied = bamboo ink. */
+.planner-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+.planner-item.applied {
+    background: var(--success-bg);
+}
+.planner-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.planner-item.applied .planner-item-name { color: var(--success-text); }
+.planner-item-check {
+    color: var(--success);
+    margin-right: 2px;
+    font-weight: 700;
+}
+.planner-item-amount {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-muted);
+}
+
+.planner-add {
+    align-self: flex-start;
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-disabled);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+}
+.planner-add:hover { color: var(--primary); }
+
+.planner-day-foot {
+    margin-top: auto;
+    padding-top: var(--space-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+/* Mobile: a 7-column grid is unusable on a phone — stack into a day-list. */
+@media (max-width: 768px) {
+    .planner-week {
+        grid-template-columns: 1fr;
+    }
+    .planner-day.today {
+        order: -1; /* pin today to the top of the list */
+    }
+}

@@ -22,6 +22,10 @@ export async function resetE2EData(): Promise<void> {
     await sql`DELETE FROM daily_summaries WHERE summary_date = ANY(${E2E_DATES}::date[])`;
     await sql`DELETE FROM daily_targets WHERE target_date = ANY(${E2E_DATES}::date[])`;
     await sql`DELETE FROM food_entries WHERE food_id IN (SELECT id FROM food_items WHERE name LIKE 'E2E %')`;
+    // Planner residue: plan items referencing E2E foods/meals (meal_id cascades
+    // when the meal is dropped below, but food_id has no cascade — clear first).
+    await sql`DELETE FROM meal_plan_items WHERE food_id IN (SELECT id FROM food_items WHERE name LIKE 'E2E %')`;
+    await sql`DELETE FROM meal_plan_items WHERE meal_id IN (SELECT id FROM meals WHERE name LIKE 'E2E %')`;
     await sql`DELETE FROM meal_ingredients WHERE meal_id IN (SELECT id FROM meals WHERE name LIKE 'E2E %')`;
     await sql`DELETE FROM meal_ingredients WHERE food_id IN (SELECT id FROM food_items WHERE name LIKE 'E2E %')`;
     await sql`DELETE FROM food_entries WHERE meal_id IN (SELECT id FROM meals WHERE name LIKE 'E2E %')`;
