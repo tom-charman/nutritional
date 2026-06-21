@@ -22,7 +22,24 @@ import {
   paintMealAcrossDaysAction,
   removePlanItemAction,
 } from "@/app/actions/planner";
-import { PLAN_SLOTS, type FoodItem, type Meal, type PlanItem, type PlanSlot, type WeekPlan } from "@/lib/domain/types";
+import {
+  PLAN_SLOTS,
+  type DailyTargets,
+  type FoodItem,
+  type Meal,
+  type PlanItem,
+  type PlanSlot,
+  type WeekPlan,
+} from "@/lib/domain/types";
+import {
+  NUTRIENT_KEYS,
+  NUTRIENT_LABELS,
+  NUTRIENT_UNITS,
+  type NutrientKey,
+} from "@/lib/constants";
+import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
+import type { WeeklyPlanAggregate } from "@/lib/domain/plan/aggregate";
+import type { DayVerdict } from "@/lib/domain/plan/verdict";
 import { addDays, weekDates } from "@/lib/domain/plan/week";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
@@ -47,12 +64,18 @@ export default function PlannerClient({
   initialWeek,
   meals,
   foods,
+  aggregate,
+  verdicts,
+  targets,
 }: {
   weekStart: string;
   today: string;
   initialWeek: WeekPlan;
   meals: Meal[];
   foods: FoodItem[];
+  aggregate: WeeklyPlanAggregate;
+  verdicts: Record<string, DayVerdict>;
+  targets: DailyTargets;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -94,13 +117,10 @@ export default function PlannerClient({
     return m;
   }, [initialWeek]);
 
-  const dayKcal = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const it of initialWeek.items) {
-      m.set(it.plan_date, (m.get(it.plan_date) ?? 0) + it.nutrients.energy_kcal);
-    }
-    return m;
-  }, [initialWeek]);
+  // ÷7 (calendar) vs ÷days-planned — surfaced, never silently chosen.
+  const [denom, setDenom] = useState<"planned" | "calendar">("planned");
+  const avg =
+    denom === "planned" ? aggregate.avgPerPlannedDay : aggregate.avgPerCalendarDay;
 
   // Combobox options: meals first, then foods. Keys are prefixed so we know which.
   const addOptions = useMemo<ComboOption[]>(
@@ -256,16 +276,27 @@ export default function PlannerClient({
         </div>
       )}
 
-      {empty && (
+      {empty ? (
         <p className="planner-empty-aside">
           An empty week. Add a meal to a day, or paint one across several, to begin.
         </p>
+      ) : (
+        <WeekSummary
+          aggregate={aggregate}
+          targets={targets}
+          denom={denom}
+          onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
+          avg={avg}
+          dates={dates}
+        />
       )}
 
       <div className="planner-week">
         {dates.map((date, i) => {
           const isToday = date === today;
-          const kcal = dayKcal.get(date) ?? null;
+          const dayTotals = aggregate.byDay[date];
+          const kcal = dayTotals?.energy_kcal ?? null;
+          const verdict = verdicts[date];
           return (
             <section
               key={date}
@@ -279,10 +310,12 @@ export default function PlannerClient({
                   <span className="planner-day-num">{dayNumber(date)}</span>
                   {isToday && <span className="planner-today-badge">Today</span>}
                 </div>
-                <span className="planner-day-kcal">
-                  {kcal === null ? "—" : `${Math.round(kcal)} kcal`}
-                </span>
+                <VerdictHanko verdict={verdict} kcal={kcal} />
               </header>
+
+              {verdict.reason && (
+                <p className={`planner-day-reason ${verdict.state}`}>{verdict.reason}</p>
+              )}
 
               {PLAN_SLOTS.map((slot) => {
                 const items = byCell.get(`${date}|${slot}`) ?? [];
@@ -426,5 +459,110 @@ function PlanItemRow({
         ×
       </button>
     </div>
+  );
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Per-day stamp: ✓ bamboo (met), ⚠ rust (over/under), or a quiet "— plan" (unknown). */
+function VerdictHanko({ verdict, kcal }: { verdict: DayVerdict; kcal: number | null }) {
+  if (verdict.state === "unknown") {
+    return <span className="planner-verdict unknown">— plan</span>;
+  }
+  const met = verdict.state === "met";
+  return (
+    <span
+      className={`planner-verdict ${met ? "met" : "warn"}`}
+      title={verdict.reason ?? undefined}
+    >
+      <span className="planner-verdict-mark">{met ? "✓" : "⚠"}</span>
+      <span className="planner-verdict-kcal">{kcal === null ? "—" : `${Math.round(kcal)} kcal`}</span>
+    </span>
+  );
+}
+
+/** Weekly readout: avg/day (toggle ÷7 vs ÷planned), per-day kcal distribution, per-nutrient avg vs target. */
+function WeekSummary({
+  aggregate,
+  targets,
+  denom,
+  onToggleDenom,
+  avg,
+  dates,
+}: {
+  aggregate: WeeklyPlanAggregate;
+  targets: DailyTargets;
+  denom: "planned" | "calendar";
+  onToggleDenom: () => void;
+  avg: Record<NutrientKey, number> | null;
+  dates: string[];
+}) {
+  const totalKcal = Math.round(aggregate.total.energy_kcal);
+  const maxDayKcal = Math.max(1, ...dates.map((d) => aggregate.byDay[d]?.energy_kcal ?? 0));
+  return (
+    <section className="planner-week-summary card">
+      <div className="planner-summary-top">
+        <span className="section-label">This week</span>
+        <button
+          type="button"
+          className="planner-denom-toggle"
+          onClick={onToggleDenom}
+          data-testid="denom-toggle"
+          title="Switch the average's divisor"
+        >
+          {denom === "planned" ? "÷ days planned" : "÷ 7 days"}
+        </button>
+      </div>
+      <div className="planner-summary-grid">
+        <div className="planner-summary-headline">
+          <span className="planner-summary-avg">{avg ? Math.round(avg.energy_kcal) : "—"}</span>
+          <span className="planner-summary-avg-label">kcal avg / day</span>
+          <span className="planner-summary-sub">
+            {aggregate.daysPlanned} of 7 days planned · {totalKcal} kcal total
+          </span>
+        </div>
+        <div className="planner-distribution" aria-hidden="true">
+          {dates.map((d) => {
+            const k = aggregate.byDay[d]?.energy_kcal ?? null;
+            const h = k === null ? 0 : Math.max(3, Math.round((k / maxDayKcal) * 100));
+            return (
+              <span
+                key={d}
+                className={`planner-dist-bar${k === null ? " empty" : ""}`}
+                style={{ height: `${h}%` }}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div className="planner-nutrient-rows">
+        {NUTRIENT_KEYS.filter((k) => k !== "energy_kcal").map((k) => {
+          const v = avg ? avg[k] : null;
+          const mode = getNutrientMode(targets, k);
+          const ind = v === null ? null : macroIndicator(v, targets.values[k], mode);
+          const mark = ind === "met" ? "✓" : ind === "warning" || ind === "exceeded" ? "⚠" : "";
+          const markCls = ind === "met" ? "met" : ind ? "warn" : "";
+          return (
+            <div key={k} className="planner-nutrient-row">
+              <span className="planner-nutrient-label">
+                {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
+              </span>
+              <span className="planner-nutrient-val">
+                {v === null ? "—" : `${round1(v)} ${NUTRIENT_UNITS[k]}`}
+              </span>
+              <span className="planner-nutrient-target">
+                {mode === "limit" ? "≤ " : "/ "}
+                {round1(targets.values[k])}
+              </span>
+              <span className={`planner-nutrient-mark ${markCls}`} aria-hidden="true">
+                {mark}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

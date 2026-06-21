@@ -1,8 +1,15 @@
 import PlannerClient from "@/components/planner/PlannerClient";
 import { db } from "@/lib/db/client";
-import { loadFoodDatabase, loadMeals, loadWeekPlan } from "@/lib/data/storage";
+import {
+  getOrCreateDailyTargets,
+  loadFoodDatabase,
+  loadMeals,
+  loadWeekPlan,
+} from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
-import { mondayOf } from "@/lib/domain/plan/week";
+import { aggregateWeek } from "@/lib/domain/plan/aggregate";
+import { planDayVerdict, type DayVerdict } from "@/lib/domain/plan/verdict";
+import { mondayOf, weekDates } from "@/lib/domain/plan/week";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +31,20 @@ export default async function PlannerPage({
   const weekStart = mondayOf(requested);
 
   const userId = await requireUserId();
-  const [week, meals, foods] = await Promise.all([
+  const [week, meals, foods, targets] = await Promise.all([
     loadWeekPlan(db, userId, weekStart),
     loadMeals(db, userId),
     loadFoodDatabase(db, userId),
+    // PR2: one effective targets set (today's) drives per-day verdicts. Per-weekday
+    // carb-cycling targets are a later phase (#7).
+    getOrCreateDailyTargets(db, userId, today),
   ]);
+
+  const aggregate = aggregateWeek(week);
+  const verdicts: Record<string, DayVerdict> = {};
+  for (const d of weekDates(weekStart)) {
+    verdicts[d] = planDayVerdict(aggregate.byDay[d], targets);
+  }
 
   return (
     <PlannerClient
@@ -37,6 +53,9 @@ export default async function PlannerPage({
       initialWeek={week}
       meals={meals}
       foods={foods}
+      aggregate={aggregate}
+      verdicts={verdicts}
+      targets={targets}
     />
   );
 }
