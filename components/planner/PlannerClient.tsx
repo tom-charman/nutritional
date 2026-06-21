@@ -40,6 +40,7 @@ import {
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
 import type { WeeklyPlanAggregate } from "@/lib/domain/plan/aggregate";
 import type { DayVerdict } from "@/lib/domain/plan/verdict";
+import type { WeekComparison } from "@/lib/domain/plan/compare";
 import { addDays, weekDates } from "@/lib/domain/plan/week";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
@@ -67,6 +68,7 @@ export default function PlannerClient({
   aggregate,
   verdicts,
   targets,
+  comparison,
 }: {
   weekStart: string;
   today: string;
@@ -76,6 +78,7 @@ export default function PlannerClient({
   aggregate: WeeklyPlanAggregate;
   verdicts: Record<string, DayVerdict>;
   targets: DailyTargets;
+  comparison: WeekComparison;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -317,6 +320,23 @@ export default function PlannerClient({
                 <p className={`planner-day-reason ${verdict.state}`}>{verdict.reason}</p>
               )}
 
+              {(() => {
+                const c = comparison.byDay[i]?.byNutrient.energy_kcal;
+                if (!c || c.actual === null) return null;
+                return (
+                  <p className="planner-day-actual">
+                    Logged <span className="mono">{Math.round(c.actual)}</span> kcal
+                    {c.delta !== null && (
+                      <span className="planner-delta">
+                        {" "}
+                        ({c.delta >= 0 ? "+" : "−"}
+                        {Math.abs(Math.round(c.delta))} vs plan)
+                      </span>
+                    )}
+                  </p>
+                );
+              })()}
+
               {PLAN_SLOTS.map((slot) => {
                 const items = byCell.get(`${date}|${slot}`) ?? [];
                 const hasUnapplied = isToday && items.some((it) => !it.applied);
@@ -409,6 +429,8 @@ export default function PlannerClient({
         })}
       </div>
 
+      {comparison.anyLogged && <PlanVsActual comparison={comparison} />}
+
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
   );
@@ -464,6 +486,46 @@ function PlanItemRow({
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+/** Format a signed delta with an explicit +/− (neutral fact — never red/green). */
+function signed(n: number, unit: string): string {
+  const v = unit === "g" ? round1(Math.abs(n)) : Math.round(Math.abs(n));
+  return `${n >= 0 ? "+" : "−"}${v} ${unit}`;
+}
+
+/** Week-level plan vs actual: planned (intent) vs logged (reality) per nutrient. */
+function PlanVsActual({ comparison }: { comparison: WeekComparison }) {
+  return (
+    <section className="planner-pva card">
+      <span className="section-label">Plan vs actual · this week</span>
+      <div className="planner-pva-head">
+        <span />
+        <span>Planned</span>
+        <span>Logged</span>
+        <span>Δ</span>
+      </div>
+      {NUTRIENT_KEYS.map((k) => {
+        const d = comparison.week[k];
+        const unit = NUTRIENT_UNITS[k];
+        return (
+          <div key={k} className="planner-pva-row">
+            <span className="planner-pva-label">{NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}</span>
+            <span className="planner-pva-num">{d.planned === null ? "—" : `${round1(d.planned)}`}</span>
+            <span className="planner-pva-num">{d.actual === null ? "—" : `${round1(d.actual)}`}</span>
+            <span className="planner-pva-delta">
+              {d.delta === null ? "—" : signed(d.delta, unit)}
+            </span>
+          </div>
+        );
+      })}
+      <p className="planner-pva-note">
+        Compared over the {comparison.comparableDays} day
+        {comparison.comparableDays === 1 ? "" : "s"} you both planned and logged. Per-day drift is on
+        each day above; “—” means one side is missing — never counted as zero.
+      </p>
+    </section>
+  );
 }
 
 /** Per-day stamp: ✓ bamboo (met), ⚠ rust (over/under), or a quiet "— plan" (unknown). */

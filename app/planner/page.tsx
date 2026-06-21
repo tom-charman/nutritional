@@ -2,12 +2,14 @@ import PlannerClient from "@/components/planner/PlannerClient";
 import { db } from "@/lib/db/client";
 import {
   getOrCreateDailyTargets,
+  loadAllSummaries,
   loadFoodDatabase,
   loadMeals,
   loadWeekPlan,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
 import { aggregateWeek } from "@/lib/domain/plan/aggregate";
+import { comparePlanVsActual } from "@/lib/domain/plan/compare";
 import { planDayVerdict, type DayVerdict } from "@/lib/domain/plan/verdict";
 import { mondayOf, weekDates } from "@/lib/domain/plan/week";
 
@@ -31,20 +33,26 @@ export default async function PlannerPage({
   const weekStart = mondayOf(requested);
 
   const userId = await requireUserId();
-  const [week, meals, foods, targets] = await Promise.all([
+  const [week, meals, foods, targets, allSummaries] = await Promise.all([
     loadWeekPlan(db, userId, weekStart),
     loadMeals(db, userId),
     loadFoodDatabase(db, userId),
     // PR2: one effective targets set (today's) drives per-day verdicts. Per-weekday
     // carb-cycling targets are a later phase (#7).
     getOrCreateDailyTargets(db, userId, today),
+    loadAllSummaries(db, userId),
   ]);
 
+  const dates = weekDates(weekStart);
   const aggregate = aggregateWeek(week);
   const verdicts: Record<string, DayVerdict> = {};
-  for (const d of weekDates(weekStart)) {
-    verdicts[d] = planDayVerdict(aggregate.byDay[d], targets);
-  }
+  for (const d of dates) verdicts[d] = planDayVerdict(aggregate.byDay[d], targets);
+
+  // Plan vs actual: compare planned totals against this week's logged summaries.
+  const summariesByDate = Object.fromEntries(
+    allSummaries.filter((s) => s.date >= dates[0] && s.date <= dates[6]).map((s) => [s.date, s]),
+  );
+  const comparison = comparePlanVsActual(aggregate.byDay, summariesByDate, dates);
 
   return (
     <PlannerClient
@@ -56,6 +64,7 @@ export default async function PlannerPage({
       aggregate={aggregate}
       verdicts={verdicts}
       targets={targets}
+      comparison={comparison}
     />
   );
 }

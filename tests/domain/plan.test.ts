@@ -96,3 +96,75 @@ describe("planDayVerdict", () => {
     expect(v.reason).toMatch(/Protein 50 g short/);
   });
 });
+
+import { comparePlanVsActual, summaryToNutrients } from "@/lib/domain/plan/compare";
+import type { DailySummary } from "@/lib/domain/types";
+
+function summary(date: string, partial: Partial<Nutrients>): DailySummary {
+  const z = { ...ZERO_NUTRIENTS, ...partial };
+  return {
+    date,
+    energy_kcal: z.energy_kcal,
+    fat_g: z.fat_g,
+    saturated_fat_g: z.saturated_fat_g,
+    carbohydrates_g: z.carbohydrates_g,
+    sugar_g: z.sugar_g,
+    protein_g: z.protein_g,
+    fibre_g: z.fibre_g,
+    salt_g: z.salt_g,
+    calcium_mg: z.calcium_mg,
+    morning_weight_kg: null,
+    evening_weight_kg: null,
+  };
+}
+
+describe("comparePlanVsActual", () => {
+  it("signed delta where both sides exist; null when either is missing", () => {
+    const dates = [MON, TUE, WED];
+    const plannedByDay = {
+      [MON]: n({ energy_kcal: 2000, protein_g: 150 }),
+      [TUE]: n({ energy_kcal: 1800, protein_g: 120 }), // planned but not logged
+      [WED]: null, // not planned
+    };
+    const summaries: Record<string, DailySummary> = {
+      [MON]: summary(MON, { energy_kcal: 2100, protein_g: 140 }), // logged, +100/-10
+      [WED]: summary(WED, { energy_kcal: 500, protein_g: 30 }), // logged but unplanned
+    };
+    const cmp = comparePlanVsActual(plannedByDay, summaries, dates);
+
+    expect(cmp.anyLogged).toBe(true);
+    // Mon: both present → signed deltas
+    const mon = cmp.byDay[0].byNutrient;
+    expect(mon.energy_kcal.delta).toBe(100);
+    expect(mon.protein_g.delta).toBe(-10);
+    // Tue: planned, not logged → unknown delta
+    expect(cmp.byDay[1].logged).toBe(false);
+    expect(cmp.byDay[1].byNutrient.energy_kcal.delta).toBeNull();
+    expect(cmp.byDay[1].byNutrient.energy_kcal.planned).toBe(1800);
+    // Wed: logged, not planned → unknown delta
+    expect(cmp.byDay[2].planned).toBe(false);
+    expect(cmp.byDay[2].byNutrient.energy_kcal.delta).toBeNull();
+    expect(cmp.byDay[2].byNutrient.energy_kcal.actual).toBe(500);
+
+    // Week totals are over the COMPARABLE basis only (days both planned & logged):
+    // only Mon qualifies (Tue not logged, Wed not planned).
+    expect(cmp.comparableDays).toBe(1);
+    expect(cmp.week.energy_kcal.planned).toBe(2000);
+    expect(cmp.week.energy_kcal.actual).toBe(2100);
+    expect(cmp.week.energy_kcal.delta).toBe(100);
+  });
+
+  it("anyLogged false + null deltas when nothing is logged", () => {
+    const cmp = comparePlanVsActual({ [MON]: n({ energy_kcal: 2000 }) }, {}, [MON]);
+    expect(cmp.anyLogged).toBe(false);
+    expect(cmp.week.energy_kcal.actual).toBeNull();
+    expect(cmp.week.energy_kcal.delta).toBeNull();
+  });
+
+  it("summaryToNutrients is null for an empty/weight-only day", () => {
+    expect(summaryToNutrients(undefined)).toBeNull();
+    expect(summaryToNutrients(summary(MON, {}))).not.toBeNull(); // energy 0 is still "logged"
+    const weightOnly = { ...summary(MON, {}), energy_kcal: null } as DailySummary;
+    expect(summaryToNutrients(weightOnly)).toBeNull();
+  });
+});
