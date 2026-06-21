@@ -467,6 +467,15 @@ export default function EntryClient({
             <NutrientPreview nutrients={preview} targets={targets} dayTotals={totals} />
           )}
 
+          {/* Planned-for-today items live with the add controls (they're one-click
+              adds), above the day's log — not stranded beneath it. */}
+          <GhostSuggestions
+            suggestions={planSuggestions.filter((s) => !dismissed.has(s.id))}
+            pending={isPending}
+            onAdd={handleAddSuggestion}
+            onDismiss={(id) => setDismissed((d) => new Set(d).add(id))}
+          />
+
           <div className="intake-header" style={{ marginTop: 16 }}>
             <div className="section-label">
               {shownDate === today ? "Today's Intake" : `Intake — ${formatHeaderDate(shownDate)}`}
@@ -490,12 +499,6 @@ export default function EntryClient({
             onSwapFood={handleSwapFood}
             onRemoveFood={handleRemoveFood}
             onRemoveMeal={handleRemoveMeal}
-          />
-          <GhostSuggestions
-            suggestions={planSuggestions.filter((s) => !dismissed.has(s.id))}
-            pending={isPending}
-            onAdd={handleAddSuggestion}
-            onDismiss={(id) => setDismissed((d) => new Set(d).add(id))}
           />
         </div>
 

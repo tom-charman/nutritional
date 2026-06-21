@@ -3157,28 +3157,23 @@ button.ingredient-name-swap:hover {
 .planner-denom-toggle:hover { border-color: var(--border-hover); }
 .planner-denom-toggle:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
 
-.planner-summary-grid {
+/* Compact headline: avg kcal/day on one line (the histogram is the hero now). */
+.planner-summary-line {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--space-xl);
+    align-items: baseline;
     flex-wrap: wrap;
-    margin-bottom: var(--space-lg);
-}
-.planner-summary-headline {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    gap: 4px var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 .planner-summary-avg {
     font-family: var(--font-display);
-    font-size: 44px;
+    font-size: var(--font-size-2xl, 28px);
     line-height: 1;
     font-weight: 600;
     color: var(--text-main);
     font-feature-settings: "tnum";
 }
-.planner-summary-avg-label {
+.planner-summary-avg-unit {
     font-size: var(--font-size-tiny, 11px);
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -3186,80 +3181,30 @@ button.ingredient-name-swap:hover {
     color: var(--text-muted);
 }
 .planner-summary-sub {
-    margin-top: var(--space-xs);
+    margin-left: auto;
     font-family: var(--font-mono);
     font-size: var(--font-size-xs, 12px);
     color: var(--text-muted);
     font-feature-settings: "tnum";
-}
-/* Per-day kcal distribution — variance is visible as shape, not hidden in the average. */
-.planner-distribution {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 56px;
-    flex: 1;
-    min-width: 180px;
-    max-width: 360px;
-}
-.planner-dist-bar {
-    flex: 1;
-    min-height: 2px;
-    background: var(--primary);
-    border-radius: 2px 2px 0 0;
-    opacity: 0.55;
-}
-.planner-dist-bar.empty {
-    background: var(--border);
-    height: 2px !important;
-    opacity: 1;
-    align-self: flex-end;
 }
 
-.planner-nutrient-rows {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px var(--space-xl);
-    border-top: 1px solid var(--border);
-    padding-top: var(--space-md);
+/* Week-at-a-glance (calorie composition) + week-vs-targets (RDI strips) sit side
+   by side, stacking on narrow screens. */
+.planner-analysis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+    align-items: stretch;
+    margin-top: var(--space-lg);
 }
-.planner-nutrient-row {
-    display: grid;
-    grid-template-columns: 1fr auto auto 16px;
-    align-items: baseline;
-    gap: var(--space-sm);
-    padding: 3px 0;
+.planner-analysis > .planner-week-summary,
+.planner-analysis > .planner-week-rdi {
+    flex: 1 1 380px;
+    min-width: 0;
+    margin: 0;
 }
-.planner-nutrient-label {
-    font-size: var(--font-size-sm, 13px);
-    color: var(--text-body);
-}
-/* Nutrient identity dot — the app's one-pigment-per-nutrient system (also used by
-   NutrientPreview's ink dots); keeps "blue = protein" learnable across surfaces. */
-.planner-nutrient-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: var(--space-sm);
-}
-.planner-nutrient-val {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-sm, 13px);
-    color: var(--text-main);
-    font-feature-settings: "tnum";
-    text-align: right;
-}
-.planner-nutrient-target {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-xs, 12px);
-    color: var(--text-muted);
-    font-feature-settings: "tnum";
-    text-align: right;
-}
-.planner-nutrient-mark { font-size: var(--font-size-sm, 13px); text-align: center; }
-.planner-nutrient-mark.met { color: var(--success); }
-.planner-nutrient-mark.warn { color: var(--danger); }
+.planner-week-rdi { padding: var(--space-lg); }
+.planner-week-rdi .planner-summary-top { margin-bottom: var(--space-sm); }
 
 /* Per-day verdict mark: ✓ bamboo (met) / ⚠ rust (a target missed or limit over).
    Icon only — the macro strip carries the detail; the tooltip names the reason. */
@@ -3272,57 +3217,6 @@ button.ingredient-name-swap:hover {
 }
 .planner-verdict.met { color: var(--success); }
 .planner-verdict.warn { color: var(--danger); }
-
-@media (max-width: 768px) {
-    .planner-nutrient-rows { grid-template-columns: 1fr; }
-    .planner-distribution { max-width: none; }
-}
-
-/* ---- Weekly Planner: plan vs actual (PR3) ---- */
-.planner-pva {
-    padding: var(--space-lg);
-    margin-top: var(--space-lg);
-}
-.planner-pva-head,
-.planner-pva-row {
-    display: grid;
-    grid-template-columns: 1fr 5rem 5rem 6rem;
-    align-items: baseline;
-    gap: var(--space-sm);
-}
-.planner-pva-head {
-    margin: var(--space-sm) 0 var(--space-xs);
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid var(--border);
-    font-size: var(--font-size-tiny, 11px);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-align: right;
-}
-.planner-pva-head span:first-child { text-align: left; }
-.planner-pva-row { padding: 3px 0; }
-.planner-pva-label { font-size: var(--font-size-sm, 13px); color: var(--text-body); }
-.planner-pva-num,
-.planner-pva-delta {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-sm, 13px);
-    font-feature-settings: "tnum";
-    text-align: right;
-}
-.planner-pva-num { color: var(--text-main); }
-.planner-pva-delta { color: var(--text-body); }
-.planner-pva-note {
-    margin: var(--space-md) 0 0;
-    font-size: var(--font-size-tiny, 11px);
-    font-style: italic;
-    color: var(--text-muted);
-}
-@media (max-width: 768px) {
-    .planner-pva-head,
-    .planner-pva-row { grid-template-columns: 1fr 4rem 4rem 5rem; }
-}
 
 /* ===== Weekly Planner — refined controls (redesign) ===== */
 /* Week stepper: reuse the daily-entry .date-stepper/.icon-button treatment so the
@@ -3442,36 +3336,40 @@ button.ingredient-name-swap:hover {
 /* ===== Daily Entry — plan "ghost" suggestions ===== */
 /* Planned-but-unlogged items, faint beneath the real logged rows. Indigo = intent
    (the plan/primary pigment). Renders nothing when there's no plan. */
-.ghost-suggestions { margin-top: var(--space-md); }
+/* Planned-for-today items: a soft indigo-tinted inset that sits with the add
+   controls. The tint (not dashed borders) signals "intended, not yet logged" —
+   the same indigo the plan/primary actions use, kept quiet. */
+.ghost-suggestions {
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--primary-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
 .ghost-suggestions-label {
     font-size: var(--font-size-tiny, 11px);
     letter-spacing: 0.05em;
     text-transform: uppercase;
     font-weight: 700;
-    color: var(--text-muted);
+    color: var(--primary);
     margin-bottom: var(--space-xs);
-}
-.ghost-slot { margin-bottom: var(--space-sm); }
-.ghost-slot-label {
-    display: block;
-    font-size: var(--font-size-tiny, 11px);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-disabled);
-    margin: var(--space-xs) 0 2px;
 }
 .ghost-row {
     display: grid;
     grid-template-columns: 22px minmax(0, 1fr) auto auto auto;
     align-items: center;
     gap: var(--space-sm);
-    padding: 4px 0 4px 2px;
-    border-left: 2px dashed var(--primary);
-    padding-left: var(--space-sm);
+    padding: 5px 0;
 }
+.ghost-row + .ghost-row { border-top: 1px solid rgba(44, 62, 80, 0.1); }
 .ghost-add {
     width: 20px;
     height: 20px;
+    padding: 0;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
     font-size: 15px;
     color: #fff;
@@ -3479,16 +3377,14 @@ button.ingredient-name-swap:hover {
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    opacity: 0.85;
-    transition: opacity var(--dur-quick) var(--ease-press), transform var(--dur-instant) var(--ease-press);
+    transition: background-color var(--dur-quick) var(--ease-press), transform var(--dur-instant) var(--ease-press);
 }
-.ghost-add:hover { opacity: 1; }
+.ghost-add:hover { background: var(--primary-hover); }
 .ghost-add:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
 .ghost-add:disabled { opacity: 0.4; cursor: default; }
 .ghost-name {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3498,7 +3394,7 @@ button.ingredient-name-swap:hover {
     font-family: var(--font-mono);
     font-size: var(--font-size-xs, 12px);
     font-feature-settings: "tnum";
-    color: var(--text-disabled);
+    color: var(--text-muted);
 }
 .ghost-dismiss {
     background: none;

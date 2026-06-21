@@ -40,12 +40,15 @@ import {
   ZERO_NUTRIENTS,
   type NutrientKey,
   type Nutrients,
+  type TargetMode,
 } from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
 import { calculateNutrients } from "@/lib/domain/nutrients";
+import MacroBreakdownChart from "@/components/dashboard/MacroBreakdownChart";
+import NutrientsRdiChart from "@/components/dashboard/NutrientsRdiChart";
+import type { MacroBreakdownData, NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import type { WeeklyPlanAggregate } from "@/lib/domain/plan/aggregate";
 import type { DayVerdict } from "@/lib/domain/plan/verdict";
-import type { WeekComparison } from "@/lib/domain/plan/compare";
 import { addDays, weekDates } from "@/lib/domain/plan/week";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
@@ -106,7 +109,6 @@ export default function PlannerClient({
   aggregate,
   verdicts,
   targets,
-  comparison,
 }: {
   weekStart: string;
   today: string;
@@ -117,7 +119,6 @@ export default function PlannerClient({
   aggregate: WeeklyPlanAggregate;
   verdicts: Record<string, DayVerdict>;
   targets: DailyTargets;
-  comparison: WeekComparison;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -456,17 +457,8 @@ export default function PlannerClient({
         )}
       </section>
 
-      {empty ? (
+      {empty && (
         <p className="planner-empty-aside">An open week. Pick a food or meal above and choose the days it lands on.</p>
-      ) : (
-        <WeekSummary
-          aggregate={aggregate}
-          targets={targets}
-          denom={denom}
-          onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
-          avg={avg}
-          dates={dates}
-        />
       )}
 
       <div className="planner-week">
@@ -560,7 +552,19 @@ export default function PlannerClient({
         })}
       </div>
 
-      {comparison.anyLogged && <PlanVsActual comparison={comparison} />}
+      {!empty && (
+        <div className="planner-analysis">
+          <WeekSummary
+            aggregate={aggregate}
+            targets={targets}
+            denom={denom}
+            onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
+            avg={avg}
+            dates={dates}
+          />
+          <WeekTargets dates={dates} avg={avg} targets={targets} />
+        </div>
+      )}
 
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
@@ -737,45 +741,48 @@ function PlanItemRow({
   );
 }
 
-function signed(n: number, unit: string): string {
-  const v = unit === "g" ? round1(Math.abs(n)) : Math.round(Math.abs(n));
-  return `${n >= 0 ? "+" : "−"}${v} ${unit}`;
-}
+/** Nutrients shown in the weekly RDI strips — every macro except energy. */
+const RDI_NUTRIENTS: NutrientKey[] = NUTRIENT_KEYS.filter((k) => k !== "energy_kcal");
 
-function PlanVsActual({ comparison }: { comparison: WeekComparison }) {
+/**
+ * Week vs targets — the dashboard's RDI strip chart, fed the week's AVERAGE as a
+ * single point per nutrient (a flat band across the week) measured against each
+ * nutrient's own target/limit. Reuses NutrientsRdiChart in compact mode.
+ */
+function WeekTargets({
+  dates,
+  avg,
+  targets,
+}: {
+  dates: string[];
+  avg: Record<NutrientKey, number> | null;
+  targets: DailyTargets;
+}) {
+  const span = [dates[0], dates[dates.length - 1]];
+  const series: Record<string, (number | null)[]> = {};
+  const modes: Record<string, TargetMode> = {};
+  const guidelines: Partial<Record<NutrientKey, number>> = {};
+  for (const k of RDI_NUTRIENTS) {
+    const t = targets.values[k];
+    const v = avg ? avg[k] : null;
+    const pct = v === null || !(t > 0) ? null : (v / t) * 100;
+    series[k] = [pct, pct]; // flat band = the week's single average value
+    modes[k] = getNutrientMode(targets, k);
+    guidelines[k] = t;
+  }
+  const data: NutrientsRdiData = { dates: span, series };
   return (
-    <section className="planner-pva card">
-      <span className="section-label">Plan vs actual · this week</span>
-      <div className="planner-pva-head">
-        <span />
-        <span>Planned</span>
-        <span>Logged</span>
-        <span>Δ</span>
+    <section className="planner-week-rdi card">
+      <div className="planner-summary-top">
+        <span className="section-label">Week average vs targets</span>
       </div>
-      {NUTRIENT_KEYS.map((k) => {
-        const d = comparison.week[k];
-        const unit = NUTRIENT_UNITS[k];
-        return (
-          <div key={k} className="planner-pva-row">
-            <span className="planner-pva-label">
-              <span
-                className="planner-nutrient-dot"
-                style={{ background: NUTRIENT_COLORS[k].ink }}
-                aria-hidden="true"
-              />
-              {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
-            </span>
-            <span className="planner-pva-num">{d.planned === null ? "—" : `${round1(d.planned)}`}</span>
-            <span className="planner-pva-num">{d.actual === null ? "—" : `${round1(d.actual)}`}</span>
-            <span className="planner-pva-delta">{d.delta === null ? "—" : signed(d.delta, unit)}</span>
-          </div>
-        );
-      })}
-      <p className="planner-pva-note">
-        Compared over the {comparison.comparableDays} day
-        {comparison.comparableDays === 1 ? "" : "s"} you both planned and logged. Per-day drift is on
-        each day above; “—” means one side is missing — never counted as zero.
-      </p>
+      <NutrientsRdiChart
+        data={data}
+        modes={modes}
+        nutrients={RDI_NUTRIENTS}
+        guidelines={guidelines}
+        compact
+      />
     </section>
   );
 }
@@ -801,6 +808,45 @@ function VerdictHanko({ verdict }: { verdict: DayVerdict }) {
   );
 }
 
+/**
+ * Build the dashboard's MacroBreakdownData shape from the week's per-day plan,
+ * so the planner can render the SAME chart component. Decomposition mirrors
+ * prepareMacroBreakdown: protein/carbs/fat → kcal (4/4/9), carbs split into
+ * sugar (sugar_g/carbs_g share) + other carbs, fat split into sat + other.
+ * Unplanned days are null (a gap), never zero.
+ */
+function weeklyMacroBreakdown(
+  dates: string[],
+  byDay: Record<string, Nutrients | null>,
+): MacroBreakdownData {
+  const protein_cal: (number | null)[] = [];
+  const other_carbs_cal: (number | null)[] = [];
+  const sugar_cal: (number | null)[] = [];
+  const other_fat_cal: (number | null)[] = [];
+  const saturated_fat_cal: (number | null)[] = [];
+  for (const d of dates) {
+    const n = byDay[d] ?? null;
+    if (!n) {
+      protein_cal.push(null);
+      other_carbs_cal.push(null);
+      sugar_cal.push(null);
+      other_fat_cal.push(null);
+      saturated_fat_cal.push(null);
+      continue;
+    }
+    const carbsCal = n.carbohydrates_g * 4;
+    const sugarCal = n.carbohydrates_g > 0 ? (n.sugar_g / n.carbohydrates_g) * carbsCal : 0;
+    const fatCal = n.fat_g * 9;
+    const satFatCal = Math.min(n.saturated_fat_g * 9, fatCal);
+    protein_cal.push(n.protein_g * 4);
+    sugar_cal.push(Math.min(sugarCal, carbsCal));
+    other_carbs_cal.push(Math.max(0, carbsCal - sugarCal));
+    saturated_fat_cal.push(satFatCal);
+    other_fat_cal.push(Math.max(0, fatCal - satFatCal));
+  }
+  return { dates, protein_cal, other_carbs_cal, sugar_cal, other_fat_cal, saturated_fat_cal };
+}
+
 function WeekSummary({
   aggregate,
   targets,
@@ -817,11 +863,10 @@ function WeekSummary({
   dates: string[];
 }) {
   const totalKcal = Math.round(aggregate.total.energy_kcal);
-  const maxDayKcal = Math.max(1, ...dates.map((d) => aggregate.byDay[d]?.energy_kcal ?? 0));
   return (
     <section className="planner-week-summary card">
       <div className="planner-summary-top">
-        <span className="section-label">Week average</span>
+        <span className="section-label">Week at a glance</span>
         <button
           type="button"
           className="planner-denom-toggle"
@@ -832,59 +877,16 @@ function WeekSummary({
           {denom === "planned" ? "÷ days planned" : "÷ 7 days"}
         </button>
       </div>
-      <div className="planner-summary-grid">
-        <div className="planner-summary-headline">
-          <span className="planner-summary-avg">{avg ? Math.round(avg.energy_kcal) : "—"}</span>
-          <span className="planner-summary-avg-label">kcal avg / day</span>
-          <span className="planner-summary-sub">
-            {aggregate.daysPlanned} of 7 days planned · {totalKcal} kcal total
-          </span>
-        </div>
-        <div className="planner-distribution" aria-hidden="true">
-          {dates.map((d) => {
-            const k = aggregate.byDay[d]?.energy_kcal ?? null;
-            const h = k === null ? 0 : Math.max(3, Math.round((k / maxDayKcal) * 100));
-            return (
-              <span
-                key={d}
-                className={`planner-dist-bar${k === null ? " empty" : ""}`}
-                style={{ height: `${h}%` }}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <div className="planner-nutrient-rows">
-        {NUTRIENT_KEYS.filter((k) => k !== "energy_kcal").map((k) => {
-          const v = avg ? avg[k] : null;
-          const mode = getNutrientMode(targets, k);
-          const ind = v === null ? null : macroIndicator(v, targets.values[k], mode);
-          const mark = ind === "met" ? "✓" : ind === "warning" || ind === "exceeded" ? "⚠" : "";
-          const markCls = ind === "met" ? "met" : ind ? "warn" : "";
-          return (
-            <div key={k} className="planner-nutrient-row">
-              <span className="planner-nutrient-label">
-                <span
-                  className="planner-nutrient-dot"
-                  style={{ background: NUTRIENT_COLORS[k].ink }}
-                  aria-hidden="true"
-                />
-                {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
-              </span>
-              <span className="planner-nutrient-val">
-                {v === null ? "—" : `${round1(v)} ${NUTRIENT_UNITS[k]}`}
-              </span>
-              <span className="planner-nutrient-target">
-                {mode === "limit" ? "≤ " : "/ "}
-                {round1(targets.values[k])}
-              </span>
-              <span className={`planner-nutrient-mark ${markCls}`} aria-hidden="true">
-                {mark}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+
+      <p className="planner-summary-line">
+        <span className="planner-summary-avg">{avg ? Math.round(avg.energy_kcal) : "—"}</span>
+        <span className="planner-summary-avg-unit">kcal avg/day</span>
+        <span className="planner-summary-sub">
+          {aggregate.daysPlanned} of 7 days planned · {totalKcal} kcal total
+        </span>
+      </p>
+
+      <MacroBreakdownChart data={weeklyMacroBreakdown(dates, aggregate.byDay)} />
     </section>
   );
 }

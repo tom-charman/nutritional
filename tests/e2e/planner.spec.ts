@@ -79,8 +79,9 @@ test.describe("weekly planner", () => {
       await expect(day.getByTestId("plan-item").first()).toContainText(/portion/);
     }
 
-    // Brand: weekly readout carries the nutrient pigment system; each day shows kcal.
-    await expect(page.locator(".planner-week-summary .planner-nutrient-dot").first()).toBeVisible();
+    // Analysis row: the week histogram + the RDI-vs-targets strips both render.
+    await expect(page.locator(".planner-analysis .planner-week-summary .chart-svg")).toBeVisible();
+    await expect(page.locator(".planner-analysis .planner-week-rdi .chart-svg")).toBeVisible();
     await expect(page.getByTestId("planner-day-0").getByTestId("day-strip")).toContainText("kcal");
     await shot(page, "planner", "01-week-planned");
   });

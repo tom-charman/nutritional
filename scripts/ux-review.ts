@@ -491,12 +491,12 @@ async function run(vp: Viewport): Promise<void> {
     await settle();
     await shot("planner", "week-summary-denom");
   });
-  await step("planner.pva", async () => {
+  await step("planner.analysis", async () => {
     await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
-    await page.waitForSelector(".planner-pva");
-    await page.locator(".planner-pva").scrollIntoViewIfNeeded();
+    await page.waitForSelector(".planner-analysis");
+    await page.locator(".planner-analysis").scrollIntoViewIfNeeded();
     await settle();
-    await shot("planner", "plan-vs-actual", true);
+    await shot("planner", "week-analysis", true);
   });
   await step("planner.addpanel", async () => {
     // The single add flow: pick an item, set the quantity up front, choose days.

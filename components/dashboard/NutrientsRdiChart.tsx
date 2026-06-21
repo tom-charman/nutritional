@@ -23,6 +23,7 @@ import { area, curveMonotoneX, line } from "d3-shape";
 import {
   NUTRIENT_COLORS,
   NUTRIENT_SHORT_NAMES,
+  NUTRIENT_UNITS,
   RDI_GUIDELINES,
   type NutrientKey,
   type TargetMode,
@@ -44,32 +45,36 @@ import {
   useUnifiedHover,
 } from "./chartCommon";
 
-/** Labels come from the one canonical short-name set. */
-const SERIES: { key: NutrientKey; unit: string }[] = [
-  { key: "saturated_fat_g", unit: "g" },
-  { key: "sugar_g", unit: "g" },
-  { key: "fibre_g", unit: "g" },
-  { key: "salt_g", unit: "g" },
-  { key: "calcium_mg", unit: "mg" },
-];
+/** Default strips (the dashboard's RDI tab) — keyed by RDI_GUIDELINES. */
+const SERIES: NutrientKey[] = ["saturated_fat_g", "sugar_g", "fibre_g", "salt_g", "calcium_mg"];
 
-const STRIP_LABEL_H = 20; // mono caption above each strip
-const STRIP_GAP = 18;
-const BOTTOM = 30; // shared date axis
 const READOUT_W = 64; // engraved % gutter at the right
 
 export default function NutrientsRdiChart({
   data,
   modes,
+  nutrients,
+  guidelines = RDI_GUIDELINES,
+  compact = false,
 }: {
   data: NutrientsRdiData;
   modes?: Record<string, TargetMode>;
+  /** Which nutrients to draw, in order. Defaults to the RDI five. */
+  nutrients?: NutrientKey[];
+  /** Per-nutrient denominator shown in the caption (defaults to RDI_GUIDELINES). */
+  guidelines?: Partial<Record<NutrientKey, number>>;
+  /** Mini mode: shorter strips, no date axis — for a single weekly-average point. */
+  compact?: boolean;
 }) {
   const [containerRef, width] = useMeasuredWidth();
   const narrow = width <= 560;
-  const stripH = narrow ? 48 : 76;
+  const stripH = compact ? 30 : narrow ? 48 : 76;
+  const STRIP_LABEL_H = compact ? 16 : 20; // mono caption above each strip
+  const STRIP_GAP = compact ? 12 : 18;
+  const BOTTOM = compact ? 4 : 30; // shared date axis (none in compact)
 
-  const active = SERIES.filter((s) => data.series[s.key]);
+  const keys = nutrients ?? SERIES;
+  const active = keys.filter((k) => data.series[k]).map((key) => ({ key }));
   const n = active.length;
   const height = 12 + n * (STRIP_LABEL_H + stripH + STRIP_GAP) - STRIP_GAP + BOTTOM + 8;
 
@@ -160,7 +165,7 @@ export default function NutrientsRdiChart({
                 {/* caption: name · RDI reference */}
                 <text x={0} y={-7} fontSize={10} fill={AXIS_COLOR} letterSpacing="0.06em">
                   {NUTRIENT_SHORT_NAMES[s.key].toUpperCase()}
-                  <tspan fill="#A0A0A0"> · {RDI_GUIDELINES[s.key]}{s.unit}</tspan>
+                  <tspan fill="#A0A0A0"> · {guidelines[s.key]}{NUTRIENT_UNITS[s.key]}</tspan>
                   {mode && (
                     <tspan fill="#A0A0A0" letterSpacing="0.1em">
                       {"  "}{mode === "limit" ? "LIMIT" : "TARGET"}
@@ -211,7 +216,7 @@ export default function NutrientsRdiChart({
                   strokeOpacity={0.1}
                 />
 
-                {si === 0 && (
+                {si === 0 && !compact && (
                   <g>
                     <rect
                       x={innerWidth - 100}
@@ -262,31 +267,35 @@ export default function NutrientsRdiChart({
           })}
 
           {/* shared caliper hairline through all strips */}
-          {hover && (
+          {!compact && hover && (
             <g transform={`translate(0,${STRIP_LABEL_H})`}>
               <CaliperLine hover={hover} innerHeight={plotHeight - STRIP_LABEL_H} />
             </g>
           )}
 
-          {/* one shared date axis under the last strip */}
-          <g transform={`translate(0,${plotHeight})`}>
-            <line x2={innerWidth} stroke={AXIS_COLOR} strokeWidth={0.75} />
-            <XAxis xScale={xScale} innerHeight={0} />
-          </g>
+          {/* one shared date axis under the last strip (omitted in mini mode) */}
+          {!compact && (
+            <g transform={`translate(0,${plotHeight})`}>
+              <line x2={innerWidth} stroke={AXIS_COLOR} strokeWidth={0.75} />
+              <XAxis xScale={xScale} innerHeight={0} />
+            </g>
+          )}
 
-          <rect
-            y={0}
-            width={innerWidth}
-            height={plotHeight}
-            fill="transparent"
-            style={{ touchAction: "pan-y" }}
-            onPointerMove={onMove}
-            onPointerDown={onMove}
-            onPointerLeave={onLeave}
-          />
+          {!compact && (
+            <rect
+              y={0}
+              width={innerWidth}
+              height={plotHeight}
+              fill="transparent"
+              style={{ touchAction: "pan-y" }}
+              onPointerMove={onMove}
+              onPointerDown={onMove}
+              onPointerLeave={onLeave}
+            />
+          )}
         </g>
       </svg>
-      {hover && <ChartTooltip hover={hover} containerWidth={width} />}
+      {!compact && hover && <ChartTooltip hover={hover} containerWidth={width} />}
     </div>
   );
 }
