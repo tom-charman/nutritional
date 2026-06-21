@@ -81,6 +81,27 @@ async function main() {
   await page.waitForSelector(".chart-svg path");
   await shot("18-mobile-dashboard");
 
+  // ---- Weekly Planner (brand crops) ----
+  // NB: needs planner data in nutritional_test (migration 002 + seeded plan items);
+  // otherwise these capture the empty-week frame. Populated brand review uses the
+  // seeded planner shots from scripts/ux-review.ts.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${BASE}/planner?week=2026-06-15`);
+  await page.waitForSelector(".planner-week");
+  await shot("19-planner-week-full");
+  try {
+    await page.waitForSelector(".planner-week-summary", { timeout: 2000 });
+    await shot("20-planner-summary-crop", { x: 0, y: 120, width: 1440, height: 380 });
+  } catch {}
+  try {
+    await page.locator(".planner-pva").scrollIntoViewIfNeeded();
+    await shot("21-planner-pva-crop", { x: 0, y: 0, width: 920, height: 760 });
+  } catch {}
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${BASE}/planner?week=2026-06-15`);
+  await page.waitForSelector(".planner-week");
+  await shot("22-mobile-planner");
+
   await browser.close();
   console.log(`Captured to ${OUT}/`);
 }

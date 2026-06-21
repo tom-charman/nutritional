@@ -20,6 +20,7 @@ import {
   updateWeightAction,
 } from "@/app/actions/entry";
 import { setWeeklyPanelHiddenAction } from "@/app/actions/settings";
+import { applyPlanItemAction } from "@/app/actions/planner";
 import {
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
@@ -28,7 +29,16 @@ import {
 } from "@/lib/constants";
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
-import type { DailyData, DailyTargets, FoodItem, Meal, UserSettings } from "@/lib/domain/types";
+import {
+  PLAN_SLOTS,
+  type DailyData,
+  type DailyTargets,
+  type FoodItem,
+  type Meal,
+  type PlanItem,
+  type PlanSlot,
+  type UserSettings,
+} from "@/lib/domain/types";
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 import Combobox from "@/components/ui/Combobox";
 import EntriesList from "./EntriesList";
@@ -70,6 +80,7 @@ export default function EntryClient({
   targets,
   weeklyReadout,
   userSettings,
+  planSuggestions,
 }: {
   date: string;
   today: string;
@@ -80,6 +91,7 @@ export default function EntryClient({
   targets: DailyTargets;
   weeklyReadout: WeeklyReadout;
   userSettings: UserSettings;
+  planSuggestions: PlanItem[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -89,6 +101,7 @@ export default function EntryClient({
   const shownDate = pendingDate ?? date;
   useEffect(() => {
     setPendingDate(null); // server caught up
+    setDismissed(new Set()); // a new day's suggestions are fresh
   }, [date]);
   const navigateToDate = useCallback(
     (d: string) => {
@@ -128,6 +141,19 @@ export default function EntryClient({
   const dismissToast = useCallback((id: number) => {
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
+
+  // --- plan "ghost" suggestions: one-click add a planned item into the log ---
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const handleAddSuggestion = useCallback(
+    (item: PlanItem) => {
+      startTransition(async () => {
+        const res = await applyPlanItemAction(item.id);
+        pushToast(res.message, res.ok);
+        router.refresh();
+      });
+    },
+    [pushToast, router],
+  );
 
   // --- selector options: foods + meals combined (entry.py update_food_options) ---
   // Recently-logged foods are pinned in a "Recent" section atop the list; the
@@ -467,6 +493,12 @@ export default function EntryClient({
             onRemoveFood={handleRemoveFood}
             onRemoveMeal={handleRemoveMeal}
           />
+          <GhostSuggestions
+            suggestions={planSuggestions.filter((s) => !dismissed.has(s.id))}
+            pending={isPending}
+            onAdd={handleAddSuggestion}
+            onDismiss={(id) => setDismissed((d) => new Set(d).add(id))}
+          />
         </div>
 
         {/* Column 2: Daily Summary */}
@@ -657,6 +689,86 @@ function QuickAddForm({
           Cancel
         </button>
       </div>
+    </div>
+  );
+}
+
+const GHOST_SLOT_LABELS: Record<PlanSlot, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  snack: "Snacks",
+};
+
+function ghostAmount(item: PlanItem): string {
+  const r = item.ref;
+  if (r.kind === "meal") return `${r.portions} portion${r.portions === 1 ? "" : "s"}`;
+  if (r.weight_g !== null) return `${r.weight_g} g`;
+  return `× ${r.quantity ?? 1}`;
+}
+
+/**
+ * Planned-for-this-day items, shown faint beneath the logged rows. One click on
+ * the + inks a suggestion into the real log; × dismisses it for the day (the plan
+ * is untouched). Renders NOTHING when there's no plan — the fast-logging path and
+ * a no-plan user's screen stay exactly as they were.
+ */
+function GhostSuggestions({
+  suggestions,
+  pending,
+  onAdd,
+  onDismiss,
+}: {
+  suggestions: PlanItem[];
+  pending: boolean;
+  onAdd: (item: PlanItem) => void;
+  onDismiss: (id: string) => void;
+}) {
+  if (suggestions.length === 0) return null;
+  const groups = PLAN_SLOTS.map((slot) => ({
+    slot,
+    items: suggestions.filter((s) => s.slot === slot),
+  })).filter((g) => g.items.length > 0);
+  return (
+    <div className="ghost-suggestions" data-testid="ghost-suggestions">
+      <div className="ghost-suggestions-label">From your plan</div>
+      {groups.map(({ slot, items }) => (
+        <div key={slot} className="ghost-slot">
+          <span className="ghost-slot-label">{GHOST_SLOT_LABELS[slot]}</span>
+          {items.map((item) => {
+            const name =
+              item.ref.kind === "meal" ? item.ref.meal_name : item.ref.food_name;
+            return (
+              <div key={item.id} className="ghost-row" data-testid="ghost-row">
+                <button
+                  type="button"
+                  className="ghost-add"
+                  aria-label={`Add ${name} to the log`}
+                  title={`Add ${name}`}
+                  disabled={pending}
+                  onClick={() => onAdd(item)}
+                >
+                  +
+                </button>
+                <span className="ghost-name" title={name}>
+                  {name}
+                </span>
+                <span className="ghost-amount">{ghostAmount(item)}</span>
+                <span className="ghost-kcal">{Math.round(item.nutrients.energy_kcal)} kcal</span>
+                <button
+                  type="button"
+                  className="ghost-dismiss"
+                  aria-label={`Dismiss ${name}`}
+                  title="Not eating this — hide for today"
+                  onClick={() => onDismiss(item.id)}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

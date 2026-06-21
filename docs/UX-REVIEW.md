@@ -178,3 +178,40 @@ caught that the **quick-add** feature (#4) shipped sloppy. Fixed in `fix/quick-a
 Re-ran the feature sweep + persona + matrix suites (both viewports) against a prod-data
 clone: quick-add verified (9 fields / dismiss-on-search / dismiss-on-select / single
 amount input / logs correctly); all prior headline fixes still pass; no new regressions.
+
+## Weekly Planner sweep — 2026-06-21
+
+The Weekly Planner (`/planner`, PRs #55–#57) was swept with the same three-pass method,
+both viewports, against `nutritional_review` with migration `002` applied and a real meal
+painted across a data-rich week (so the readouts and plan-vs-actual populate). Capture:
+`scripts/ux-review.ts` gained a **Planner** section (grid, week-summary + denominator
+toggle, paint panel, add-to-cell, plan-vs-actual, current-week apply, mobile day-list);
+`scripts/design-review.ts` gained planner crops.
+
+**Scenario matrix / persona coverage** for the planner is encoded directly as executable
+assertions rather than only screenshots — a stronger form of "close the loop":
+`tests/e2e/planner.spec.ts` (paint-across-days journey, today-only apply guard, idempotent
+re-apply, manual-rows-untouched) and the `lib/domain/plan/*` unit tests (honest ÷7 vs
+÷days-planned denominators, unknown≠0 verdicts, comparable-basis plan-vs-actual deltas).
+
+**Findings**
+
+- **Major — Planner macro readouts ignored the nutrient pigment system.** The week-summary
+  per-nutrient rows and the plan-vs-actual table rendered nutrient names in plain text,
+  breaking the app-wide "blue = protein" learnability the brand mandates ("a consistent
+  nutrient pigment system… used everywhere it appears"). **Fixed:** each row now carries the
+  nutrient's `ink` pigment dot (the same identity used by `NutrientPreview`'s ink dots).
+  Locked by an e2e assertion.
+- **Minor — "× 1" portions collided with the "×" delete icon.** A planned meal showed its
+  amount as "× 1" immediately before the × delete affordance (two adjacent × glyphs — an
+  ambiguous-symbol smell), and it diverged from the diary's wording. **Fixed:** planned
+  meals now read "1 portion" (matching `EntriesList`), leaving × as the single, unambiguous
+  delete affordance. Locked by an e2e assertion.
+- **Polish — verdict doesn't stamp like a hanko.** The brand calls for ✓/⚠ verdicts to
+  "stamp in like a hanko seal"; the planner's per-day verdict currently just appears.
+  Deferred to `ROADMAP.md` (motion polish, not a correctness issue).
+
+Re-ran the planner capture after the fixes: pigment dots present across both readouts,
+meals read as portions, mobile stacks to a day-list with today pinned, paint panel +
+denominator toggle + plan-vs-actual all render correctly. The rest of the app was re-swept
+with no new regressions.

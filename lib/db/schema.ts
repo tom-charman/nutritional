@@ -21,6 +21,7 @@ import {
   index,
   uniqueIndex,
   boolean,
+  smallint,
 } from "drizzle-orm/pg-core";
 
 /** DECIMAL(8,2) nutrient column helper (NOT NULL). */
@@ -95,6 +96,10 @@ export const foodEntries = pgTable(
     fibreG: nutrient("fibre_g").notNull(),
     saltG: nutrient("salt_g").notNull(),
     calciumMg: nutrient("calcium_mg").notNull(),
+    /** Provenance: NULL/'manual' = hand-logged; 'plan' = materialised from a plan item. */
+    source: varchar("source", { length: 10 }),
+    /** The plan item this row was applied from — idempotency key + plan-vs-actual link. */
+    planItemId: uuid("plan_item_id").references(() => mealPlanItems.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -104,6 +109,7 @@ export const foodEntries = pgTable(
     index("idx_food_entries_food_id").on(t.foodId),
     index("idx_food_entries_meal_id").on(t.mealId),
     index("idx_food_entries_meal_log_id").on(t.mealLogId),
+    index("idx_food_entries_plan_item_id").on(t.planItemId),
   ],
 );
 
@@ -216,5 +222,61 @@ export const mealIngredients = pgTable(
   (t) => [
     index("idx_meal_ingredients_meal_id").on(t.mealId),
     index("idx_meal_ingredients_food_id").on(t.foodId),
+  ],
+);
+
+/**
+ * Weekly Planner. A plan is first-class data, SEPARATE from the logged
+ * food_entries — the record of intent. One meal_plans row per (user, ISO week).
+ */
+export const mealPlans = pgTable(
+  "meal_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** Monday of the planned week (ISO week). */
+    weekStart: date("week_start").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("idx_meal_plans_user_id").on(t.userId),
+    uniqueIndex("meal_plans_user_week").on(t.userId, t.weekStart),
+  ],
+);
+
+/**
+ * One planned item in a (day, slot) cell. References EITHER a meal template OR a
+ * single food, never both (CHECK in the DB; app validates before insert).
+ */
+export const mealPlanItems = pgTable(
+  "meal_plan_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => mealPlans.id, { onDelete: "cascade" }),
+    /** Denormalised for direct scoping/indexes. */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    planDate: date("plan_date").notNull(),
+    /** breakfast | lunch | dinner | snack */
+    slot: varchar("slot", { length: 10 }).notNull(),
+    /** Stable order within a slot. */
+    position: smallint("position").notNull().default(0),
+    mealId: uuid("meal_id").references(() => meals.id, { onDelete: "cascade" }),
+    foodId: uuid("food_id").references(() => foodItems.id),
+    portions: numeric("portions", { precision: 8, scale: 2 }),
+    weightG: numeric("weight_g", { precision: 8, scale: 2 }),
+    quantity: numeric("quantity", { precision: 8, scale: 2 }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("idx_meal_plan_items_plan_id").on(t.planId),
+    index("idx_meal_plan_items_user_date").on(t.userId, t.planDate),
   ],
 );

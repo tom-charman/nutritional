@@ -7,6 +7,7 @@ import AccountMenu from "@/components/nav/AccountMenu";
 const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/entry", label: "Daily Entry" },
+  { href: "/planner", label: "Weekly Planner" },
   { href: "/foods", label: "Food Database" },
   { href: "/meals", label: "Meal Planner" },
 ];

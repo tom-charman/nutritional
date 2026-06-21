@@ -1377,32 +1377,13 @@ input[type="checkbox"]:focus {
     gap: 2px;
 }
 
-.date-stepper .icon-button {
+/* Day stepper (entry) and week stepper (planner) share the clean, borderless base
+   .icon-button so the nav arrows are identical everywhere — see `.icon-button`
+   below. Only the chevron glyph is sized up so the arrows read as a nav control. */
+.date-stepper .icon-button,
+.planner-weeknav .icon-button {
     font-size: 20px;
-    font-weight: var(--font-weight-semibold);
-    font-family: var(--font-display);
-    color: var(--text-body);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
     line-height: 1;
-    padding: 0 0 4px; /* ‹ › sit high on the type's body — optical centering */
-}
-
-.date-stepper .icon-button:hover:not(:disabled) {
-    border-color: var(--border-hover);
-    background: var(--background);
-}
-
-.date-stepper .icon-button:active:not(:disabled) {
-    transform: translateY(1px);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
-.date-stepper .icon-button:disabled {
-    color: var(--text-disabled);
-    cursor: not-allowed;
-    background: transparent;
 }
 
 /* Receipt Style List */
@@ -1776,6 +1757,15 @@ input[type="radio"] {
 
 .icon-button:hover {
     background-color: var(--background);
+}
+
+/* Material honesty: press 1px down; clear disabled state (e.g. next-day at the today-cap). */
+.icon-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+.icon-button:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
 }
 
 .icon-button--edit:hover {
@@ -2825,3 +2815,711 @@ button.ingredient-name-swap:hover {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ============================================================
+   Weekly Planner
+   A ruled worksheet of intent: 7 day-columns on desktop that
+   stack into a vertical day-list on mobile. Pencil-draft until
+   applied; applied items are inked in bamboo. ============================================================ */
+.planner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+}
+
+.planner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-lg);
+}
+.planner-weeknav {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+}
+.planner-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-xl, 24px);
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+/* Paint panel — load a meal, choose a slot, stamp it across selected days. */
+.planner-paint {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+.planner-paint-row {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.planner-paint-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+}
+.planner-amount-input,
+.planner-paint-field select {
+    height: 36px;
+    width: 110px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    padding: 0 var(--space-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05);
+}
+.planner-paint-days {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+/* Day chips behave like detented switches: pressed = inked indigo. */
+.planner-day-chip {
+    height: 32px;
+    padding: 0 var(--space-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-press),
+        border-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-day-chip:hover { border-color: var(--border-hover); }
+.planner-day-chip:active { transform: translateY(1px); }
+.planner-day-chip.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-press);
+}
+
+.planner-empty-aside {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--text-muted);
+    margin: var(--space-xl) 0;
+}
+
+/* The week: 7 columns on desktop, stacks on mobile. */
+.planner-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+.planner-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+.planner-day.today {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md), inset 2px 0 0 var(--primary);
+}
+.planner-day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-xs);
+}
+.planner-day-name {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-day-num {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+.planner-today-badge {
+    margin-left: var(--space-xs);
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.planner-day-kcal {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-muted);
+}
+
+.planner-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.planner-slot-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.planner-slot-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-disabled);
+}
+.planner-slot-apply {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+}
+.planner-slot-apply:hover { text-decoration: underline; }
+
+/* A planned item: debossed ruled line; applied = bamboo ink. */
+.planner-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+.planner-item.applied {
+    background: var(--success-bg);
+}
+.planner-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.planner-item.applied .planner-item-name { color: var(--success-text); }
+.planner-item-check {
+    color: var(--success);
+    margin-right: 2px;
+    font-weight: 700;
+}
+.planner-item-amount {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-muted);
+}
+
+.planner-add {
+    align-self: flex-start;
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-disabled);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+}
+.planner-add:hover { color: var(--primary); }
+
+.planner-day-foot {
+    margin-top: auto;
+    padding-top: var(--space-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+/* Mobile: a 7-column grid is unusable on a phone — stack into a day-list. */
+@media (max-width: 768px) {
+    .planner-week {
+        grid-template-columns: 1fr;
+    }
+    .planner-day.today {
+        order: -1; /* pin today to the top of the list */
+    }
+}
+
+/* ---- Weekly Planner: macros summary + verdicts (PR2) ---- */
+.planner-week-summary {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+.planner-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+/* Denominator honesty switch — a detented toggle, not a dropdown. */
+.planner-denom-toggle {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-body);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px var(--space-sm);
+    cursor: pointer;
+    transition: border-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-denom-toggle:hover { border-color: var(--border-hover); }
+.planner-denom-toggle:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+
+.planner-summary-grid {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-xl);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-lg);
+}
+.planner-summary-headline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.planner-summary-avg {
+    font-family: var(--font-display);
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 600;
+    color: var(--text-main);
+    font-feature-settings: "tnum";
+}
+.planner-summary-avg-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-summary-sub {
+    margin-top: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+}
+/* Per-day kcal distribution — variance is visible as shape, not hidden in the average. */
+.planner-distribution {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 56px;
+    flex: 1;
+    min-width: 180px;
+    max-width: 360px;
+}
+.planner-dist-bar {
+    flex: 1;
+    min-height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+    opacity: 0.55;
+}
+.planner-dist-bar.empty {
+    background: var(--border);
+    height: 2px !important;
+    opacity: 1;
+    align-self: flex-end;
+}
+
+.planner-nutrient-rows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px var(--space-xl);
+    border-top: 1px solid var(--border);
+    padding-top: var(--space-md);
+}
+.planner-nutrient-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto 16px;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: 3px 0;
+}
+.planner-nutrient-label {
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+/* Nutrient identity dot — the app's one-pigment-per-nutrient system (also used by
+   NutrientPreview's ink dots); keeps "blue = protein" learnable across surfaces. */
+.planner-nutrient-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: var(--space-sm);
+}
+.planner-nutrient-val {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-main);
+    font-feature-settings: "tnum";
+    text-align: right;
+}
+.planner-nutrient-target {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+    text-align: right;
+}
+.planner-nutrient-mark { font-size: var(--font-size-sm, 13px); text-align: center; }
+.planner-nutrient-mark.met { color: var(--success); }
+.planner-nutrient-mark.warn { color: var(--danger); }
+
+/* Per-day verdict hanko: ✓ bamboo (met) / ⚠ rust (over/under) / quiet muted (unknown). */
+.planner-verdict {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+}
+.planner-verdict.unknown { color: var(--text-disabled); font-style: normal; }
+.planner-verdict.met .planner-verdict-kcal { color: var(--text-muted); }
+.planner-verdict.warn .planner-verdict-kcal { color: var(--text-muted); }
+.planner-verdict-mark { font-weight: 700; }
+.planner-verdict.met .planner-verdict-mark { color: var(--success); }
+.planner-verdict.warn .planner-verdict-mark { color: var(--danger); }
+
+/* Specific, never-buried reason line under a flagged day. */
+.planner-day-reason {
+    margin: 0 0 2px;
+    font-size: var(--font-size-tiny, 11px);
+    line-height: 1.3;
+    color: var(--danger);
+}
+
+@media (max-width: 768px) {
+    .planner-nutrient-rows { grid-template-columns: 1fr; }
+    .planner-distribution { max-width: none; }
+}
+
+/* ---- Weekly Planner: plan vs actual (PR3) ---- */
+.planner-day-actual {
+    margin: 0 0 2px;
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--text-muted);
+}
+.planner-day-actual .mono,
+.planner-delta {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+}
+.planner-delta { color: var(--text-body); }
+
+.planner-pva {
+    padding: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+.planner-pva-head,
+.planner-pva-row {
+    display: grid;
+    grid-template-columns: 1fr 5rem 5rem 6rem;
+    align-items: baseline;
+    gap: var(--space-sm);
+}
+.planner-pva-head {
+    margin: var(--space-sm) 0 var(--space-xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: right;
+}
+.planner-pva-head span:first-child { text-align: left; }
+.planner-pva-row { padding: 3px 0; }
+.planner-pva-label { font-size: var(--font-size-sm, 13px); color: var(--text-body); }
+.planner-pva-num,
+.planner-pva-delta {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    font-feature-settings: "tnum";
+    text-align: right;
+}
+.planner-pva-num { color: var(--text-main); }
+.planner-pva-delta { color: var(--text-body); }
+.planner-pva-note {
+    margin: var(--space-md) 0 0;
+    font-size: var(--font-size-tiny, 11px);
+    font-style: italic;
+    color: var(--text-muted);
+}
+@media (max-width: 768px) {
+    .planner-pva-head,
+    .planner-pva-row { grid-template-columns: 1fr 4rem 4rem 5rem; }
+}
+
+/* ===== Weekly Planner — refined controls (redesign) ===== */
+/* Week stepper: reuse the daily-entry .date-stepper/.icon-button treatment so the
+   chevrons are identical. The heading matches the daily header's Fraunces optical size. */
+.planner-weeknav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+.planner-week-heading {
+    font-family: var(--font-display);
+    font-size: var(--font-size-2xl, 28px);
+    font-weight: 600;
+    font-variation-settings: "opsz" 60, "SOFT" 20;
+    color: var(--text-main);
+    margin: 0 var(--space-xs);
+}
+.planner-thisweek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 var(--space-xs);
+}
+.planner-thisweek:hover { color: var(--primary); }
+
+.planner-rail {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Stamp chit — the single piece of chrome for multi-day assignment. */
+.planner-stamp-chit {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+.planner-stamp-row {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.planner-stamp-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+}
+.planner-stamp-hint {
+    margin: 0;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+.planner-stamp-hint.muted { color: var(--text-muted); font-style: italic; }
+.planner-stamp-allweek {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+.planner-stamp-allweek-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-chip-btn {
+    height: 30px;
+    padding: 0 var(--space-md);
+    font-size: var(--font-size-xs, 12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: border-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-chip-btn:hover { border-color: var(--border-hover); }
+.planner-chip-btn:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+
+/* Receptive "stamp here" target shown in each slot while a stamp is loaded. */
+.planner.stamping .planner-slot { box-shadow: inset 0 0 0 1px var(--primary-light); border-radius: var(--radius-sm); }
+.planner-stamp-target {
+    align-self: stretch;
+    width: 100%;
+    padding: var(--space-xs) 0;
+    font-size: var(--font-size-xs, 12px);
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px dashed var(--border-hover);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-stamp-target:hover { background: var(--surface); border-color: var(--primary); }
+.planner-stamp-target:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+
+/* Kebab menu — appears with NO animation (brand). */
+.planner-kebab { position: relative; display: inline-flex; }
+.planner-kebab-btn {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    cursor: pointer;
+}
+.planner-kebab-btn.compact { font-size: 16px; padding: 0 4px; }
+.planner-kebab-btn:hover { color: var(--text-body); border-color: var(--border); }
+.planner-kebab-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    min-width: 168px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-xs);
+    display: flex;
+    flex-direction: column;
+}
+.planner-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    cursor: pointer;
+    text-decoration: none;
+}
+.planner-menu-item:hover { background: var(--background); }
+.planner-menu-item.danger { color: var(--danger); }
+
+.planner-day-head-right { display: flex; align-items: center; gap: var(--space-xs); }
+
+/* Item controls: remove is revealed on hover (pointer devices); always shown on touch. */
+.planner-item-controls { display: inline-flex; align-items: center; gap: 2px; }
+.planner-item-repeat {
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+.planner-item-repeat:hover { color: var(--primary); }
+@media (hover: hover) {
+    .planner-item .planner-item-controls { opacity: 0; transition: opacity var(--dur-quick) var(--ease-press); }
+    .planner-item:hover .planner-item-controls,
+    .planner-item:focus-within .planner-item-controls { opacity: 1; }
+}
+
+/* ===== Daily Entry — plan "ghost" suggestions ===== */
+/* Planned-but-unlogged items, faint beneath the real logged rows. Indigo = intent
+   (the plan/primary pigment). Renders nothing when there's no plan. */
+.ghost-suggestions { margin-top: var(--space-md); }
+.ghost-suggestions-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+.ghost-slot { margin-bottom: var(--space-sm); }
+.ghost-slot-label {
+    display: block;
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-disabled);
+    margin: var(--space-xs) 0 2px;
+}
+.ghost-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 0 4px 2px;
+    border-left: 2px dashed var(--primary);
+    padding-left: var(--space-sm);
+}
+.ghost-add {
+    width: 20px;
+    height: 20px;
+    line-height: 1;
+    font-size: 15px;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity var(--dur-quick) var(--ease-press), transform var(--dur-instant) var(--ease-press);
+}
+.ghost-add:hover { opacity: 1; }
+.ghost-add:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+.ghost-add:disabled { opacity: 0.4; cursor: default; }
+.ghost-name {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ghost-amount,
+.ghost-kcal {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-disabled);
+}
+.ghost-dismiss {
+    background: none;
+    border: none;
+    color: var(--text-disabled);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+.ghost-dismiss:hover { color: var(--danger); }

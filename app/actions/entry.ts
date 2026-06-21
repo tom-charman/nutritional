@@ -29,6 +29,16 @@ export interface ActionResult {
   message: string;
 }
 
+/**
+ * Marks an entry as materialised from a Weekly Planner plan item. Threaded onto
+ * the FoodEntry so it survives saveDailyEntry's delete+reinsert (the dedupe key
+ * for idempotent re-apply + the plan-vs-actual link).
+ */
+export interface EntryProvenance {
+  source: "plan";
+  planItemId: string;
+}
+
 async function loadOrEmptyDay(userId: string, date: string): Promise<DailyData> {
   return (
     (await loadDailyEntry(db, userId, date)) ?? {
@@ -49,6 +59,7 @@ export async function addFoodEntryAction(
   date: string,
   foodId: string,
   amount: number,
+  provenance?: EntryProvenance,
 ): Promise<ActionResult> {
   if (!Number.isFinite(amount) || amount <= 0) {
     return { ok: false, message: "Please enter an amount" };
@@ -71,6 +82,8 @@ export async function addFoodEntryAction(
     weight_g: isPerItem ? null : amount,
     quantity: isPerItem ? amount : null,
     nutrients,
+    source: provenance?.source,
+    plan_item_id: provenance?.planItemId,
   };
 
   const day = await loadOrEmptyDay(userId, date);
@@ -113,6 +126,7 @@ export async function addMealEntryAction(
   date: string,
   mealId: string,
   portions: number,
+  provenance?: EntryProvenance,
 ): Promise<ActionResult> {
   if (!Number.isFinite(portions) || portions <= 0) {
     return { ok: false, message: "Please enter valid portions" };
@@ -121,7 +135,9 @@ export async function addMealEntryAction(
   const meal = await getMeal(db, userId, mealId);
   if (!meal) return { ok: false, message: "Meal not found" };
 
-  // Each ingredient scaled by portions and stored as an independent FoodEntry
+  // Each ingredient scaled by portions and stored as an independent FoodEntry.
+  // When applied from a plan, every ingredient carries the SAME plan_item_id so
+  // the whole logged meal dedupes as one unit on re-apply.
   const ingredients: FoodEntry[] = [];
   for (const ing of meal.ingredients) {
     const food = await getFoodItem(db, userId, ing.food_id);
@@ -140,6 +156,8 @@ export async function addMealEntryAction(
       weight_g: scaledWeight,
       quantity: scaledQuantity,
       nutrients,
+      source: provenance?.source,
+      plan_item_id: provenance?.planItemId,
     });
   }
   if (ingredients.length === 0) {

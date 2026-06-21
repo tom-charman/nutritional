@@ -205,6 +205,56 @@ CREATE TABLE IF NOT EXISTS user_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Weekly Planner: a plan is first-class data, SEPARATE from the logged
+-- food_entries. The user assigns meals/foods to (day, slot) cells for a week;
+-- a plan item is "applied" (today only — we log what we actually ate, never
+-- from memory) by materialising it into editable food_entries. The plan persists
+-- as the record of intent, so plan-vs-actual comparison works.
+CREATE TABLE IF NOT EXISTS meal_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    week_start DATE NOT NULL,                     -- Monday of the planned week (ISO week)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS meal_plans_user_week ON meal_plans(user_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_meal_plans_user_id ON meal_plans(user_id);
+
+-- One planned item in a (day, slot) cell. References EITHER a meal template OR a
+-- single food, never both (mirrors meal_ingredients' either/or discipline).
+CREATE TABLE IF NOT EXISTS meal_plan_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id UUID NOT NULL REFERENCES meal_plans(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id),   -- denormalised for direct scoping/indexes
+    plan_date DATE NOT NULL,
+    slot VARCHAR(10) NOT NULL,                     -- breakfast | lunch | dinner | snack
+    position SMALLINT NOT NULL DEFAULT 0,          -- stable order within a slot
+    meal_id UUID REFERENCES meals(id) ON DELETE CASCADE,
+    food_id UUID REFERENCES food_items(id),
+    portions DECIMAL(8,2),                         -- meal ref
+    weight_g DECIMAL(8,2),                         -- food ref (per_100g)
+    quantity DECIMAL(8,2),                         -- food ref (per_item)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_plan_item_slot CHECK (slot IN ('breakfast', 'lunch', 'dinner', 'snack')),
+    CONSTRAINT check_plan_item_ref CHECK (
+        (meal_id IS NOT NULL AND food_id IS NULL) OR
+        (meal_id IS NULL AND food_id IS NOT NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_items_plan_id ON meal_plan_items(plan_id);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_items_user_date ON meal_plan_items(user_id, plan_date);
+
+-- Provenance on the LOG: where an applied entry came from. source NULL/'manual'
+-- = hand-logged (the default, preserves all existing rows); 'plan' = materialised
+-- from a plan item. plan_item_id is the idempotency key (skip re-apply if a row
+-- already references it) and the link for plan-vs-actual. ON DELETE SET NULL so
+-- deleting a plan item NEVER deletes food the user already ate.
+ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS source VARCHAR(10);
+ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS plan_item_id UUID
+    REFERENCES meal_plan_items(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_food_entries_plan_item_id ON food_entries(plan_item_id);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX IF NOT EXISTS idx_food_entries_user_date ON food_entries(user_id, entry_date);
@@ -260,6 +310,14 @@ CREATE TRIGGER update_meal_ingredients_updated_at BEFORE UPDATE ON meal_ingredie
 
 DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
 CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_meal_plans_updated_at ON meal_plans;
+CREATE TRIGGER update_meal_plans_updated_at BEFORE UPDATE ON meal_plans
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_meal_plan_items_updated_at ON meal_plan_items;
+CREATE TRIGGER update_meal_plan_items_updated_at BEFORE UPDATE ON meal_plan_items
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Grant the application role access to EVERY object in the schema.
