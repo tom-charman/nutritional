@@ -16,6 +16,10 @@ run (app + postgres + nginx) inside a 1 GB GCP e2-micro.
   remaining, 8 macro progress bars vs per-nutrient target/limit modes,
   sticky daily targets, and independent morning/evening weight tracking.
 - **Food Database** — master-detail CRUD with per-100g / per-item unit types.
+- **Weekly Planner** — plan a week of meals (paint one meal across many days),
+  see weekly macros + per-day verdicts, apply today's plan into the log
+  (today-only), and compare plan vs actual. Plan is intent, kept separate from
+  the log.
 - **Auth** — Google sign-in (Auth.js, JWT sessions) with an email allowlist.
 
 ## Stack

@@ -25,6 +25,15 @@ question — *"what would real users with different nutritional goals want next?
 > first cross-day config table (`user_settings`), which **unblocks #7**. The Calories & Weight chart now
 > draws the EWMA trend as its heavy weight datum (raw weigh-ins demoted to a faint band) plus a goal guide.
 
+> **Shipped 2026-06-21.** The **Weekly Planner** (`/planner`) — PRs #55 (plan a week, paint a meal
+> across days, apply per-slot), #56 (weekly macros + per-day verdicts), #57 (plan vs actual). This
+> delivers the previously-parked "Full weekly meal-plan calendar" (see *Bigger bets*), reframed: a
+> plan is first-class data separate from the log (`meal_plans` + `meal_plan_items`); applying is
+> today-only/idempotent/non-destructive (entries gain `source`/`plan_item_id` provenance). It also
+> partially addresses **#13** (the planner spans future weeks; the *log* stays today-capped by
+> design). **#11 batch-cook** and **#7 cyclical/per-weekday targets** are explicitly still future —
+> the planner's slots + per-day verdicts lay the groundwork but neither is built.
+
 ## Method
 
 Each of the six personas walked all nine `FEATURES.md` sections and judged every feature against
@@ -62,7 +71,7 @@ services, or a data-model change?
 | 10 | **Food tags / categories + filter** | Builder | Medium | M | Optional `category` on foods; filter the selector (e.g. "protein sources") |
 | 11 | **Batch-cook → single-serving meal generator** | Home Cook | Medium | M | Enter total batch ingredient weights + servings; app divides and saves a normal **single-serving** meal. A meal stays a meal-for-one — this just builds one from a batch without hand-division. *(Reframed from "meal yield metadata")* |
 | 12 | **Finish toast/auth polish** *(open UX #16, partial)* | — | Medium | S | Auth-specific items unverified: logged-out navbar, brand mark, modal fade |
-| 13 | **Future-date logging** + planned/logged distinction | Home Cook | Low | S → M | Lifting the cap is one line (`app/entry/page.tsx:24`); the planned-vs-logged styling is the M part |
+| 13 | **Future-date logging** + planned/logged distinction | Home Cook | Low | S → M | Lifting the cap is one line (`app/entry/page.tsx:24`); the planned-vs-logged styling is the M part. *Partially addressed by the Weekly Planner (#55–#57): the plan side + plan-vs-actual now exist; logging itself stays today-capped by design.* |
 | 14 | **Mobile entry optimisation** (compact combobox, calorie-first quick-add) | Casual | Low | M | Fewer taps; quick-add collapses to name+kcal with a "more detail" expander |
 | 15 | **Per-meal macro targets & breakdown** | Builder, Patient | Low | M | Optional per-meal caps + a meal-level progress strip in the daily log |
 | 16 | **Customisable nutrient display** (macros-only view) | Builder | Low | S | Toggle which of the 9 progress bars show |
@@ -135,7 +144,9 @@ product than a private, single-user tracker:
   genuinely needs to leave the app programmatically (CSV export covers most of this today).
 - **Bulk CSV / USDA food import** (M–L) — mostly a one-time onboarding benefit.
 - **Shopping-list generation & multi-meal aggregation** (M–L) — valuable only to heavy meal-preppers.
-- **Full weekly meal-plan calendar** (L) — future-date logging (#13) captures most of the value first.
+- **Full weekly meal-plan calendar** (L) — ✅ **Shipped 2026-06-21** as the Weekly Planner (PRs
+  #55–#57). Reframed: plan + paint-across-days + per-slot apply + weekly macros + per-day verdicts +
+  plan-vs-actual; a plan is intent kept separate from the log.
 - **Correlation / lag analysis, confidence bands, subjective metrics (sleep/mood)** (L) — analyst-only
   delight; serves one persona.
 - **Data deletion / GDPR tooling, multi-user, social sharing** — out of scope for a private single-user app.

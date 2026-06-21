@@ -184,6 +184,11 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 > ingredients. Totals must sum correctly across both, and the per-ingredient rows
 > must display each in its own unit without implying they're the same.
 
+> **Cross-cutting consequence (planner):** a meal is also a plan reference (§9).
+> Deleting a meal cascades to its `meal_plan_items` (FK `ON DELETE CASCADE`) but never
+> deletes food already logged from it — applied log rows keep their data and only lose the
+> plan link.
+
 ---
 
 ## 4. Daily entry / diary (`/entry`)
@@ -364,6 +369,12 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 > in one list. They must be visually distinguishable, and every row (grouped or not)
 > must stay individually editable and removable.
 
+> **Cross-cutting consequence (planner):** a logged row can now originate from the plan
+> (`source='plan'`, `plan_item_id`) when a day is applied (§9). Applied entries are ordinary
+> editable rows — swap, inline-edit, and remove all work, and the pre-commit limit alert
+> fires on them because they pass through the same `add*EntryAction`. A manual edit must
+> preserve provenance (it round-trips through `saveDailyEntry`).
+
 ---
 
 ## 5. Daily targets (modal on `/entry`)
@@ -386,6 +397,11 @@ source of "looks right for one kind of food, wrong for the other" bugs.
   prior day, and defaults should be sensible when no prior day exists.
 - **Implemented in:** `app/actions/entry.ts` (`getTargetsForDateAction`),
   `lib/data/storage.ts` (`getOrCreateDailyTargets`), `lib/domain/targets.ts`
+
+> **Cross-cutting consequence (planner):** the same targets drive the planner's per-day
+> verdicts and the week-summary's per-nutrient comparison (§9), via the shared
+> `macroIndicator`/`getNutrientMode`. A change to target/limit semantics ripples to the
+> planner verdicts as well as the entry bars.
 
 ---
 
@@ -495,7 +511,112 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 
 ---
 
-## 9. Cross-cutting / global
+## 9. Weekly Planner (`/planner`)
+
+The planner is a **plan of intent, kept separate from the daily log**. You arrange meals
+into a week of (day, slot) cells; a plan is never a record of what you ate. The one bridge
+to the log is *apply*, and it is deliberately constrained — see the philosophy note in §10.
+
+### A user can plan meals for any week, ahead or behind
+- **What it does:** Open `/planner` to a Monday-anchored week grid (Breakfast / Lunch /
+  Dinner / Snacks per day). `?week=YYYY-MM-DD` navigates to any ISO week; unlike the diary,
+  the planner is **not capped at today** — planning the future is the whole point.
+- **UI/UX considerations:** On desktop the seven days are columns; a 7-column grid is
+  unusable on a phone, so the same data **stacks into a vertical day-list with today pinned
+  to the top**. Today's column is the only one that can be applied (below). An empty week is
+  a single italic aside, never a guilt banner.
+- **Implemented in:** `app/planner/page.tsx`, `components/planner/PlannerClient.tsx`,
+  `lib/domain/plan/week.ts` (`mondayOf`/`weekDates`)
+
+### A user can add a meal or a food to a plan slot
+- **What it does:** Each (day, slot) cell has an "+ add" affordance opening the same
+  food/meal selector as the diary; picking a meal plans it at 1 portion, picking a food
+  plans a default amount (100 g per-100g, 1 per-item) — both editable in place.
+- **UI/UX considerations:** The selector is the shared `Combobox` (meals then foods,
+  sectioned) so the interaction matches the entry page exactly. Adding never touches the
+  log — it writes only to the plan.
+- **Implemented in:** `components/planner/PlannerClient.tsx`, `app/actions/planner.ts`
+  (`addPlanMealAction`, `addPlanFoodAction`), `lib/data/storage.ts` (`savePlanItem`,
+  `getOrCreatePlan`)
+
+### A user can paint one meal across many days at once
+- **What it does:** The keystone gesture for batch cooking — eating the same thing several
+  days running. "Paint a meal across days" loads a meal, a slot, and a row of day chips; one
+  **Stamp** drops that meal into the chosen slot on every selected day in a single action,
+  instead of re-adding it per day.
+- **UI/UX considerations:** The stamp is a deliberate, non-bouncy press (no drag-and-drop
+  theatrics — the brand's material honesty). The CTA counts selected days live ("Stamp on 4
+  days"); zero days is rejected with a clear message.
+- **Implemented in:** `components/planner/PlannerClient.tsx`, `app/actions/planner.ts`
+  (`paintMealAcrossDaysAction`), `lib/data/storage.ts` (`paintMealAcrossDays`)
+
+### A user can copy, edit, remove, and clear planned items
+- **What it does:** Copy a whole planned day onto another; edit a planned item's amount
+  (portions for a meal, grams/count for a food) inline; remove a single item; or clear a
+  day entirely.
+- **UI/UX considerations:** Editing reuses the same click-to-edit `EditableAmount` as the
+  diary and meal composer. Removing a *planned* item never affects food already logged from
+  it — the log is independent (see §10).
+- **Implemented in:** `app/actions/planner.ts` (`copyPlanDayAction`,
+  `editPlanItemAmountAction`, `removePlanItemAction`, `clearPlanDayAction`),
+  `lib/data/storage.ts` (`copyPlanDay`, `updatePlanItemAmount`, `deletePlanItem`,
+  `clearPlanDay`)
+
+### A user can apply today's plan into the daily log
+- **What it does:** Turn intent into a logged record. **Apply is today-only** (the date is
+  the server's today, never client-supplied) and works **per slot or for the whole day**:
+  planned items become normal, editable `food_entries` via the same `addFoodEntryAction` /
+  `addMealEntryAction` the diary uses, stamped with their plan provenance.
+- **UI/UX considerations:** Apply is **idempotent** (re-applying logs nothing new — an
+  applied item is deduped by `plan_item_id`) and **non-destructive** (manually-logged food on
+  the day is never touched). The "Log" affordance appears **only on today's column** — you
+  can't log a past day from memory or an unlived future day. Applied items read as logged (✓)
+  in the grid.
+- **Implemented in:** `app/actions/planner.ts` (`applyPlanDayAction`), `app/actions/entry.ts`
+  (`addFoodEntryAction`/`addMealEntryAction` gain an optional `provenance` param), threaded
+  through `lib/data/storage.ts` (`saveDailyEntry` carries `source`/`plan_item_id`)
+
+### A user sees the week's macros while planning
+- **What it does:** A week-summary card shows total and **average per day**, with an explicit
+  **÷7 (calendar) vs ÷days-planned toggle**, a per-day calorie distribution strip, and each
+  nutrient's average vs its daily target.
+- **UI/UX considerations:** The denominator is shown and switchable — never silently chosen,
+  because a 5-day plan averaged over 7 understates it. An unplanned day reads as nothing (not
+  0); variance is visible as the distribution strip, not hidden behind the average.
+- **Implemented in:** `lib/domain/plan/aggregate.ts` (`aggregateWeek`),
+  `components/planner/PlannerClient.tsx` (`WeekSummary`)
+
+### A user sees a per-day verdict against their targets
+- **What it does:** Each day carries a verdict — a target floor met (✓), a limit cap breached
+  or a floor missed (⚠), or **unknown** when the day isn't planned — with a specific reason
+  ("Fat +37 g over", "Calcium 1176 mg short").
+- **UI/UX considerations:** A limit breach **dominates** so it can never hide on an
+  otherwise-green day (the Patient must not breach silently). Unknown is honest — never a pass
+  and never 0. Reuses the diary's `macroIndicator`/`getNutrientMode`, so the planner judges a
+  day exactly as the entry page will once it's logged.
+- **Implemented in:** `lib/domain/plan/verdict.ts` (`planDayVerdict`),
+  `components/planner/PlannerClient.tsx` (`VerdictHanko`)
+
+### A user can compare what they planned against what they actually logged
+- **What it does:** Once a day is logged, the planner shows **plan vs actual** — a per-day
+  "Logged N kcal (+/− vs plan)" line and a week-level card with planned / logged / signed Δ per
+  nutrient.
+- **UI/UX considerations:** Week totals compare **only over days that were both planned and
+  logged** (one consistent denominator — no misleading mixed-basis delta); the per-day lines
+  show the full picture. Deltas use an explicit +/− and carry **no red/green** semantics (the
+  goal direction is the user's). A missing side reads "—", never 0.
+- **Implemented in:** `lib/domain/plan/compare.ts` (`comparePlanVsActual`),
+  `components/planner/PlannerClient.tsx` (`PlanVsActual`)
+
+> **Cross-cutting consequence:** the plan is first-class data (`meal_plans` +
+> `meal_plan_items`) entirely separate from logged `food_entries`. Applying writes normal log
+> rows tagged with provenance (`food_entries.source = 'plan'`, `plan_item_id`); this
+> provenance must survive `saveDailyEntry`'s delete+reinsert, or a later manual edit would
+> silently orphan an applied row.
+
+---
+
+## 10. Cross-cutting / global
 
 These apply across features rather than to one screen.
 
@@ -511,6 +632,11 @@ These apply across features rather than to one screen.
   lets a user learn "blue = protein" once.
 - **Responsive multi-column layouts.** The entry, foods, and meals screens use
   multi-column layouts that must reflow sensibly on narrow viewports.
+- **Plan is intent, the log is reality.** We read the label and log what we actually ate;
+  we never log from memory or for an unlived day. So the planner spans any week, but
+  turning a plan into a logged record (*apply*) is **today-only** — the only moment we know
+  what was eaten. The gap between intent and reality is surfaced by plan-vs-actual, never
+  papered over by a retroactive apply.
 - **Implemented in:** `app/globals.css`, `lib/constants.ts`,
   `components/nav/Navbar.tsx`, the various client components above.
 
@@ -533,3 +659,5 @@ they are the places a change most often breaks something far from where it was m
 | **Swap food in a logged entry** | Rewrites an entry's food, reinterprets the amount for the new unit model, recomputes nutrients | Inline swap selector (standalone rows & meal ingredients), per-item↔per-100g amount semantics, daily totals & calories card, macro bars |
 | **Copy yesterday** | Clones prior-day entries with fresh ids; appends to the current day | Copy-yesterday button, daily totals after copy, copied-row edit/delete independence from the source day, empty-source message |
 | **Recent foods in the selector** | A `food_entries` recency/frequency ranking pins a "Recent" section atop the list | Entry selector (un-searched vs searched states), recent de-dup vs alphabetical list, foods logged via meals appearing as recent |
+| **Plan provenance & idempotent apply** | Applying a plan writes log rows tagged `source`/`plan_item_id`; provenance must round-trip through `saveDailyEntry` and gate re-apply | Daily log after apply, re-apply (no duplicate rows), manual rows untouched by apply, plan-item delete keeps logged food, today-only apply guard, CSV source column (future) |
+| **Plan vs actual & honest denominators** | Weekly aggregates expose ÷7 vs ÷days-planned, unknown≠0, and compare only over days both planned and logged | Week-summary average + denominator toggle, per-day verdicts (unknown rendering), plan-vs-actual card (comparable-days basis, signed deltas with no red/green) |

@@ -137,6 +137,14 @@ Stable selectors/roles asserted by `tests/e2e/` — **do not rename**:
 (`food-search`, `amount-input`, `add-button`, `weight-*`, `date-picker`,
 `meal-*`, `save-meal`, `prev-day`/`next-day`).
 
+Weekly Planner (`/planner`): `.planner-week`, `.planner-day` (+ `.today`,
+`data-date`), `.planner-slot` (`data-slot`), `.planner-item` (+ `.applied`),
+`.planner-verdict` (`.met`/`.warn`/`.unknown`), `.planner-day-reason`,
+`.planner-week-summary`, `.planner-pva`, `.planner-distribution`; data-testids
+`planner-day-{i}`, `plan-item`, `apply-day`, `apply-slot-{slot}`, `paint-toggle`,
+`paint-panel`, `paint-meal`, `paint-slot`, `paint-day-{i}`, `paint-stamp`,
+`denom-toggle`.
+
 Shared primitives: `ui/Combobox` (keyboard nav; opens on click/typing,
 NEVER on programmatic focus — with ONE scoped exception: `startOpen`
 embedded mode, used by click-to-swap on a logged entry, opens + autofocuses
@@ -146,6 +154,12 @@ Enter/blur commit, Esc cancel), `ui/Toast` (settle in/out, 3s),
 `entry/NutrientPreview` (with targets → slim pigment channels mirroring the
 daily bars, the entry's slice of the day; without targets → ink dots),
 `entry/MacroProgressBars` (pigment channels incl. Energy, hanko verdicts).
+Planner adds: `planner/VerdictHanko` (per-day ✓ bamboo / ⚠ rust / quiet "unknown"
+stamp + headline kcal), `planner/WeekSummary` (avg/day with a ÷7|÷planned
+denominator toggle + per-day kcal distribution + per-nutrient avg-vs-target),
+`planner/PlanVsActual` (week planned/logged/Δ, signed with explicit +/−, no
+red/green), and the **paint "stamp"** flow (load meal → day chips → stamp; a
+deliberate press, never drag-and-drop).
 
 Interaction grammar shared across pages: focus returns to search after an
 add; explicit form-opens autofocus their first field; toasts are the one
