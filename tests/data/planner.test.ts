@@ -150,6 +150,9 @@ describe("week plan storage", () => {
   });
 
   it("clears a day", async () => {
+    const food = makeFood({ energy_kcal: 100 });
+    await saveFoodItem(db, userId, food);
+    await savePlanItem(db, userId, { weekStart: WEEK, planDate: THU, slot: "dinner", foodId: food.id, weightG: 100 });
     const plan = await loadWeekPlan(db, userId, WEEK);
     const before = plan.items.filter((i) => i.plan_date === THU).length;
     expect(before).toBeGreaterThan(0);

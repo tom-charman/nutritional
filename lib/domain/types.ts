@@ -100,11 +100,14 @@ export interface UserSettings {
 
 /**
  * Slots (breakfast/lunch/dinner/snack) were removed — a planned day is now a
- * single flat list. New rows carry this sentinel in the still-`NOT NULL` `slot`
- * column so no DB migration is needed; old rows keep their original slot string
- * and simply merge into the day's list. Nothing reads slot for grouping anymore.
+ * single flat list, so the `slot` column is vestigial. We keep writing a fixed
+ * value into it (the column is `NOT NULL` and a legacy CHECK still restricts it
+ * to the four slot names) purely to avoid a prod DB migration: deploys are
+ * code-only, so changing the column or constraint would be a manual, risky step.
+ * The value is arbitrary among the allowed set — "breakfast" — and nothing reads
+ * it for grouping. Old rows keep their original slot and merge into the same list.
  */
-export const FLAT_SLOT = "all";
+export const FLAT_SLOT = "breakfast";
 
 /**
  * One planned item on a day. References EITHER a meal template OR a single food.
