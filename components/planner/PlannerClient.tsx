@@ -652,8 +652,8 @@ function DayMacros({ planned, targets }: { planned: Nutrients | null; targets: D
               </span>
               <span className="planner-day-macro-val">{Math.round(v)}</span>
               <span className={`planner-day-macro-delta ${ind === "met" ? "met" : "miss"}`}>
-                {d >= 0 ? "+" : "−"}
-                {Math.abs(d)}
+                ({d >= 0 ? "+" : "−"}
+                {Math.abs(d)})
               </span>
             </span>
           );
@@ -703,33 +703,35 @@ function PlanItemRow({
   }
   return (
     <div className={`planner-item${item.applied ? " applied" : ""}`} data-testid="plan-item">
-      <span className="planner-item-name" title={name}>
-        {item.applied && (
-          <span className="planner-item-check" title="Logged from plan">✓</span>
-        )}
-        {name}
-      </span>
+      <div className="planner-item-main">
+        <span className="planner-item-name" title={name}>
+          {item.applied && (
+            <span className="planner-item-check" title="Logged from plan">✓</span>
+          )}
+          {name}
+        </span>
+        <span className="planner-item-controls">
+          <button
+            type="button"
+            className="planner-item-repeat"
+            aria-label={`Add ${name} to other days`}
+            title="Add to other days"
+            onClick={onRepeat}
+          >
+            ⤺
+          </button>
+          <button
+            type="button"
+            className="delete-icon"
+            aria-label={`Remove ${name}`}
+            onClick={onRemove}
+          >
+            ×
+          </button>
+        </span>
+      </div>
       <span className="planner-item-amount">
         <EditableAmount display={display} value={value} onSave={onEdit} onRemove={onRemove} />
-      </span>
-      <span className="planner-item-controls">
-        <button
-          type="button"
-          className="planner-item-repeat"
-          aria-label={`Add ${name} to other days`}
-          title="Add to other days"
-          onClick={onRepeat}
-        >
-          ⤺
-        </button>
-        <button
-          type="button"
-          className="delete-icon"
-          aria-label={`Remove ${name}`}
-          onClick={onRemove}
-        >
-          ×
-        </button>
       </span>
     </div>
   );
@@ -778,15 +780,23 @@ function PlanVsActual({ comparison }: { comparison: WeekComparison }) {
   );
 }
 
+/**
+ * At-a-glance day mark — icon only. The per-day macro strip already carries the
+ * kcal/macro deltas, so a word here ("Over"/"Under") was redundant AND misleading:
+ * a day far UNDER on energy but over one limit nutrient read as "Over". The icon
+ * (✓ all good / ⚠ something needs attention) keeps the glance; the tooltip names
+ * the specific reason. Empty days show nothing — the strip says "No plan yet".
+ */
 function VerdictHanko({ verdict }: { verdict: DayVerdict }) {
-  if (verdict.state === "unknown") {
-    return <span className="planner-verdict unknown">— plan</span>;
-  }
+  if (verdict.state === "unknown") return null;
   const met = verdict.state === "met";
   return (
-    <span className={`planner-verdict ${met ? "met" : "warn"}`} title={verdict.reason ?? undefined}>
-      <span className="planner-verdict-mark">{met ? "✓" : "⚠"}</span>
-      <span className="planner-verdict-label">{met ? "on target" : verdict.state}</span>
+    <span
+      className={`planner-verdict ${met ? "met" : "warn"}`}
+      title={verdict.reason ?? (met ? "On target" : undefined)}
+      aria-label={met ? "On target" : verdict.reason ?? "Needs attention"}
+    >
+      {met ? "✓" : "⚠"}
     </span>
   );
 }
