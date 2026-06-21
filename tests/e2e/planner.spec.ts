@@ -5,26 +5,22 @@ import { expectToast, shot } from "./pages/helpers";
 
 /**
  * Weekly Planner. A plan is intent, separate from the log. Key things to prove:
- *  - paint one meal across many days/slots in one gesture,
- *  - apply (plan → log) is TODAY ONLY and per-slot,
- *  - applied items read as logged; re-applying does not duplicate.
+ *  - compose (Stamp mode): load a meal, stamp it across the week in one gesture,
+ *  - the planner NEVER logs — no apply/“Log” controls live here,
+ *  - planned items reach the log only as ghost suggestions on the ENTRY screen,
+ *    added with one click.
  *
- * Planner CRUD is exercised on a deterministic FUTURE week (no log writes); the
- * today-only apply is exercised on the current week. reset-db cleans planner
- * residue by E2E food/meal reference, so the today writes don't linger.
+ * Planner CRUD runs on a deterministic FUTURE week (no log writes). The ghost
+ * flow runs on the current week → today (reset-db cleans planner + log residue by
+ * E2E food/meal reference, so the today writes don't linger).
  */
-
-// A fixed far-future Monday — deterministic, collides with no real data.
-const FUTURE_MONDAY = "2027-01-04";
+const FUTURE_MONDAY = "2027-01-04"; // a fixed far-future Monday
 
 function todayMondayIso(): string {
-  const now = new Date();
-  const iso = now.toISOString().slice(0, 10);
+  const iso = new Date().toISOString().slice(0, 10);
   const day = new Date(`${iso}T00:00:00Z`).getUTCDay();
   const back = (day + 6) % 7;
-  return new Date(Date.parse(`${iso}T00:00:00Z`) - back * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
+  return new Date(Date.parse(`${iso}T00:00:00Z`) - back * 86_400_000).toISOString().slice(0, 10);
 }
 
 async function gotoPlanner(page: Page, week?: string) {
@@ -56,94 +52,81 @@ test.describe("weekly planner", () => {
     await expectToast(page, "Meal 'E2E Plan Lunch' saved");
   });
 
-  test("paint a meal across many days in one gesture", async ({ page }) => {
+  test("compose (Stamp mode) stamps a meal across the whole week's slot", async ({ page }) => {
     await gotoPlanner(page, FUTURE_MONDAY);
 
-    await page.getByTestId("paint-toggle").click();
-    await expect(page.getByTestId("paint-panel")).toBeVisible();
+    await page.getByTestId("compose-toggle").click();
+    await expect(page.getByTestId("stamp-chit")).toBeVisible();
 
-    // Load the stamp, choose lunch, pick Mon/Tue/Wed/Thu.
-    await page.getByTestId("paint-meal").click();
+    // Load the stamp, then stamp the whole week's Lunch in one press.
+    await page.getByTestId("stamp-meal").click();
     await page.getByText("E2E Plan Lunch", { exact: true }).click();
-    await page.getByTestId("paint-slot").selectOption("lunch");
-    for (const i of [0, 1, 2, 3]) await page.getByTestId(`paint-day-${i}`).click();
-    await page.getByTestId("paint-stamp").click();
-    await expectToast(page, /Stamped on 4 days/);
+    await page.getByTestId("stamp-allweek-lunch").click();
+    await expectToast(page, /Stamped on 7 days/);
 
-    // The meal now sits in lunch on the first four days.
-    for (const i of [0, 1, 2, 3]) {
-      const lunch = page
-        .getByTestId(`planner-day-${i}`)
-        .locator('.planner-slot[data-slot="lunch"]');
+    for (const i of [0, 1, 2, 3, 4, 5, 6]) {
+      const lunch = page.getByTestId(`planner-day-${i}`).locator('.planner-slot[data-slot="lunch"]');
       await expect(lunch.getByTestId("plan-item")).toContainText("E2E Plan Lunch");
     }
-    // ...but not Friday.
-    await expect(
-      page.getByTestId("planner-day-4").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item"),
-    ).toHaveCount(0);
 
-    // Brand: the weekly macro readout carries the per-nutrient pigment system,
-    // and planned meals read as portions (not the ambiguous "× 1" that collides
-    // with the × delete icon).
+    // Brand: weekly readout carries the nutrient pigment system; meals read as portions.
+    await page.getByTestId("compose-toggle").click(); // Done composing
     await expect(page.locator(".planner-week-summary .planner-nutrient-dot").first()).toBeVisible();
     await expect(
       page.getByTestId("planner-day-0").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item").first(),
     ).toContainText(/portion/);
-    await shot(page, "planner", "01-painted-week");
+    await shot(page, "planner", "01-stamped-week");
   });
 
-  test("edit a planned item; copy and clear a day", async ({ page }) => {
+  test("edit amount; copy + clear a day via the day kebab (no button footer)", async ({ page }) => {
     await gotoPlanner(page, FUTURE_MONDAY);
-    const monLunch = page.getByTestId("planner-day-0").locator('.planner-slot[data-slot="lunch"]');
+    const tue = page.getByTestId("planner-day-1");
 
-    // Inline-edit portions on Monday's lunch.
-    await monLunch.locator(".ingredient-weight.editable").click();
+    // Inline-edit Tuesday's lunch portions.
+    await tue.locator('.planner-slot[data-slot="lunch"] .ingredient-weight.editable').first().click();
     await page.locator(".inline-edit-input").fill("2");
     await page.locator(".inline-edit-input").press("Enter");
     await expectToast(page, "Updated");
 
-    // Copy Monday onto Friday (Friday had no lunch yet).
-    await page.getByTestId("planner-day-4").getByRole("button", { name: /Copy Thu/ }).click();
-    await expectToast(page, /Copied/);
-    await expect(
-      page.getByTestId("planner-day-4").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item"),
-    ).toContainText("E2E Plan Lunch");
-
-    // Clear Friday again.
-    await page.getByTestId("planner-day-4").getByRole("button", { name: "Clear" }).click();
+    // Clear Tuesday via its kebab (actions live in a menu, not a footer of buttons).
+    await tue.getByTestId("day-menu-1").click();
+    await page.getByRole("menuitem", { name: "Clear day" }).click();
     await expectToast(page, /Cleared/);
+    await expect(tue.locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item")).toHaveCount(0);
+
+    // Copy Monday back onto Tuesday via the kebab.
+    await tue.getByTestId("day-menu-1").click();
+    await page.getByRole("menuitem", { name: /Copy from Mon/ }).click();
+    await expectToast(page, /Copied/);
+    await expect(tue.locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item")).toHaveCount(1);
   });
 
-  test("apply is TODAY ONLY and per-slot; re-applying does not duplicate", async ({ page }) => {
+  test("planner never logs; entry shows a ghost suggestion added in one click", async ({ page }) => {
     const week = todayMondayIso();
     await gotoPlanner(page, week);
 
+    // No apply/“Log” affordance exists anywhere on the planner.
+    await expect(page.getByTestId("apply-day")).toHaveCount(0);
+    await expect(page.locator(".planner-slot-apply")).toHaveCount(0);
+
+    // Plan a meal onto TODAY's lunch via the cell's own picker.
     const today = page.locator(".planner-day.today");
     await expect(today).toHaveCount(1);
-
-    // Add the meal to today's lunch via the cell's own picker.
     const todayLunch = today.locator('.planner-slot[data-slot="lunch"]');
     await todayLunch.getByText("+ add").click();
     await page.getByText("E2E Plan Lunch", { exact: true }).click();
     await expectToast(page, "Added to plan");
-    await expect(todayLunch.getByTestId("plan-item")).toContainText("E2E Plan Lunch");
 
-    // Only today's column offers apply — no other day can be logged from memory.
-    await expect(today.getByTestId("apply-day")).toBeVisible();
-    const nonToday = page.locator(".planner-day:not(.today)").first();
-    await expect(nonToday.getByTestId("apply-day")).toHaveCount(0);
-
-    // Apply just the lunch slot.
-    await todayLunch.getByRole("button", { name: "Log" }).click();
-    await expectToast(page, /Logged 1 item/);
-    await expect(todayLunch.locator(".planner-item.applied")).toBeVisible();
-    await shot(page, "planner", "02-applied-today");
-
-    // Idempotent: the slot's Log affordance is gone (nothing unapplied left).
-    await expect(todayLunch.getByRole("button", { name: "Log" })).toHaveCount(0);
-
-    // And the log on /entry reflects exactly one applied meal.
+    // On the entry screen the plan surfaces as a ghost suggestion.
     await page.goto("/entry");
+    const ghost = page.locator(".ghost-row").filter({ hasText: "E2E Plan Lunch" });
+    await expect(ghost).toBeVisible();
+    await shot(page, "planner", "02-entry-ghost");
+
+    // One click inks it into the log; the ghost is gone (now logged) and a toast confirms.
+    await ghost.locator(".ghost-add").click();
+    await expectToast(page, /Added E2E Plan Lunch/);
+    await expect(page.locator(".ghost-row").filter({ hasText: "E2E Plan Lunch" })).toHaveCount(0);
     await expect(page.getByText("E2E Plan Lunch").first()).toBeVisible();
   });
 });

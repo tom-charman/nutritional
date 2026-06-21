@@ -8,11 +8,13 @@ import {
   loadMeals,
   loadRecentFoods,
   loadUserSettings,
+  loadWeekPlan,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
 import { ROLLING_WINDOW_DAYS } from "@/lib/constants";
 import { prepareCaloriesWeight } from "@/lib/domain/charts/prepare";
 import { computeWeeklyReadout } from "@/lib/domain/summary/weekly";
+import { mondayOf } from "@/lib/domain/plan/week";
 
 export const dynamic = "force-dynamic";
 
@@ -31,15 +33,22 @@ export default async function EntryPage({
   if (date > today) date = today; // max allowed = today
 
   const userId = await requireUserId();
-  const [foods, meals, recentFoods, day, targets, allSummaries, settings] = await Promise.all([
-    loadFoodDatabase(db, userId),
-    loadMeals(db, userId),
-    loadRecentFoods(db, userId),
-    loadDailyEntry(db, userId, date),
-    getOrCreateDailyTargets(db, userId, date),
-    loadAllSummaries(db, userId),
-    loadUserSettings(db, userId),
-  ]);
+  const [foods, meals, recentFoods, day, targets, allSummaries, settings, weekPlan] =
+    await Promise.all([
+      loadFoodDatabase(db, userId),
+      loadMeals(db, userId),
+      loadRecentFoods(db, userId),
+      loadDailyEntry(db, userId, date),
+      getOrCreateDailyTargets(db, userId, date),
+      loadAllSummaries(db, userId),
+      loadUserSettings(db, userId),
+      loadWeekPlan(db, userId, mondayOf(date)),
+    ]);
+
+  // Planned-but-not-yet-logged items for THIS day surface on the entry screen as
+  // faint "ghost" suggestions the user adds with one click (the only bridge from
+  // plan → log; the planner itself never writes to the diary).
+  const planSuggestions = weekPlan.items.filter((it) => it.plan_date === date && !it.applied);
 
   // The weekly trend is a global readout (not date-specific): compute it as of
   // yesterday, since today is usually incomplete.
@@ -65,6 +74,7 @@ export default async function EntryPage({
       targets={targets}
       weeklyReadout={weeklyReadout}
       userSettings={settings}
+      planSuggestions={planSuggestions}
     />
   );
 }

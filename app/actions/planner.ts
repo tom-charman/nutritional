@@ -13,9 +13,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import {
   clearPlanDay,
+  clearPlanWeek,
   copyPlanDay,
   deletePlanItem,
   getFoodItem,
+  getPlanItem,
   loadWeekPlan,
   paintMealAcrossDays,
   savePlanItem,
@@ -134,6 +136,14 @@ export async function clearPlanDayAction(planDate: string): Promise<ActionResult
   return { ok: true, message: n === 0 ? "Day already empty" : `Cleared ${n} item${n === 1 ? "" : "s"}` };
 }
 
+/** Clear every planned item across a week. */
+export async function clearPlanWeekAction(weekStart: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const n = await clearPlanWeek(db, userId, weekStart);
+  revalidatePlanner();
+  return { ok: true, message: n === 0 ? "Week already empty" : `Cleared ${n} item${n === 1 ? "" : "s"}` };
+}
+
 // ============= Apply (plan → log) — TODAY ONLY =============
 
 export interface ApplyResult extends ActionResult {
@@ -189,4 +199,34 @@ export async function applyPlanDayAction(slot?: PlanSlot): Promise<ApplyResult> 
         ? "Nothing new to log for today"
         : `Logged ${applied} item${applied === 1 ? "" : "s"} for today`,
   };
+}
+
+/**
+ * Materialise ONE planned item into the log — the daily-entry "ghost suggestion"
+ * one-click add. Logs to the item's own plan_date (which the entry page only ever
+ * shows for today-or-past), guarded so a future day can't be logged. Idempotent:
+ * an already-applied item is a no-op.
+ */
+export async function applyPlanItemAction(itemId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const item = await getPlanItem(db, userId, itemId);
+  if (!item) return { ok: false, message: "Planned item not found" };
+  if (item.applied) return { ok: true, message: "Already logged" };
+  if (item.plan_date > todayIso()) {
+    return { ok: false, message: "You can only log a planned day once it arrives" };
+  }
+  const provenance = { source: "plan" as const, planItemId: item.id };
+  const name = item.ref.kind === "meal" ? item.ref.meal_name : item.ref.food_name;
+  const res =
+    item.ref.kind === "meal"
+      ? await addMealEntryAction(item.plan_date, item.ref.meal_id, item.ref.portions, provenance)
+      : await addFoodEntryAction(
+          item.plan_date,
+          item.ref.food_id,
+          (item.ref.weight_g ?? item.ref.quantity) as number,
+          provenance,
+        );
+  if (!res.ok) return res;
+  revalidatePath("/planner");
+  return { ok: true, message: `Added ${name}` };
 }

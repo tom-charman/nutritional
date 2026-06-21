@@ -37,7 +37,7 @@ vi.mock("@/lib/auth", () => {
 });
 
 import { addFoodEntryAction } from "@/app/actions/entry";
-import { applyPlanDayAction } from "@/app/actions/planner";
+import { applyPlanDayAction, applyPlanItemAction } from "@/app/actions/planner";
 
 let close: () => Promise<void>;
 let userId: string;
@@ -157,5 +157,48 @@ describe("applyPlanDayAction — today only, idempotent, non-destructive", () =>
       (e) => e.kind === "food" && e.entry.source !== "plan",
     ).length;
     expect(manualAfter).toBe(manualCount); // manual rows preserved
+  });
+});
+
+describe("applyPlanItemAction — the ghost one-click add", () => {
+  it("logs a single planned item to its day, idempotently", async () => {
+    const food = makeFood();
+    await saveFoodItem(h.db, userId, food);
+    const itemId = await savePlanItem(h.db, userId, {
+      weekStart: WEEK,
+      planDate: TODAY,
+      slot: "snack",
+      foodId: food.id,
+      weightG: 100,
+    });
+
+    const res = await applyPlanItemAction(itemId);
+    expect(res.ok).toBe(true);
+    const plan = await loadWeekPlan(h.db, userId, WEEK);
+    expect(plan.items.find((i) => i.id === itemId)!.applied).toBe(true);
+
+    // Idempotent: applying again is a no-op (no duplicate row).
+    const day1 = (await loadDailyEntry(h.db, userId, TODAY))!.entries.length;
+    const again = await applyPlanItemAction(itemId);
+    expect(again.ok).toBe(true);
+    const day2 = (await loadDailyEntry(h.db, userId, TODAY))!.entries.length;
+    expect(day2).toBe(day1);
+  });
+
+  it("refuses to log a future planned day", async () => {
+    const food = makeFood();
+    await saveFoodItem(h.db, userId, food);
+    const future = weekDates(mondayOf(TODAY)).find((d) => d > TODAY);
+    if (!future) return; // today is Sunday — no future day this week; skip
+    const itemId = await savePlanItem(h.db, userId, {
+      weekStart: WEEK,
+      planDate: future,
+      slot: "lunch",
+      foodId: food.id,
+      weightG: 100,
+    });
+    const res = await applyPlanItemAction(itemId);
+    expect(res.ok).toBe(false);
+    expect(await loadDailyEntry(h.db, userId, future)).toBeNull();
   });
 });

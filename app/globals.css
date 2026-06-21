@@ -3290,3 +3290,246 @@ button.ingredient-name-swap:hover {
     .planner-pva-head,
     .planner-pva-row { grid-template-columns: 1fr 4rem 4rem 5rem; }
 }
+
+/* ===== Weekly Planner — refined controls (redesign) ===== */
+/* Week stepper: reuse the daily-entry .date-stepper/.icon-button treatment so the
+   chevrons are identical. The heading matches the daily header's Fraunces optical size. */
+.planner-weeknav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+.planner-week-heading {
+    font-family: var(--font-display);
+    font-size: var(--font-size-2xl, 28px);
+    font-weight: 600;
+    font-variation-settings: "opsz" 60, "SOFT" 20;
+    color: var(--text-main);
+    margin: 0 var(--space-xs);
+}
+.planner-thisweek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 var(--space-xs);
+}
+.planner-thisweek:hover { color: var(--primary); }
+
+.planner-rail {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Stamp chit — the single piece of chrome for multi-day assignment. */
+.planner-stamp-chit {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+.planner-stamp-row {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.planner-stamp-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+}
+.planner-stamp-hint {
+    margin: 0;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+.planner-stamp-hint.muted { color: var(--text-muted); font-style: italic; }
+.planner-stamp-allweek {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+.planner-stamp-allweek-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-chip-btn {
+    height: 30px;
+    padding: 0 var(--space-md);
+    font-size: var(--font-size-xs, 12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: border-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-chip-btn:hover { border-color: var(--border-hover); }
+.planner-chip-btn:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+
+/* Receptive "stamp here" target shown in each slot while a stamp is loaded. */
+.planner.stamping .planner-slot { box-shadow: inset 0 0 0 1px var(--primary-light); border-radius: var(--radius-sm); }
+.planner-stamp-target {
+    align-self: stretch;
+    width: 100%;
+    padding: var(--space-xs) 0;
+    font-size: var(--font-size-xs, 12px);
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px dashed var(--border-hover);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-press),
+        transform var(--dur-instant) var(--ease-press);
+}
+.planner-stamp-target:hover { background: var(--surface); border-color: var(--primary); }
+.planner-stamp-target:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+
+/* Kebab menu — appears with NO animation (brand). */
+.planner-kebab { position: relative; display: inline-flex; }
+.planner-kebab-btn {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    cursor: pointer;
+}
+.planner-kebab-btn.compact { font-size: 16px; padding: 0 4px; }
+.planner-kebab-btn:hover { color: var(--text-body); border-color: var(--border); }
+.planner-kebab-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    min-width: 168px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-xs);
+    display: flex;
+    flex-direction: column;
+}
+.planner-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    cursor: pointer;
+    text-decoration: none;
+}
+.planner-menu-item:hover { background: var(--background); }
+.planner-menu-item.danger { color: var(--danger); }
+
+.planner-day-head-right { display: flex; align-items: center; gap: var(--space-xs); }
+
+/* Item controls: remove is revealed on hover (pointer devices); always shown on touch. */
+.planner-item-controls { display: inline-flex; align-items: center; gap: 2px; }
+.planner-item-repeat {
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+.planner-item-repeat:hover { color: var(--primary); }
+@media (hover: hover) {
+    .planner-item .planner-item-controls { opacity: 0; transition: opacity var(--dur-quick) var(--ease-press); }
+    .planner-item:hover .planner-item-controls,
+    .planner-item:focus-within .planner-item-controls { opacity: 1; }
+}
+
+/* ===== Daily Entry — plan "ghost" suggestions ===== */
+/* Planned-but-unlogged items, faint beneath the real logged rows. Indigo = intent
+   (the plan/primary pigment). Renders nothing when there's no plan. */
+.ghost-suggestions { margin-top: var(--space-md); }
+.ghost-suggestions-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+.ghost-slot { margin-bottom: var(--space-sm); }
+.ghost-slot-label {
+    display: block;
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-disabled);
+    margin: var(--space-xs) 0 2px;
+}
+.ghost-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 0 4px 2px;
+    border-left: 2px dashed var(--primary);
+    padding-left: var(--space-sm);
+}
+.ghost-add {
+    width: 20px;
+    height: 20px;
+    line-height: 1;
+    font-size: 15px;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity var(--dur-quick) var(--ease-press), transform var(--dur-instant) var(--ease-press);
+}
+.ghost-add:hover { opacity: 1; }
+.ghost-add:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+.ghost-add:disabled { opacity: 0.4; cursor: default; }
+.ghost-name {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ghost-amount,
+.ghost-kcal {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    font-feature-settings: "tnum";
+    color: var(--text-disabled);
+}
+.ghost-dismiss {
+    background: none;
+    border: none;
+    color: var(--text-disabled);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+.ghost-dismiss:hover { color: var(--danger); }

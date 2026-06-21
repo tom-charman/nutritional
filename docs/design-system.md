@@ -140,10 +140,14 @@ Stable selectors/roles asserted by `tests/e2e/` — **do not rename**:
 Weekly Planner (`/planner`): `.planner-week`, `.planner-day` (+ `.today`,
 `data-date`), `.planner-slot` (`data-slot`), `.planner-item` (+ `.applied`),
 `.planner-verdict` (`.met`/`.warn`/`.unknown`), `.planner-day-reason`,
-`.planner-week-summary`, `.planner-pva`, `.planner-distribution`; data-testids
-`planner-day-{i}`, `plan-item`, `apply-day`, `apply-slot-{slot}`, `paint-toggle`,
-`paint-panel`, `paint-meal`, `paint-slot`, `paint-day-{i}`, `paint-stamp`,
-`denom-toggle`.
+`.planner-week-summary`, `.planner-pva`, `.planner-distribution`, `.planner-stamp-target`,
+`.planner-kebab`; data-testids `planner-day-{i}`, `plan-item`, `denom-toggle`,
+week-nav `prev-week`/`next-week`, compose `compose-toggle` + `stamp-chit` +
+`stamp-meal` + `stamp-allweek-{slot}` + per-cell `stamp-{i}-{slot}`, kebabs
+`week-menu`/`day-menu-{i}` (no-animation menus, items are `role="menuitem"`).
+The planner has **no** apply/“Log” controls — logging happens only via the entry
+screen's ghost suggestions: `.ghost-suggestions`, `.ghost-row`, `.ghost-add`,
+`.ghost-dismiss` (testid `ghost-row`).
 
 Shared primitives: `ui/Combobox` (keyboard nav; opens on click/typing,
 NEVER on programmatic focus — with ONE scoped exception: `startOpen`
@@ -158,8 +162,10 @@ Planner adds: `planner/VerdictHanko` (per-day ✓ bamboo / ⚠ rust / quiet "unk
 stamp + headline kcal), `planner/WeekSummary` (avg/day with a ÷7|÷planned
 denominator toggle + per-day kcal distribution + per-nutrient avg-vs-target),
 `planner/PlanVsActual` (week planned/logged/Δ, signed with explicit +/−, no
-red/green), and the **paint "stamp"** flow (load meal → day chips → stamp; a
-deliberate press, never drag-and-drop).
+red/green), and **Stamp mode** (Compose → load a meal into a chit → press target
+cells, or stamp a whole week's slot; a deliberate press, never drag-and-drop, no
+wizard). Per-day/-week actions live in quiet **kebab** menus, not a button footer.
+The entry screen's `GhostSuggestions` shows planned items as faint one-click adds.
 
 Interaction grammar shared across pages: focus returns to search after an
 add; explicit form-opens autofocus their first field; toasts are the one

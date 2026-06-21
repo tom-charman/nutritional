@@ -369,11 +369,13 @@ source of "looks right for one kind of food, wrong for the other" bugs.
 > in one list. They must be visually distinguishable, and every row (grouped or not)
 > must stay individually editable and removable.
 
-> **Cross-cutting consequence (planner):** a logged row can now originate from the plan
-> (`source='plan'`, `plan_item_id`) when a day is applied (§9). Applied entries are ordinary
-> editable rows — swap, inline-edit, and remove all work, and the pre-commit limit alert
-> fires on them because they pass through the same `add*EntryAction`. A manual edit must
-> preserve provenance (it round-trips through `saveDailyEntry`).
+> **Cross-cutting consequence (planner):** the entry screen renders this day's planned-but-
+> unlogged items as faint **ghost suggestions** beneath the logged rows (§9); the one-click add
+> is the only bridge from plan → log. A logged row can therefore originate from the plan
+> (`source='plan'`, `plan_item_id`). Such rows are ordinary editable entries — swap, inline-edit,
+> and remove all work, and the pre-commit limit alert fires on them because they pass through the
+> same `add*EntryAction`. A manual edit must preserve provenance (it round-trips through
+> `saveDailyEntry`). When there is no plan for the day, no ghosts and no extra chrome appear.
 
 ---
 
@@ -539,16 +541,18 @@ to the log is *apply*, and it is deliberately constrained — see the philosophy
   (`addPlanMealAction`, `addPlanFoodAction`), `lib/data/storage.ts` (`savePlanItem`,
   `getOrCreatePlan`)
 
-### A user can paint one meal across many days at once
-- **What it does:** The keystone gesture for batch cooking — eating the same thing several
-  days running. "Paint a meal across days" loads a meal, a slot, and a row of day chips; one
-  **Stamp** drops that meal into the chosen slot on every selected day in a single action,
-  instead of re-adding it per day.
-- **UI/UX considerations:** The stamp is a deliberate, non-bouncy press (no drag-and-drop
-  theatrics — the brand's material honesty). The CTA counts selected days live ("Stamp on 4
-  days"); zero days is rejected with a clear message.
+### A user can compose one meal across many days at once (Stamp mode)
+- **What it does:** The keystone gesture for batch cooking — eating the same thing several days
+  running. **Compose** loads a meal into a "stamp", then you *press where it goes*: press any
+  slot to place it there, or press an **All week** slot button to stamp that slot across the
+  whole week — no day-chip wizard, no slot dropdown, no separate confirm. Each press is the commit.
+- **UI/UX considerations:** A single stamp chit is the only added chrome; the loaded meal +
+  portions are editable in place. The press is a deliberate, non-bouncy 1px deboss (no
+  drag-and-drop theatrics — the brand's material honesty). "Repeat" (⤺) on an existing planned
+  meal re-enters Stamp mode pre-loaded with that meal. Esc / "Done composing" exits.
 - **Implemented in:** `components/planner/PlannerClient.tsx`, `app/actions/planner.ts`
-  (`paintMealAcrossDaysAction`), `lib/data/storage.ts` (`paintMealAcrossDays`)
+  (`paintMealAcrossDaysAction` for a whole-week slot, `addPlanMealAction` per cell),
+  `lib/data/storage.ts` (`paintMealAcrossDays`)
 
 ### A user can copy, edit, remove, and clear planned items
 - **What it does:** Copy a whole planned day onto another; edit a planned item's amount
@@ -562,19 +566,21 @@ to the log is *apply*, and it is deliberately constrained — see the philosophy
   `lib/data/storage.ts` (`copyPlanDay`, `updatePlanItemAmount`, `deletePlanItem`,
   `clearPlanDay`)
 
-### A user can apply today's plan into the daily log
-- **What it does:** Turn intent into a logged record. **Apply is today-only** (the date is
-  the server's today, never client-supplied) and works **per slot or for the whole day**:
-  planned items become normal, editable `food_entries` via the same `addFoodEntryAction` /
-  `addMealEntryAction` the diary uses, stamped with their plan provenance.
-- **UI/UX considerations:** Apply is **idempotent** (re-applying logs nothing new — an
-  applied item is deduped by `plan_item_id`) and **non-destructive** (manually-logged food on
-  the day is never touched). The "Log" affordance appears **only on today's column** — you
-  can't log a past day from memory or an unlived future day. Applied items read as logged (✓)
-  in the grid.
-- **Implemented in:** `app/actions/planner.ts` (`applyPlanDayAction`), `app/actions/entry.ts`
-  (`addFoodEntryAction`/`addMealEntryAction` gain an optional `provenance` param), threaded
-  through `lib/data/storage.ts` (`saveDailyEntry` carries `source`/`plan_item_id`)
+### A user logs a planned item from the daily-entry screen (ghost suggestions)
+- **What it does:** The planner **never writes to the log** — it's the planner. Instead, a day's
+  planned-but-unlogged items surface on the **daily-entry** screen for that date as faint
+  "ghost" rows beneath the real logged entries; a single **+** inks one into the log (becoming a
+  normal editable entry stamped with its plan provenance), and a **×** dismisses a suggestion for
+  the day without touching the plan.
+- **UI/UX considerations:** Adding is **idempotent** (an applied item is deduped by
+  `plan_item_id` and stops suggesting) and **non-destructive** (manual rows are never touched).
+  It honours the today-cap: the entry screen only ever shows a date ≤ today, so you never log a
+  future day. **When a day has no plan, there are zero ghosts and zero new chrome** — the
+  fast-logging path and a non-planner's screen are unchanged.
+- **Implemented in:** `app/entry/page.tsx` (loads the day's plan via `loadWeekPlan`),
+  `components/entry/EntryClient.tsx` (`GhostSuggestions`), `app/actions/planner.ts`
+  (`applyPlanItemAction`) → reuses `addFoodEntryAction`/`addMealEntryAction` with a `provenance`
+  param, threaded through `lib/data/storage.ts` (`saveDailyEntry` carries `source`/`plan_item_id`)
 
 ### A user sees the week's macros while planning
 - **What it does:** A week-summary card shows total and **average per day**, with an explicit

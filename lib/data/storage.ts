@@ -1092,5 +1092,83 @@ export async function clearPlanDay(
   return deleted.length;
 }
 
+/** Fetch a single plan item (user-scoped) with computed nutrients, or null. */
+export async function getPlanItem(
+  db: DB,
+  userId: string,
+  itemId: string,
+): Promise<PlanItem | null> {
+  const rows = await db
+    .select()
+    .from(mealPlanItems)
+    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.userId, userId)))
+    .limit(1);
+  if (!rows.length) return null;
+  const row = rows[0];
+
+  // applied = a logged row already references this item on its plan_date.
+  const appliedRows = await db
+    .selectDistinct({ planItemId: foodEntries.planItemId })
+    .from(foodEntries)
+    .where(and(eq(foodEntries.userId, userId), eq(foodEntries.planItemId, itemId)))
+    .limit(1);
+  const applied = appliedRows.length > 0;
+
+  if (row.mealId) {
+    const meal = await getMeal(db, userId, row.mealId);
+    if (!meal) return null;
+    const portions = num(row.portions) ?? 1;
+    const nutrients = scaleNutrients(
+      sumNutrients(meal.ingredients.map((i) => i.nutrients)),
+      portions,
+    );
+    return {
+      id: row.id,
+      plan_date: row.planDate,
+      slot: row.slot as PlanSlot,
+      position: row.position,
+      ref: { kind: "meal", meal_id: meal.id, meal_name: meal.name, portions },
+      nutrients,
+      applied,
+    };
+  }
+  if (row.foodId) {
+    const food = await getFoodItem(db, userId, row.foodId);
+    if (!food) return null;
+    const weightG = num(row.weightG);
+    const quantity = num(row.quantity);
+    return {
+      id: row.id,
+      plan_date: row.planDate,
+      slot: row.slot as PlanSlot,
+      position: row.position,
+      ref: { kind: "food", food_id: food.id, food_name: food.name, weight_g: weightG, quantity },
+      nutrients: calculateNutrients(food, { weight_g: weightG, quantity }),
+      applied,
+    };
+  }
+  return null;
+}
+
+/** Remove every planned item across a week (user-scoped). Returns count. */
+export async function clearPlanWeek(
+  db: DB,
+  userId: string,
+  weekStart: string,
+): Promise<number> {
+  const dates = weekDates(weekStart);
+  const deleted = await db
+    .delete(mealPlanItems)
+    .where(
+      and(
+        eq(mealPlanItems.userId, userId),
+        gte(mealPlanItems.planDate, dates[0]),
+        lte(mealPlanItems.planDate, dates[dates.length - 1]),
+      ),
+    )
+    .returning({ id: mealPlanItems.id });
+  return deleted.length;
+}
+
 // keep NUTRIENT_KEYS referenced for editors that tree-shake unused imports
 export { NUTRIENT_KEYS };
