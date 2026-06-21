@@ -19,13 +19,12 @@ import {
   getFoodItem,
   getPlanItem,
   loadWeekPlan,
-  paintMealAcrossDays,
   savePlanItem,
   updatePlanItemAmount,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
 import { mondayOf } from "@/lib/domain/plan/week";
-import type { PlanSlot } from "@/lib/domain/types";
+import { FLAT_SLOT } from "@/lib/domain/types";
 import { addFoodEntryAction, addMealEntryAction, type ActionResult } from "@/app/actions/entry";
 
 function todayIso(): string {
@@ -38,44 +37,49 @@ function revalidatePlanner(): void {
 
 // ============= Plan CRUD (no log side-effects) =============
 
-/** Add a meal template to a (day, slot) cell. */
-export async function addPlanMealAction(
+/**
+ * Add one meal or food to a plan across one or more days — the single add path
+ * behind the planner's add panel (it replaced the old per-cell adds and the
+ * Stamp gesture). `optionKey` is the combobox value: "meal:<id>" or "food:<id>".
+ * `amount` is portions for a meal, grams or item-count for a food.
+ */
+export async function addPlanItemsAcrossDaysAction(
   weekStart: string,
-  planDate: string,
-  slot: PlanSlot,
-  mealId: string,
-  portions: number,
-): Promise<ActionResult> {
-  if (!(portions > 0)) return { ok: false, message: "Please enter valid portions" };
-  const userId = await requireUserId();
-  await savePlanItem(db, userId, { weekStart, planDate, slot, mealId, portions });
-  revalidatePlanner();
-  return { ok: true, message: "Added to plan" };
-}
-
-/** Add a single food to a (day, slot) cell (amount = grams or item count). */
-export async function addPlanFoodAction(
-  weekStart: string,
-  planDate: string,
-  slot: PlanSlot,
-  foodId: string,
+  dates: string[],
+  optionKey: string,
   amount: number,
 ): Promise<ActionResult> {
+  if (!dates.length) return { ok: false, message: "Pick at least one day" };
   if (!(amount > 0)) return { ok: false, message: "Please enter an amount" };
   const userId = await requireUserId();
-  const food = await getFoodItem(db, userId, foodId);
-  if (!food) return { ok: false, message: "Food item not found" };
-  const isPerItem = food.unit_type === "per_item";
-  await savePlanItem(db, userId, {
-    weekStart,
-    planDate,
-    slot,
-    foodId,
-    weightG: isPerItem ? null : amount,
-    quantity: isPerItem ? amount : null,
-  });
+
+  if (optionKey.startsWith("meal:")) {
+    const mealId = optionKey.slice(5);
+    for (const planDate of dates) {
+      await savePlanItem(db, userId, { weekStart, planDate, slot: FLAT_SLOT, mealId, portions: amount });
+    }
+  } else if (optionKey.startsWith("food:")) {
+    const foodId = optionKey.slice(5);
+    const food = await getFoodItem(db, userId, foodId);
+    if (!food) return { ok: false, message: "Food item not found" };
+    const isPerItem = food.unit_type === "per_item";
+    for (const planDate of dates) {
+      await savePlanItem(db, userId, {
+        weekStart,
+        planDate,
+        slot: FLAT_SLOT,
+        foodId,
+        weightG: isPerItem ? null : amount,
+        quantity: isPerItem ? amount : null,
+      });
+    }
+  } else {
+    return { ok: false, message: "Unknown item" };
+  }
+
   revalidatePlanner();
-  return { ok: true, message: "Added to plan" };
+  const n = dates.length;
+  return { ok: true, message: `Added to ${n} day${n === 1 ? "" : "s"}` };
 }
 
 /** Edit a planned item's amount (portions for a meal, grams/count for a food). */
@@ -112,22 +116,6 @@ export async function copyPlanDayAction(
   return { ok: true, message: n === 0 ? "Nothing to copy" : `Copied ${n} item${n === 1 ? "" : "s"}` };
 }
 
-/** Stamp one meal into `slot` across many days (the keystone "paint" gesture). */
-export async function paintMealAcrossDaysAction(
-  weekStart: string,
-  mealId: string,
-  portions: number,
-  slot: PlanSlot,
-  dates: string[],
-): Promise<ActionResult> {
-  if (!(portions > 0)) return { ok: false, message: "Please enter valid portions" };
-  if (!dates.length) return { ok: false, message: "Pick at least one day" };
-  const userId = await requireUserId();
-  const n = await paintMealAcrossDays(db, userId, weekStart, mealId, portions, slot, dates);
-  revalidatePlanner();
-  return { ok: true, message: `Stamped on ${n} day${n === 1 ? "" : "s"}` };
-}
-
 /** Clear all planned items from a day. */
 export async function clearPlanDayAction(planDate: string): Promise<ActionResult> {
   const userId = await requireUserId();
@@ -161,7 +149,7 @@ export interface ApplyResult extends ActionResult {
  * because each item is materialised through the normal add*EntryAction path
  * (load day → push → saveDailyEntry), which preserves existing rows.
  */
-export async function applyPlanDayAction(slot?: PlanSlot): Promise<ApplyResult> {
+export async function applyPlanDayAction(slot?: string): Promise<ApplyResult> {
   const userId = await requireUserId();
   const today = todayIso();
   const weekStart = mondayOf(today);

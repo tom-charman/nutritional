@@ -98,20 +98,25 @@ export interface UserSettings {
   hide_weekly_panel: boolean;
 }
 
-/** Meal slots a planned day is divided into. */
-export type PlanSlot = "breakfast" | "lunch" | "dinner" | "snack";
-export const PLAN_SLOTS: PlanSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+/**
+ * Slots (breakfast/lunch/dinner/snack) were removed — a planned day is now a
+ * single flat list. New rows carry this sentinel in the still-`NOT NULL` `slot`
+ * column so no DB migration is needed; old rows keep their original slot string
+ * and simply merge into the day's list. Nothing reads slot for grouping anymore.
+ */
+export const FLAT_SLOT = "all";
 
 /**
- * One planned item in a (day, slot) cell. References EITHER a meal template OR a
- * single food. `nutrients` is computed server-side (never persisted); `applied`
- * is true when a logged food_entries row already references this item.
+ * One planned item on a day. References EITHER a meal template OR a single food.
+ * `nutrients` is computed server-side (never persisted); `applied` is true when a
+ * logged food_entries row already references this item.
  */
 export interface PlanItem {
   id: string;
   /** ISO date (YYYY-MM-DD) */
   plan_date: string;
-  slot: PlanSlot;
+  /** Retained for storage compatibility; not used for grouping (see FLAT_SLOT). */
+  slot: string;
   position: number;
   ref:
     | { kind: "meal"; meal_id: string; meal_name: string; portions: number }

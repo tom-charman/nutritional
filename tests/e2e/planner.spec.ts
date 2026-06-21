@@ -5,7 +5,9 @@ import { expectToast, shot } from "./pages/helpers";
 
 /**
  * Weekly Planner. A plan is intent, separate from the log. Key things to prove:
- *  - compose (Stamp mode): load a meal, stamp it across the week in one gesture,
+ *  - the add panel mirrors daily entry: pick item → quantity up front → choose
+ *    day(s) → Add (one flow; no breakfast/lunch/dinner slots, no Stamp mode),
+ *  - a day is one flat list; the same food across days reads identically,
  *  - the planner NEVER logs — no apply/“Log” controls live here,
  *  - planned items reach the log only as ghost suggestions on the ENTRY screen,
  *    added with one click.
@@ -26,6 +28,14 @@ function todayMondayIso(): string {
 async function gotoPlanner(page: Page, week?: string) {
   await page.goto(week ? `/planner?week=${week}` : "/planner");
   await expect(page.locator(".planner-week")).toBeVisible();
+}
+
+/** Pick an item in the add panel and set its quantity (mirrors daily entry). */
+async function selectInPanel(page: Page, optionLabel: string, amount: string) {
+  await page.getByTestId("planner-food-search").click();
+  await page.getByTestId("planner-food-search").fill(optionLabel);
+  await page.getByText(`${optionLabel} (meal)`, { exact: true }).click();
+  await page.getByTestId("planner-amount").fill(amount);
 }
 
 test.describe("weekly planner", () => {
@@ -52,38 +62,35 @@ test.describe("weekly planner", () => {
     await expectToast(page, "Meal 'E2E Plan Lunch' saved");
   });
 
-  test("compose (Stamp mode) stamps a meal across the whole week's slot", async ({ page }) => {
+  test("add panel adds a meal across every day in one flow", async ({ page }) => {
     await gotoPlanner(page, FUTURE_MONDAY);
 
-    await page.getByTestId("compose-toggle").click();
-    await expect(page.getByTestId("stamp-chit")).toBeVisible();
+    await selectInPanel(page, "E2E Plan Lunch", "1");
+    await page.getByTestId("days-every").click();
+    await page.getByTestId("planner-add-btn").click();
+    await expectToast(page, /Added to 7 days/);
 
-    // Load the stamp, then stamp the whole week's Lunch in one press.
-    await page.getByTestId("stamp-meal").click();
-    await page.getByText("E2E Plan Lunch", { exact: true }).click();
-    await page.getByTestId("stamp-allweek-lunch").click();
-    await expectToast(page, /Stamped on 7 days/);
-
+    // Same meal lands on every day; each renders identically as a portion.
     for (const i of [0, 1, 2, 3, 4, 5, 6]) {
-      const lunch = page.getByTestId(`planner-day-${i}`).locator('.planner-slot[data-slot="lunch"]');
-      await expect(lunch.getByTestId("plan-item")).toContainText("E2E Plan Lunch");
+      const day = page.getByTestId(`planner-day-${i}`);
+      await expect(day.locator(".planner-day-items").getByTestId("plan-item")).toContainText(
+        "E2E Plan Lunch",
+      );
+      await expect(day.getByTestId("plan-item").first()).toContainText(/portion/);
     }
 
-    // Brand: weekly readout carries the nutrient pigment system; meals read as portions.
-    await page.getByTestId("compose-toggle").click(); // Done composing
+    // Brand: weekly readout carries the nutrient pigment system; each day shows kcal.
     await expect(page.locator(".planner-week-summary .planner-nutrient-dot").first()).toBeVisible();
-    await expect(
-      page.getByTestId("planner-day-0").locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item").first(),
-    ).toContainText(/portion/);
-    await shot(page, "planner", "01-stamped-week");
+    await expect(page.getByTestId("planner-day-0").getByTestId("day-strip")).toContainText("kcal");
+    await shot(page, "planner", "01-week-planned");
   });
 
   test("edit amount; copy + clear a day via the day kebab (no button footer)", async ({ page }) => {
     await gotoPlanner(page, FUTURE_MONDAY);
     const tue = page.getByTestId("planner-day-1");
 
-    // Inline-edit Tuesday's lunch portions.
-    await tue.locator('.planner-slot[data-slot="lunch"] .ingredient-weight.editable').first().click();
+    // Inline-edit Tuesday's first item's portions.
+    await tue.locator(".planner-day-items .ingredient-weight.editable").first().click();
     await page.locator(".inline-edit-input").fill("2");
     await page.locator(".inline-edit-input").press("Enter");
     await expectToast(page, "Updated");
@@ -92,13 +99,13 @@ test.describe("weekly planner", () => {
     await tue.getByTestId("day-menu-1").click();
     await page.getByRole("menuitem", { name: "Clear day" }).click();
     await expectToast(page, /Cleared/);
-    await expect(tue.locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item")).toHaveCount(0);
+    await expect(tue.getByTestId("plan-item")).toHaveCount(0);
 
     // Copy Monday back onto Tuesday via the kebab.
     await tue.getByTestId("day-menu-1").click();
     await page.getByRole("menuitem", { name: /Copy from Mon/ }).click();
     await expectToast(page, /Copied/);
-    await expect(tue.locator('.planner-slot[data-slot="lunch"]').getByTestId("plan-item")).toHaveCount(1);
+    await expect(tue.getByTestId("plan-item")).toHaveCount(1);
   });
 
   test("planner never logs; entry shows a ghost suggestion added in one click", async ({ page }) => {
@@ -107,15 +114,14 @@ test.describe("weekly planner", () => {
 
     // No apply/“Log” affordance exists anywhere on the planner.
     await expect(page.getByTestId("apply-day")).toHaveCount(0);
-    await expect(page.locator(".planner-slot-apply")).toHaveCount(0);
 
-    // Plan a meal onto TODAY's lunch via the cell's own picker.
+    // Plan a meal onto TODAY only: the today card's "+ add" preselects that day.
     const today = page.locator(".planner-day.today");
     await expect(today).toHaveCount(1);
-    const todayLunch = today.locator('.planner-slot[data-slot="lunch"]');
-    await todayLunch.getByText("+ add").click();
-    await page.getByText("E2E Plan Lunch", { exact: true }).click();
-    await expectToast(page, "Added to plan");
+    await today.getByText("+ add").click();
+    await selectInPanel(page, "E2E Plan Lunch", "1");
+    await page.getByTestId("planner-add-btn").click();
+    await expectToast(page, /Added to 1 day/);
 
     // On the entry screen the plan surfaces as a ghost suggestion.
     await page.goto("/entry");

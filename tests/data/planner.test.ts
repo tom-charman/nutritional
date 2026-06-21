@@ -7,7 +7,6 @@ import {
   copyPlanDay,
   deletePlanItem,
   loadWeekPlan,
-  paintMealAcrossDays,
   savePlanItem,
   saveDailyEntry,
   saveFoodItem,
@@ -113,19 +112,6 @@ describe("week plan storage", () => {
     await expect(
       savePlanItem(db, userId, { weekStart: WEEK, planDate: MON, slot: "lunch" }),
     ).rejects.toThrow();
-  });
-
-  it("paints a meal across many days in one call", async () => {
-    const food = makeFood({ name: "Chili base", energy_kcal: 120 });
-    await saveFoodItem(db, userId, food);
-    const meal = await seedMeal("Chili", food, 100);
-
-    const n = await paintMealAcrossDays(db, userId, WEEK, meal.id, 1, "lunch", [MON, TUE, WED, THU]);
-    expect(n).toBe(4);
-
-    const plan = await loadWeekPlan(db, userId, WEEK);
-    const lunches = plan.items.filter((i) => i.slot === "lunch" && i.ref.kind === "meal");
-    expect(lunches.map((i) => i.plan_date).sort()).toEqual([MON, TUE, WED, THU]);
   });
 
   it("edits an item amount in place", async () => {

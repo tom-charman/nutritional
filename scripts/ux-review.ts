@@ -498,22 +498,25 @@ async function run(vp: Viewport): Promise<void> {
     await settle();
     await shot("planner", "plan-vs-actual", true);
   });
-  await step("planner.paint", async () => {
+  await step("planner.addpanel", async () => {
+    // The single add flow: pick an item, set the quantity up front, choose days.
     await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
-    await page.getByTestId("paint-toggle").click();
-    await page.waitForSelector('[data-testid="paint-panel"]');
-    await page.getByTestId("paint-meal").click();
+    await page.waitForSelector('[data-testid="add-panel"]');
+    await page.getByTestId("planner-food-search").click();
     await page.locator(".combobox-option").first().click().catch(() => {});
-    await page.getByTestId("paint-day-0").click();
-    await page.getByTestId("paint-day-1").click();
     await settle();
-    await shot("planner", "paint-panel");
+    await shot("planner", "add-panel-selected");
+    await page.getByTestId("days-weekdays").click().catch(() => {});
+    await settle();
+    await shot("planner", "add-panel-days");
   });
-  await step("planner.addcell", async () => {
+  await step("planner.daystrip", async () => {
+    // Per-day macro strip: kcal + deltas to target, the heart of day planning.
     await page.goto(`${BASE}/planner?week=${PLANNER_WEEK}`);
-    await page.locator('[data-testid^="add-open-"]').first().click();
+    await page.waitForSelector('[data-testid="day-strip"]');
+    await page.getByTestId("planner-day-0").scrollIntoViewIfNeeded();
     await settle();
-    await shot("planner", "add-cell-combobox");
+    await shot("planner", "day-macro-strip");
   });
   await step("planner.current", async () => {
     // Default (current) week — today's column carries the today-only apply affordance.

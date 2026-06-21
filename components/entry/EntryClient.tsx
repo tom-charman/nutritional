@@ -30,13 +30,11 @@ import {
 import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
 import { calorieStatus } from "@/lib/domain/targets";
 import {
-  PLAN_SLOTS,
   type DailyData,
   type DailyTargets,
   type FoodItem,
   type Meal,
   type PlanItem,
-  type PlanSlot,
   type UserSettings,
 } from "@/lib/domain/types";
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
@@ -693,13 +691,6 @@ function QuickAddForm({
   );
 }
 
-const GHOST_SLOT_LABELS: Record<PlanSlot, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snacks",
-};
-
 function ghostAmount(item: PlanItem): string {
   const r = item.ref;
   if (r.kind === "meal") return `${r.portions} portion${r.portions === 1 ? "" : "s"}`;
@@ -725,50 +716,52 @@ function GhostSuggestions({
   onDismiss: (id: string) => void;
 }) {
   if (suggestions.length === 0) return null;
-  const groups = PLAN_SLOTS.map((slot) => ({
-    slot,
-    items: suggestions.filter((s) => s.slot === slot),
-  })).filter((g) => g.items.length > 0);
+  // Flat list (slots were removed), meals first then foods, each A→Z by name —
+  // the same stable order the planner uses, so the suggestions read consistently.
+  const items = [...suggestions].sort((a, b) => {
+    const ak = a.ref.kind === "meal" ? 0 : 1;
+    const bk = b.ref.kind === "meal" ? 0 : 1;
+    if (ak !== bk) return ak - bk;
+    const an = (a.ref.kind === "meal" ? a.ref.meal_name : a.ref.food_name).toLowerCase();
+    const bn = (b.ref.kind === "meal" ? b.ref.meal_name : b.ref.food_name).toLowerCase();
+    return an < bn ? -1 : an > bn ? 1 : a.id < b.id ? -1 : 1;
+  });
   return (
     <div className="ghost-suggestions" data-testid="ghost-suggestions">
       <div className="ghost-suggestions-label">From your plan</div>
-      {groups.map(({ slot, items }) => (
-        <div key={slot} className="ghost-slot">
-          <span className="ghost-slot-label">{GHOST_SLOT_LABELS[slot]}</span>
-          {items.map((item) => {
-            const name =
-              item.ref.kind === "meal" ? item.ref.meal_name : item.ref.food_name;
-            return (
-              <div key={item.id} className="ghost-row" data-testid="ghost-row">
-                <button
-                  type="button"
-                  className="ghost-add"
-                  aria-label={`Add ${name} to the log`}
-                  title={`Add ${name}`}
-                  disabled={pending}
-                  onClick={() => onAdd(item)}
-                >
-                  +
-                </button>
-                <span className="ghost-name" title={name}>
-                  {name}
-                </span>
-                <span className="ghost-amount">{ghostAmount(item)}</span>
-                <span className="ghost-kcal">{Math.round(item.nutrients.energy_kcal)} kcal</span>
-                <button
-                  type="button"
-                  className="ghost-dismiss"
-                  aria-label={`Dismiss ${name}`}
-                  title="Not eating this — hide for today"
-                  onClick={() => onDismiss(item.id)}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+      <div className="ghost-slot">
+        {items.map((item) => {
+          const name = item.ref.kind === "meal" ? item.ref.meal_name : item.ref.food_name;
+          return (
+            <div key={item.id} className="ghost-row" data-testid="ghost-row">
+              <button
+                type="button"
+                className="ghost-add"
+                aria-label={`Add ${name} to the log`}
+                title={`Add ${name}`}
+                disabled={pending}
+                onClick={() => onAdd(item)}
+              >
+                +
+              </button>
+              <span className="ghost-name" title={name}>
+                {name}
+              </span>
+              <span className="ghost-amount">{ghostAmount(item)}</span>
+              <span className="ghost-kcal">{Math.round(item.nutrients.energy_kcal)} kcal</span>
+              <button
+                type="button"
+                className="ghost-dismiss"
+                aria-label={`Dismiss ${name}`}
+                title="Not eating this — hide for today"
+                onClick={() => onDismiss(item.id)}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

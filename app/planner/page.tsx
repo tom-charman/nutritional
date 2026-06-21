@@ -5,6 +5,7 @@ import {
   loadAllSummaries,
   loadFoodDatabase,
   loadMeals,
+  loadRecentFoods,
   loadWeekPlan,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
@@ -33,10 +34,11 @@ export default async function PlannerPage({
   const weekStart = mondayOf(requested);
 
   const userId = await requireUserId();
-  const [week, meals, foods, targets, allSummaries] = await Promise.all([
+  const [week, meals, foods, recentFoods, targets, allSummaries] = await Promise.all([
     loadWeekPlan(db, userId, weekStart),
     loadMeals(db, userId),
     loadFoodDatabase(db, userId),
+    loadRecentFoods(db, userId),
     // PR2: one effective targets set (today's) drives per-day verdicts. Per-weekday
     // carb-cycling targets are a later phase (#7).
     getOrCreateDailyTargets(db, userId, today),
@@ -61,6 +63,7 @@ export default async function PlannerPage({
       initialWeek={week}
       meals={meals}
       foods={foods}
+      recentFoods={recentFoods}
       aggregate={aggregate}
       verdicts={verdicts}
       targets={targets}

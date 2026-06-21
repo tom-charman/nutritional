@@ -2848,67 +2848,94 @@ button.ingredient-name-swap:hover {
     margin: 0;
 }
 
-/* Paint panel — load a meal, choose a slot, stamp it across selected days. */
-.planner-paint {
+/* Add panel — one flow: pick item → quantity up front → choose day(s) → Add. */
+.planner-add-panel {
     padding: var(--space-lg);
     margin-bottom: var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
 }
-.planner-paint-row {
+.planner-add-row {
     display: flex;
     gap: var(--space-md);
     align-items: flex-end;
     flex-wrap: wrap;
 }
-.planner-paint-field {
+.planner-add-row .combobox {
+    flex: 1 1 280px;
+    min-width: 220px;
+}
+.planner-add-amount {
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+}
+.planner-add-amount .form-label-sm {
     font-size: var(--font-size-sm, 13px);
     color: var(--text-muted);
 }
-.planner-amount-input,
-.planner-paint-field select {
-    height: 36px;
-    width: 110px;
-    font-family: var(--font-mono);
-    font-size: var(--font-size-sm, 13px);
-    padding: 0 var(--space-sm);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.05);
-}
-.planner-paint-days {
+.planner-add-amount .form-control { width: 170px; }
+
+.planner-add-days {
     display: flex;
-    gap: var(--space-sm);
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+.planner-add-days-label {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-daychips {
+    display: flex;
+    gap: var(--space-xs);
     flex-wrap: wrap;
 }
 /* Day chips behave like detented switches: pressed = inked indigo. */
-.planner-day-chip {
-    height: 32px;
-    padding: 0 var(--space-md);
-    font-family: var(--font-mono);
-    font-size: var(--font-size-xs, 12px);
+.planner-daychip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+    min-width: 42px;
+    padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
-    color: var(--text-body);
     cursor: pointer;
     transition: background-color var(--dur-quick) var(--ease-press),
         border-color var(--dur-quick) var(--ease-press),
         transform var(--dur-instant) var(--ease-press);
 }
-.planner-day-chip:hover { border-color: var(--border-hover); }
-.planner-day-chip:active { transform: translateY(1px); }
-.planner-day-chip.selected {
+.planner-daychip:hover { border-color: var(--border-hover); }
+.planner-daychip:active { transform: translateY(1px); }
+.planner-daychip-name {
+    font-size: var(--font-size-tiny, 11px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.planner-daychip-num {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm, 13px);
+    color: var(--text-body);
+}
+.planner-daychip.today { border-color: var(--primary); }
+.planner-daychip.on {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
     box-shadow: var(--shadow-press);
 }
+.planner-daychip.on .planner-daychip-name,
+.planner-daychip.on .planner-daychip-num { color: #fff; }
+.planner-add-quick { display: flex; gap: var(--space-xs); }
+.planner-add-btn { margin-left: auto; }
+.planner-add-preview { margin-top: var(--space-xs); }
 
 .planner-empty-aside {
     font-family: var(--font-display);
@@ -2965,40 +2992,74 @@ button.ingredient-name-swap:hover {
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
-.planner-day-kcal {
-    font-family: var(--font-mono);
+/* Per-day macro strip: kcal vs target up front, then P/C/F; limits only if over. */
+.planner-day-strip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--border);
+}
+.planner-day-strip.empty {
+    color: var(--text-disabled);
+    font-style: italic;
     font-size: var(--font-size-xs, 12px);
+    padding: var(--space-sm) 0;
+}
+.planner-day-kcal {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: var(--font-mono);
     font-feature-settings: "tnum";
+}
+.planner-day-kcal-val {
+    font-size: var(--font-size-lg, 18px);
+    font-weight: 600;
+    color: var(--text-main);
+}
+.planner-day-kcal-unit {
+    font-size: var(--font-size-tiny, 11px);
     color: var(--text-muted);
 }
-
-.planner-slot {
+.planner-day-kcal-delta {
+    margin-left: auto;
+    font-size: var(--font-size-xs, 12px);
+}
+.planner-day-kcal-delta.under { color: var(--text-muted); }
+.planner-day-kcal-delta.over { color: var(--danger); }
+.planner-day-macros {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+.planner-day-macro {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+    font-size: var(--font-size-xs, 12px);
+}
+.planner-day-macro-key { font-weight: 700; }
+.planner-day-macro-val { color: var(--text-body); }
+.planner-day-macro-delta.met { color: var(--success); }
+.planner-day-macro-delta.miss { color: var(--text-muted); }
+.planner-day-limits {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-.planner-slot-head {
+.planner-day-limit.warn {
+    font-size: var(--font-size-tiny, 11px);
+    color: var(--danger);
+}
+
+.planner-day-items {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 2px;
 }
-.planner-slot-label {
-    font-size: var(--font-size-tiny, 11px);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--text-disabled);
-}
-.planner-slot-apply {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-tiny, 11px);
-    color: var(--primary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0 2px;
-}
-.planner-slot-apply:hover { text-decoration: underline; }
 
 /* A planned item: debossed ruled line; applied = bamboo ink. */
 .planner-item {
@@ -3034,8 +3095,11 @@ button.ingredient-name-swap:hover {
     color: var(--text-muted);
 }
 
+/* "+ add" pins to the bottom so every day card ends on the same line — the
+   uniform structure that lets identical days read as aligned columns. */
 .planner-add {
     align-self: flex-start;
+    margin-top: auto;
     font-size: var(--font-size-xs, 12px);
     color: var(--text-disabled);
     background: none;
@@ -3044,14 +3108,6 @@ button.ingredient-name-swap:hover {
     padding: 2px 0;
 }
 .planner-add:hover { color: var(--primary); }
-
-.planner-day-foot {
-    margin-top: auto;
-    padding-top: var(--space-sm);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-}
 
 /* Mobile: a 7-column grid is unusable on a phone — stack into a day-list. */
 @media (max-width: 768px) {
@@ -3204,19 +3260,10 @@ button.ingredient-name-swap:hover {
     font-feature-settings: "tnum";
 }
 .planner-verdict.unknown { color: var(--text-disabled); font-style: normal; }
-.planner-verdict.met .planner-verdict-kcal { color: var(--text-muted); }
-.planner-verdict.warn .planner-verdict-kcal { color: var(--text-muted); }
+.planner-verdict-label { color: var(--text-muted); text-transform: capitalize; }
 .planner-verdict-mark { font-weight: 700; }
 .planner-verdict.met .planner-verdict-mark { color: var(--success); }
 .planner-verdict.warn .planner-verdict-mark { color: var(--danger); }
-
-/* Specific, never-buried reason line under a flagged day. */
-.planner-day-reason {
-    margin: 0 0 2px;
-    font-size: var(--font-size-tiny, 11px);
-    line-height: 1.3;
-    color: var(--danger);
-}
 
 @media (max-width: 768px) {
     .planner-nutrient-rows { grid-template-columns: 1fr; }
@@ -3224,18 +3271,6 @@ button.ingredient-name-swap:hover {
 }
 
 /* ---- Weekly Planner: plan vs actual (PR3) ---- */
-.planner-day-actual {
-    margin: 0 0 2px;
-    font-size: var(--font-size-tiny, 11px);
-    color: var(--text-muted);
-}
-.planner-day-actual .mono,
-.planner-delta {
-    font-family: var(--font-mono);
-    font-feature-settings: "tnum";
-}
-.planner-delta { color: var(--text-body); }
-
 .planner-pva {
     padding: var(--space-lg);
     margin-top: var(--space-lg);
@@ -3315,46 +3350,7 @@ button.ingredient-name-swap:hover {
     gap: var(--space-sm);
 }
 
-/* Stamp chit — the single piece of chrome for multi-day assignment. */
-.planner-stamp-chit {
-    padding: var(--space-lg);
-    margin-bottom: var(--space-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-.planner-stamp-row {
-    display: flex;
-    gap: var(--space-md);
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-.planner-stamp-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-    font-size: var(--font-size-sm, 13px);
-    color: var(--text-muted);
-}
-.planner-stamp-hint {
-    margin: 0;
-    font-size: var(--font-size-sm, 13px);
-    color: var(--text-body);
-}
-.planner-stamp-hint.muted { color: var(--text-muted); font-style: italic; }
-.planner-stamp-allweek {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-}
-.planner-stamp-allweek-label {
-    font-size: var(--font-size-tiny, 11px);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--text-muted);
-}
+/* Quick day-range buttons in the add panel (Every day / Weekdays / Clear). */
 .planner-chip-btn {
     height: 30px;
     padding: 0 var(--space-md);
@@ -3369,24 +3365,7 @@ button.ingredient-name-swap:hover {
 }
 .planner-chip-btn:hover { border-color: var(--border-hover); }
 .planner-chip-btn:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
-
-/* Receptive "stamp here" target shown in each slot while a stamp is loaded. */
-.planner.stamping .planner-slot { box-shadow: inset 0 0 0 1px var(--primary-light); border-radius: var(--radius-sm); }
-.planner-stamp-target {
-    align-self: stretch;
-    width: 100%;
-    padding: var(--space-xs) 0;
-    font-size: var(--font-size-xs, 12px);
-    color: var(--primary);
-    background: var(--primary-light);
-    border: 1px dashed var(--border-hover);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--dur-quick) var(--ease-press),
-        transform var(--dur-instant) var(--ease-press);
-}
-.planner-stamp-target:hover { background: var(--surface); border-color: var(--primary); }
-.planner-stamp-target:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+.planner-chip-btn.ghost { color: var(--text-muted); border-style: dashed; }
 
 /* Kebab menu — appears with NO animation (brand). */
 .planner-kebab { position: relative; display: inline-flex; }
