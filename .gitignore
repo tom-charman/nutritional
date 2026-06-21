@@ -17,8 +17,11 @@ database/.db_password
 *.sql.gz
 *.dump
 
-# EXCEPT: Keep schema and setup files (not backups)
+# EXCEPT: Keep schema, setup, and migration files (not backups)
 !database/init.sql
+!database/create_db.sql
+!database/migrations/
+!database/migrations/*.sql
 !database/create_db.sql
 
 # Credentials & Secrets

@@ -4,10 +4,11 @@ import type { DB } from "@/lib/data/storage";
 import { loadUserSettings, saveUserSettings } from "@/lib/data/storage";
 
 let db: DB;
+let userId: string;
 let close: () => Promise<void>;
 
 beforeAll(async () => {
-  ({ db, close } = await createTestDb());
+  ({ db, userId, close } = await createTestDb());
 });
 
 afterAll(async () => {
@@ -16,7 +17,7 @@ afterAll(async () => {
 
 describe("user settings storage", () => {
   it("returns the seeded default row", async () => {
-    const s = await loadUserSettings(db);
+    const s = await loadUserSettings(db, userId);
     expect(s).toEqual({
       goal_weight_kg: null,
       weekly_rate_target_kg: null,
@@ -27,52 +28,52 @@ describe("user settings storage", () => {
   });
 
   it("upserts on the fixed single row (id = 1)", async () => {
-    await saveUserSettings(db, {
+    await saveUserSettings(db, userId, {
       goal_weight_kg: 78,
       weekly_rate_target_kg: -0.5,
       start_weight_kg: 84.2,
       start_date: "2026-01-01",
       hide_weekly_panel: false,
     });
-    const s = await loadUserSettings(db);
+    const s = await loadUserSettings(db, userId);
     expect(s.goal_weight_kg).toBe(78);
     expect(s.weekly_rate_target_kg).toBe(-0.5);
     expect(s.start_weight_kg).toBe(84.2);
     expect(s.start_date).toBe("2026-01-01");
 
     // A second save updates the same row rather than inserting a new one.
-    await saveUserSettings(db, {
+    await saveUserSettings(db, userId, {
       goal_weight_kg: 75,
       weekly_rate_target_kg: null,
       start_weight_kg: 84.2,
       start_date: "2026-01-01",
       hide_weekly_panel: false,
     });
-    const s2 = await loadUserSettings(db);
+    const s2 = await loadUserSettings(db, userId);
     expect(s2.goal_weight_kg).toBe(75);
     expect(s2.weekly_rate_target_kg).toBeNull();
   });
 
   it("persists the hide-weekly-panel flag", async () => {
-    await saveUserSettings(db, {
+    await saveUserSettings(db, userId, {
       goal_weight_kg: 75,
       weekly_rate_target_kg: null,
       start_weight_kg: null,
       start_date: null,
       hide_weekly_panel: true,
     });
-    expect((await loadUserSettings(db)).hide_weekly_panel).toBe(true);
+    expect((await loadUserSettings(db, userId)).hide_weekly_panel).toBe(true);
   });
 
   it("clears the goal back to nulls", async () => {
-    await saveUserSettings(db, {
+    await saveUserSettings(db, userId, {
       goal_weight_kg: null,
       weekly_rate_target_kg: null,
       start_weight_kg: null,
       start_date: null,
       hide_weekly_panel: false,
     });
-    const s = await loadUserSettings(db);
+    const s = await loadUserSettings(db, userId);
     expect(s.goal_weight_kg).toBeNull();
     expect(s.start_weight_kg).toBeNull();
   });

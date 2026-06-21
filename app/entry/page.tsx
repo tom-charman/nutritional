@@ -9,6 +9,7 @@ import {
   loadRecentFoods,
   loadUserSettings,
 } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import { ROLLING_WINDOW_DAYS } from "@/lib/constants";
 import { prepareCaloriesWeight } from "@/lib/domain/charts/prepare";
 import { computeWeeklyReadout } from "@/lib/domain/summary/weekly";
@@ -29,14 +30,15 @@ export default async function EntryPage({
   let date = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : today;
   if (date > today) date = today; // max allowed = today
 
+  const userId = await requireUserId();
   const [foods, meals, recentFoods, day, targets, allSummaries, settings] = await Promise.all([
-    loadFoodDatabase(db),
-    loadMeals(db),
-    loadRecentFoods(db),
-    loadDailyEntry(db, date),
-    getOrCreateDailyTargets(db, date),
-    loadAllSummaries(db),
-    loadUserSettings(db),
+    loadFoodDatabase(db, userId),
+    loadMeals(db, userId),
+    loadRecentFoods(db, userId),
+    loadDailyEntry(db, userId, date),
+    getOrCreateDailyTargets(db, userId, date),
+    loadAllSummaries(db, userId),
+    loadUserSettings(db, userId),
   ]);
 
   // The weekly trend is a global readout (not date-specific): compute it as of

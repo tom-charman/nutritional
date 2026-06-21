@@ -33,12 +33,17 @@ const FOODS: FoodItem[] = [
 ];
 
 async function main() {
-  for (const f of FOODS) await saveFoodItem(db, f);
+  // Ensure a dev user exists and own all seeded data with it.
+  await sql`INSERT INTO users (email, name) VALUES ('dev@example.com', 'Dev User') ON CONFLICT (email) DO NOTHING`;
+  const [userRow] = await sql`SELECT id FROM users WHERE email = 'dev@example.com'`;
+  const userId = userRow.id as string;
+
+  for (const f of FOODS) await saveFoodItem(db, userId, f);
   console.log(`Seeded ${FOODS.length} foods`);
 
   // a meal template
   const mealId = randomUUID();
-  await sql`INSERT INTO meals (id, name) VALUES (${mealId}, 'Oats & Banana') ON CONFLICT (name) DO NOTHING`;
+  await sql`INSERT INTO meals (id, user_id, name) VALUES (${mealId}, ${userId}, 'Oats & Banana') ON CONFLICT (user_id, name) DO NOTHING`;
   await sql`INSERT INTO meal_ingredients (meal_id, food_id, weight_g) VALUES (${mealId}, ${FOODS[0].id}, 60)`;
   await sql`INSERT INTO meal_ingredients (meal_id, food_id, quantity) VALUES (${mealId}, ${FOODS[1].id}, 1)`;
   console.log("Seeded 1 meal template");
@@ -66,8 +71,8 @@ async function main() {
         },
       };
     });
-    await saveDailyEntry(db, { date, entries, measurements: { morning_weight_kg: null, evening_weight_kg: null } });
-    await updateMeasurements(db, date, {
+    await saveDailyEntry(db, userId, { date, entries, measurements: { morning_weight_kg: null, evening_weight_kg: null } });
+    await updateMeasurements(db, userId, date, {
       morning_weight_kg: 71 - i * 0.03 + Math.sin(i / 3) * 0.4,
       evening_weight_kg: 71.8 - i * 0.03 + Math.sin(i / 3) * 0.4,
     });

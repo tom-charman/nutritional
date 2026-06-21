@@ -35,10 +35,20 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
+  // In the local AUTH_DISABLED bypass (dev/e2e) there is no session, but the
+  // account menu (and its Export action) must still render — surface the test
+  // user so the nav matches the signed-in experience.
+  const authDisabled =
+    process.env.AUTH_DISABLED === "true" && process.env.NODE_ENV !== "production";
+  const user = session?.user
+    ? { name: session.user.name, email: session.user.email }
+    : authDisabled
+      ? { name: null, email: process.env.TEST_USER_EMAIL ?? null }
+      : null;
   return (
     <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <Navbar signedIn={Boolean(session?.user)} />
+        <Navbar user={user} />
         <main className="app-container">{children}</main>
       </body>
     </html>

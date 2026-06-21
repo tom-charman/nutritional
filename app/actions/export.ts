@@ -16,6 +16,7 @@ import {
   loadDailyEntry,
   loadMeals,
 } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import {
   prepareCaloriesWeight,
   prepareMacroBreakdown,
@@ -63,8 +64,8 @@ function rangeIndices(dates: string[], from: string, to: string): number[] {
   return out;
 }
 
-async function summariesUpToYesterday() {
-  const all = await loadAllSummaries(db);
+async function summariesUpToYesterday(userId: string) {
+  const all = await loadAllSummaries(db, userId);
   const yesterday = yesterdayIso();
   return all.filter((s) => s.date <= yesterday);
 }
@@ -77,7 +78,8 @@ export async function exportCaloriesWeightCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const data = prepareCaloriesWeight(await summariesUpToYesterday(), ROLLING_WINDOW_DAYS);
+  const userId = await requireUserId();
+  const data = prepareCaloriesWeight(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const headers = [
     "date",
     "calories_avg_kcal",
@@ -101,7 +103,8 @@ export async function exportMacroBreakdownCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const data = prepareMacroBreakdown(await summariesUpToYesterday(), ROLLING_WINDOW_DAYS);
+  const userId = await requireUserId();
+  const data = prepareMacroBreakdown(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const headers = [
     "date",
     "protein_cal",
@@ -129,7 +132,8 @@ export async function exportNutrientsRdiCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const data = prepareNutrientsRdi(await summariesUpToYesterday(), ROLLING_WINDOW_DAYS);
+  const userId = await requireUserId();
+  const data = prepareNutrientsRdi(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const keys = Object.keys(data.series);
   const headers = ["date", ...keys.map((k) => `${k}_pct_rdi`)];
   const rows: CsvValue[][] = rangeIndices(data.dates, from, to).map((i) => [
@@ -152,12 +156,13 @@ export async function exportDailyTotalsCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const summaries = (await summariesUpToYesterday()).filter(
+  const userId = await requireUserId();
+  const summaries = (await summariesUpToYesterday(userId)).filter(
     (s) => s.date >= from && s.date <= to,
   );
   const targetsByDate: Record<string, DailyTargets> = {};
   for (const s of summaries) {
-    targetsByDate[s.date] = await getOrCreateDailyTargets(db, s.date);
+    targetsByDate[s.date] = await getOrCreateDailyTargets(db, userId, s.date);
   }
 
   const { headers, rows } = buildDailyTotalsRows(summaries, targetsByDate);
@@ -172,6 +177,7 @@ export async function exportDailyEntriesCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
+  const userId = await requireUserId();
   const headers = [
     "date",
     "timestamp",
@@ -190,7 +196,7 @@ export async function exportDailyEntriesCsv(
     t += 86_400_000
   ) {
     const date = new Date(t).toISOString().slice(0, 10);
-    const day = await loadDailyEntry(db, date);
+    const day = await loadDailyEntry(db, userId, date);
     if (!day) continue;
     for (const e of day.entries) {
       if (e.kind === "food") {
@@ -226,7 +232,8 @@ export async function exportDailyEntriesCsv(
 
 /** Meal templates — one row per ingredient. Ignores the date range. */
 export async function exportMealsCsv(): Promise<ExportResult> {
-  const meals = await loadMeals(db);
+  const userId = await requireUserId();
+  const meals = await loadMeals(db, userId);
   const headers = [
     "meal_name",
     "food_name",

@@ -32,21 +32,29 @@ function entrySignature(day: NonNullable<Awaited<ReturnType<typeof loadDailyEntr
   return rows.sort().join("\n");
 }
 
+async function getUserId(): Promise<string> {
+  const [existing] = await sql`SELECT id FROM users ORDER BY created_at LIMIT 1`;
+  if (existing) return existing.id as string;
+  const [inserted] = await sql`INSERT INTO users (email, name) VALUES ('parity@example.com', 'Parity User') RETURNING id`;
+  return inserted.id as string;
+}
+
 async function main() {
-  const dates = await getAllDates(db);
+  const userId = await getUserId();
+  const dates = await getAllDates(db, userId);
   const sample = dates.filter((_, i) => i % Math.max(1, Math.floor(dates.length / N)) === 0).slice(0, N);
 
   let failures = 0;
   for (const date of sample) {
-    const before = await loadDailyEntry(db, date);
+    const before = await loadDailyEntry(db, userId, date);
     if (!before) continue;
-    const summariesBefore = (await loadAllSummaries(db)).find((s) => s.date === date);
+    const summariesBefore = (await loadAllSummaries(db, userId)).find((s) => s.date === date);
     const sigBefore = entrySignature(before);
 
-    await saveDailyEntry(db, before); // unchanged round-trip
+    await saveDailyEntry(db, userId, before); // unchanged round-trip
 
-    const after = await loadDailyEntry(db, date);
-    const summariesAfter = (await loadAllSummaries(db)).find((s) => s.date === date);
+    const after = await loadDailyEntry(db, userId, date);
+    const summariesAfter = (await loadAllSummaries(db, userId)).find((s) => s.date === date);
     const sigAfter = after ? entrySignature(after) : "";
 
     if (sigBefore !== sigAfter) {

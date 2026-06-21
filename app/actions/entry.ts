@@ -18,6 +18,7 @@ import {
   saveDailyTargets,
   updateMeasurements,
 } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import { calculateNutrients } from "@/lib/domain/nutrients";
 import type { DailyData, DailyTargets, DayEntry, FoodEntry } from "@/lib/domain/types";
 import type { Nutrients } from "@/lib/constants";
@@ -28,9 +29,9 @@ export interface ActionResult {
   message: string;
 }
 
-async function loadOrEmptyDay(date: string): Promise<DailyData> {
+async function loadOrEmptyDay(userId: string, date: string): Promise<DailyData> {
   return (
-    (await loadDailyEntry(db, date)) ?? {
+    (await loadDailyEntry(db, userId, date)) ?? {
       date,
       entries: [],
       measurements: { morning_weight_kg: null, evening_weight_kg: null },
@@ -52,7 +53,8 @@ export async function addFoodEntryAction(
   if (!Number.isFinite(amount) || amount <= 0) {
     return { ok: false, message: "Please enter an amount" };
   }
-  const food = await getFoodItem(db, foodId);
+  const userId = await requireUserId();
+  const food = await getFoodItem(db, userId, foodId);
   if (!food) return { ok: false, message: "Food item not found" };
 
   const isPerItem = food.unit_type === "per_item";
@@ -71,9 +73,9 @@ export async function addFoodEntryAction(
     nutrients,
   };
 
-  const day = await loadOrEmptyDay(date);
+  const day = await loadOrEmptyDay(userId, date);
   day.entries.push({ kind: "food", entry });
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return { ok: true, message: `Added ${food.name}` };
 }
@@ -115,13 +117,14 @@ export async function addMealEntryAction(
   if (!Number.isFinite(portions) || portions <= 0) {
     return { ok: false, message: "Please enter valid portions" };
   }
-  const meal = await getMeal(db, mealId);
+  const userId = await requireUserId();
+  const meal = await getMeal(db, userId, mealId);
   if (!meal) return { ok: false, message: "Meal not found" };
 
   // Each ingredient scaled by portions and stored as an independent FoodEntry
   const ingredients: FoodEntry[] = [];
   for (const ing of meal.ingredients) {
-    const food = await getFoodItem(db, ing.food_id);
+    const food = await getFoodItem(db, userId, ing.food_id);
     if (!food) continue;
     const scaledWeight = ing.weight_g !== null ? ing.weight_g * portions : null;
     const scaledQuantity = ing.quantity !== null ? ing.quantity * portions : null;
@@ -143,7 +146,7 @@ export async function addMealEntryAction(
     return { ok: false, message: "Meal has no valid ingredients" };
   }
 
-  const day = await loadOrEmptyDay(date);
+  const day = await loadOrEmptyDay(userId, date);
   day.entries.push({
     kind: "meal",
     entry: {
@@ -154,7 +157,7 @@ export async function addMealEntryAction(
       ingredients,
     },
   });
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return {
     ok: true,
@@ -171,7 +174,8 @@ export async function editMealPortionsAction(
   if (!Number.isFinite(newPortions) || newPortions <= 0) {
     return { ok: false, message: "Please enter valid portions" };
   }
-  const day = await loadDailyEntry(db, date);
+  const userId = await requireUserId();
+  const day = await loadDailyEntry(db, userId, date);
   if (!day) return { ok: false, message: "No entries for this date" };
 
   const target = day.entries.find(
@@ -185,7 +189,7 @@ export async function editMealPortionsAction(
   const factor = newPortions / old;
 
   for (const ing of target.entry.ingredients) {
-    const food = await getFoodItem(db, ing.food_id);
+    const food = await getFoodItem(db, userId, ing.food_id);
     if (!food) continue;
     ing.weight_g = ing.weight_g !== null ? ing.weight_g * factor : null;
     ing.quantity = ing.quantity !== null ? ing.quantity * factor : null;
@@ -196,7 +200,7 @@ export async function editMealPortionsAction(
   }
   target.entry.portions = newPortions;
 
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return { ok: true, message: `Updated ${target.entry.meal_name}` };
 }
@@ -217,7 +221,8 @@ export async function copyDayEntriesAction(
       .toISOString()
       .slice(0, 10);
 
-  const source = await loadDailyEntry(db, from);
+  const userId = await requireUserId();
+  const source = await loadDailyEntry(db, userId, from);
   if (!source || source.entries.length === 0) {
     return { ok: false, message: `Nothing to copy from ${from}` };
   }
@@ -243,9 +248,9 @@ export async function copyDayEntriesAction(
         },
   );
 
-  const day = await loadOrEmptyDay(targetDate);
+  const day = await loadOrEmptyDay(userId, targetDate);
   day.entries.push(...clones);
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return {
     ok: true,
@@ -264,10 +269,11 @@ export async function swapFoodEntryAction(
   entryId: string,
   newFoodId: string,
 ): Promise<ActionResult> {
-  const food = await getFoodItem(db, newFoodId);
+  const userId = await requireUserId();
+  const food = await getFoodItem(db, userId, newFoodId);
   if (!food) return { ok: false, message: "Food item not found" };
 
-  const day = await loadDailyEntry(db, date);
+  const day = await loadDailyEntry(db, userId, date);
   if (!day) return { ok: false, message: "No entries for this date" };
 
   let swapped = false;
@@ -290,7 +296,7 @@ export async function swapFoodEntryAction(
   }
   if (!swapped) return { ok: false, message: "Entry not found" };
 
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return { ok: true, message: `Swapped to ${food.name}` };
 }
@@ -304,7 +310,8 @@ export async function editEntryAmountAction(
   if (!Number.isFinite(newAmount) || newAmount <= 0) {
     return { ok: false, message: "Please enter a valid amount" };
   }
-  const day = await loadDailyEntry(db, date);
+  const userId = await requireUserId();
+  const day = await loadDailyEntry(db, userId, date);
   if (!day) return { ok: false, message: "No entries for this date" };
 
   let updatedName: string | null = null;
@@ -313,7 +320,7 @@ export async function editEntryAmountAction(
       e.kind === "food" ? [e.entry] : e.entry.ingredients;
     for (const fe of targets) {
       if (fe.entry_id !== entryId) continue;
-      const food = await getFoodItem(db, fe.food_id);
+      const food = await getFoodItem(db, userId, fe.food_id);
       if (!food) return { ok: false, message: "Food item not found" };
       const isPerItem = food.unit_type === "per_item";
       fe.weight_g = isPerItem ? null : newAmount;
@@ -327,7 +334,7 @@ export async function editEntryAmountAction(
   }
   if (!updatedName) return { ok: false, message: "Entry not found" };
 
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return { ok: true, message: `Updated ${updatedName}` };
 }
@@ -337,7 +344,8 @@ export async function removeEntryAction(
   date: string,
   ref: { entryId?: string; mealLogId?: string },
 ): Promise<ActionResult> {
-  const day = await loadDailyEntry(db, date);
+  const userId = await requireUserId();
+  const day = await loadDailyEntry(db, userId, date);
   if (!day) return { ok: false, message: "No entries for this date" };
 
   let removed = false;
@@ -370,7 +378,7 @@ export async function removeEntryAction(
     return { ok: false, message: "Entry not found" };
   }
 
-  await saveDailyEntry(db, day);
+  await saveDailyEntry(db, userId, day);
   revalidate();
   return { ok: true, message: "Entry removed" };
 }
@@ -390,7 +398,8 @@ export async function updateWeightAction(
   }
   const weight = clearing ? null : value;
 
-  await updateMeasurements(db, date, {
+  const userId = await requireUserId();
+  await updateMeasurements(db, userId, date, {
     morning_weight_kg: which === "morning" ? weight : undefined,
     evening_weight_kg: which === "evening" ? weight : undefined,
   });
@@ -411,12 +420,14 @@ export async function saveTargetsAction(targets: DailyTargets): Promise<ActionRe
       return { ok: false, message: "Targets must be zero or greater" };
     }
   }
-  await saveDailyTargets(db, targets);
+  const userId = await requireUserId();
+  await saveDailyTargets(db, userId, targets);
   revalidate();
   return { ok: true, message: "Targets saved" };
 }
 
 /** "Copy Previous Targets" — explicit stickiness fetch for the modal. */
 export async function getTargetsForDateAction(date: string): Promise<DailyTargets> {
-  return getOrCreateDailyTargets(db, date);
+  const userId = await requireUserId();
+  return getOrCreateDailyTargets(db, userId, date);
 }

@@ -15,9 +15,17 @@ const INIT_SQL = readFileSync(
   "utf-8",
 );
 
-export async function createTestDb(): Promise<{ db: DB; close: () => Promise<void> }> {
+export async function createTestDb(): Promise<{
+  db: DB;
+  userId: string;
+  close: () => Promise<void>;
+}> {
   const pglite = new PGlite({ extensions: { pgcrypto } });
   await pglite.exec(INIT_SQL);
   const db = drizzle(pglite, { schema }) as unknown as DB;
-  return { db, close: () => pglite.close() };
+  const [u] = await db
+    .insert(schema.users)
+    .values({ email: "test@example.com", name: "Test User" })
+    .returning({ id: schema.users.id });
+  return { db, userId: u.id, close: () => pglite.close() };
 }

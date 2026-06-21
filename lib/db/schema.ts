@@ -5,7 +5,12 @@
  * database already exists and `updated_at` is maintained by DB triggers —
  * NEVER run drizzle-kit push/migrate against it. CHECK constraints live in
  * the DB (see init.sql); application code validates before insert.
+ *
+ * MULTI-USER: every user-owned table carries `userId`. `food_items` is a shared
+ * canonical set (`userId` NULL) plus each user's copy-on-write diff (`userId` =
+ * them; `canonicalId` set only on an override of a canonical row).
  */
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -14,18 +19,30 @@ import {
   date,
   timestamp,
   index,
-  integer,
+  uniqueIndex,
   boolean,
 } from "drizzle-orm/pg-core";
 
 /** DECIMAL(8,2) nutrient column helper (NOT NULL). */
 const nutrient = (name: string) => numeric(name, { precision: 8, scale: 2 });
 
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const foodItems = pgTable(
   "food_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: varchar("name", { length: 255 }).notNull().unique(),
+    /** NULL = canonical/shared; otherwise the owning user. */
+    userId: uuid("user_id").references(() => users.id),
+    /** Set only on a user's override — the canonical row it shadows. */
+    canonicalId: uuid("canonical_id"),
+    name: varchar("name", { length: 255 }).notNull(),
     unitType: varchar("unit_type", { length: 20 }).notNull().default("per_100g"),
     servingSizeG: numeric("serving_size_g", { precision: 8, scale: 2 }),
     energyKcal: nutrient("energy_kcal").notNull(),
@@ -40,13 +57,25 @@ export const foodItems = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (t) => [index("idx_food_items_name").on(t.name)],
+  (t) => [
+    index("idx_food_items_name").on(t.name),
+    index("idx_food_items_user_id").on(t.userId),
+    index("idx_food_items_canonical_id").on(t.canonicalId),
+    // Canonical names unique among canonical rows; per-user names unique per user.
+    uniqueIndex("food_items_canonical_name")
+      .on(t.name)
+      .where(sql`user_id IS NULL`),
+    uniqueIndex("food_items_user_name")
+      .on(t.userId, t.name)
+      .where(sql`user_id IS NOT NULL`),
+  ],
 );
 
 export const foodEntries = pgTable(
   "food_entries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id),
     entryDate: date("entry_date").notNull(),
     timestamp: timestamp("timestamp").notNull(),
     foodId: uuid("food_id").references(() => foodItems.id),
@@ -71,6 +100,7 @@ export const foodEntries = pgTable(
   },
   (t) => [
     index("idx_food_entries_entry_date").on(t.entryDate),
+    index("idx_food_entries_user_date").on(t.userId, t.entryDate),
     index("idx_food_entries_food_id").on(t.foodId),
     index("idx_food_entries_meal_id").on(t.mealId),
     index("idx_food_entries_meal_log_id").on(t.mealLogId),
@@ -81,7 +111,8 @@ export const dailySummaries = pgTable(
   "daily_summaries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    summaryDate: date("summary_date").notNull().unique(),
+    userId: uuid("user_id").references(() => users.id),
+    summaryDate: date("summary_date").notNull(),
     // Nutrients are NULLABLE: a day with no entries stores NULL (never 0),
     // and weights-only rows exist.
     energyKcal: nutrient("energy_kcal"),
@@ -98,14 +129,18 @@ export const dailySummaries = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (t) => [index("idx_daily_summaries_summary_date").on(t.summaryDate)],
+  (t) => [
+    index("idx_daily_summaries_summary_date").on(t.summaryDate),
+    uniqueIndex("daily_summaries_user_date").on(t.userId, t.summaryDate),
+  ],
 );
 
 export const dailyTargets = pgTable(
   "daily_targets",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    targetDate: date("target_date").notNull().unique(),
+    userId: uuid("user_id").references(() => users.id),
+    targetDate: date("target_date").notNull(),
     defaultMode: varchar("default_mode", { length: 10 }).notNull().default("target"),
     energyKcal: nutrient("energy_kcal").notNull().default("2000"),
     proteinG: nutrient("protein_g").notNull().default("150"),
@@ -128,28 +163,36 @@ export const dailyTargets = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (t) => [index("idx_daily_targets_target_date").on(t.targetDate)],
+  (t) => [
+    index("idx_daily_targets_target_date").on(t.targetDate),
+    uniqueIndex("daily_targets_user_date").on(t.userId, t.targetDate),
+  ],
 );
 
 export const meals = pgTable(
   "meals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: varchar("name", { length: 255 }).notNull().unique(),
+    userId: uuid("user_id").references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (t) => [index("idx_meals_name").on(t.name)],
+  (t) => [
+    index("idx_meals_user_id").on(t.userId),
+    uniqueIndex("meals_user_name").on(t.userId, t.name),
+  ],
 );
 
 /**
- * Cross-day user settings — the first config table NOT keyed by date.
- * Single-row by design (the app is single-user): the DB enforces `id = 1` via a
- * CHECK constraint (see init.sql), and all app writes upsert on that fixed id.
- * Forward-compatible for roadmap #7 (target presets) via added nullable columns.
+ * Cross-user settings — one row per user, keyed by `userId`. (Was a single-row
+ * table fixed at `id = 1` in the single-user era; the prod migration performs
+ * the PK swap for existing databases.)
  */
 export const userSettings = pgTable("user_settings", {
-  id: integer("id").primaryKey().default(1),
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
   goalWeightKg: numeric("goal_weight_kg", { precision: 5, scale: 2 }),
   weeklyRateTargetKg: numeric("weekly_rate_target_kg", { precision: 4, scale: 2 }),
   startWeightKg: numeric("start_weight_kg", { precision: 5, scale: 2 }),
