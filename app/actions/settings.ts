@@ -8,11 +8,13 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { loadUserSettings, saveUserSettings } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import type { UserSettings } from "@/lib/domain/types";
 import type { ActionResult } from "@/app/actions/entry";
 
 export async function getUserSettingsAction(): Promise<UserSettings> {
-  return loadUserSettings(db);
+  const userId = await requireUserId();
+  return loadUserSettings(db, userId);
 }
 
 export async function saveUserSettingsAction(s: UserSettings): Promise<ActionResult> {
@@ -29,7 +31,8 @@ export async function saveUserSettingsAction(s: UserSettings): Promise<ActionRes
     return { ok: false, message: "Weekly rate target must be within ±3.5 kg/week" };
   }
 
-  await saveUserSettings(db, s);
+  const userId = await requireUserId();
+  await saveUserSettings(db, userId, s);
   revalidatePath("/");
   revalidatePath("/entry");
   return { ok: true, message: "Goal saved" };
@@ -37,8 +40,9 @@ export async function saveUserSettingsAction(s: UserSettings): Promise<ActionRes
 
 /** Show/hide the Weekly Trend panel (a single-field update). */
 export async function setWeeklyPanelHiddenAction(hidden: boolean): Promise<ActionResult> {
-  const current = await loadUserSettings(db);
-  await saveUserSettings(db, { ...current, hide_weekly_panel: hidden });
+  const userId = await requireUserId();
+  const current = await loadUserSettings(db, userId);
+  await saveUserSettings(db, userId, { ...current, hide_weekly_panel: hidden });
   revalidatePath("/");
   revalidatePath("/entry");
   return { ok: true, message: hidden ? "Weekly trend hidden" : "Weekly trend shown" };

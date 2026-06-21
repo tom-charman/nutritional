@@ -9,7 +9,9 @@ import { shot } from "./pages/helpers";
 test.describe("clinician daily-totals export", () => {
   async function openExport(page: import("@playwright/test").Page) {
     await page.goto("/");
-    await page.getByRole("button", { name: "Export" }).click();
+    // Export now lives inside the account dropdown.
+    await page.locator(".account-menu-trigger").click();
+    await page.getByRole("menuitem", { name: "Export data" }).click();
     await expect(page.locator(".modal")).toBeVisible();
   }
 

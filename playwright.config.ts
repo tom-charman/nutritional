@@ -58,6 +58,8 @@ export default defineConfig({
       AUTH_URL: "http://localhost:3100",
       AUTH_TRUST_HOST: "true",
       AUTHORIZED_EMAILS: "e2e@example.com",
+      // The user the AUTH_DISABLED bypass resolves to (and shows in the account menu).
+      TEST_USER_EMAIL: "e2e@example.com",
     },
   },
 });

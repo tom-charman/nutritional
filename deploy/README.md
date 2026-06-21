@@ -61,6 +61,36 @@ ssh "$VM" "sudo -u postgres psql -d nutritional_db -c \"SET ROLE nutritional_use
 (If a repo *is* cloned on the VM, `cd …/database && git pull && ./db.sh migrate` does the
 same thing with the verification built in.)
 
+### One-time data migrations (`database/migrations/`)
+
+`init.sql` only ever changes the SCHEMA idempotently — it never backfills data. A release
+that needs a one-time DATA migration ships a numbered script in `database/migrations/`, run
+**after `init.sql` and before `deploy.sh`**.
+
+**The multi-user cutover (`001_multi_user.sql`) — required on the release that introduces
+per-user data.** `init.sql` adds the `users` table and the nullable `user_id` columns;
+`001` then creates the owner's `users` row and assigns all existing data to it (and swaps
+`user_settings` to a `user_id` PK, then sets the columns `NOT NULL`). **Skipping `001`
+leaves every row orphaned (`user_id` NULL) and the owner signs in to an empty app.** The
+`owner_email` MUST be the exact lowercased address in `AUTHORIZED_EMAILS` that Google
+returns, or the owner gets a second, empty account.
+
+```bash
+VM=<ssh-host>
+# 1. backup + schema (as above) ... then the data backfill:
+ssh "$VM" 'sudo -u postgres psql -v ON_ERROR_STOP=1 -d nutritional_db \
+  -v owner_email=you@example.com -v owner_name="Your Name"' < database/migrations/001_multi_user.sql
+# verify: every tracking row is owned and food_items stayed canonical (user_id NULL)
+ssh "$VM" "sudo -u postgres psql -d nutritional_db -c \
+  \"SELECT (SELECT count(*) FROM users) AS users,
+           (SELECT count(*) FROM food_entries WHERE user_id IS NULL) AS orphan_entries,
+           (SELECT count(*) FROM food_items WHERE user_id IS NULL) AS canonical_foods;\""
+```
+
+Both scripts are idempotent and transaction-wrapped, so a re-run is a safe no-op. This
+exact sequence (schema → backfill) was validated against a copy of the prod database before
+release.
+
 **Ownership/grants gotcha (the reason `migrate` re-grants):** the VM applies `init.sql`
 as the `postgres` superuser, so every table it creates is owned by `postgres` and is
 invisible to the app role `nutritional_user` until granted — a missing grant on a new

@@ -9,10 +9,11 @@ import { ZERO_NUTRIENTS } from "@/lib/constants";
 // Isolated db: loadRecentFoods reads across ALL dates, so it must not share
 // state with the broader storage suite.
 let db: DB;
+let userId: string;
 let close: () => Promise<void>;
 
 beforeAll(async () => {
-  ({ db, close } = await createTestDb());
+  ({ db, userId, close } = await createTestDb());
 });
 
 afterAll(async () => {
@@ -55,7 +56,7 @@ async function logDay(date: string, foodIds: string[]): Promise<void> {
     })),
     measurements: { morning_weight_kg: null, evening_weight_kg: null },
   };
-  await saveDailyEntry(db, daily);
+  await saveDailyEntry(db, userId, daily);
 }
 
 describe("loadRecentFoods", () => {
@@ -65,7 +66,7 @@ describe("loadRecentFoods", () => {
     const rice = makeFood("Rice");
     const eggs = makeFood("Eggs");
     const milk = makeFood("Milk");
-    for (const f of [oats, chicken, rice, eggs, milk]) await saveFoodItem(db, f);
+    for (const f of [oats, chicken, rice, eggs, milk]) await saveFoodItem(db, userId, f);
 
     // Recency: rice is oldest but most frequent; oats is the most recent.
     await logDay("2024-01-01", [rice.id, rice.id, rice.id]); // 3× oldest
@@ -74,7 +75,7 @@ describe("loadRecentFoods", () => {
     // Frequency tiebreak: eggs & milk share the newest date; milk logged twice.
     await logDay("2024-01-04", [eggs.id, milk.id, milk.id]);
 
-    const recents = await loadRecentFoods(db);
+    const recents = await loadRecentFoods(db, userId);
     const order = recents.map((f) => f.name);
 
     // milk & eggs (newest date) lead; milk first on the frequency tiebreak.
@@ -88,13 +89,13 @@ describe("loadRecentFoods", () => {
   });
 
   it("honours the limit", async () => {
-    const recents = await loadRecentFoods(db, 2);
+    const recents = await loadRecentFoods(db, userId, 2);
     expect(recents).toHaveLength(2);
     expect(recents.map((f) => f.name)).toEqual(["Milk", "Eggs"]);
   });
 
   it("returns nutrients as numbers, not decimal strings", async () => {
-    const [first] = await loadRecentFoods(db, 1);
+    const [first] = await loadRecentFoods(db, userId, 1);
     expect(typeof first.energy_kcal).toBe("number");
   });
 });

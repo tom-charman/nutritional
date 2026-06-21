@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { signOutAction } from "@/app/actions/auth";
-import ExportModal from "@/components/export/ExportModal";
+import AccountMenu from "@/components/nav/AccountMenu";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -13,9 +11,13 @@ const LINKS = [
   { href: "/meals", label: "Meal Planner" },
 ];
 
-export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
+export interface NavUser {
+  name?: string | null;
+  email?: string | null;
+}
+
+export default function Navbar({ user = null }: { user?: NavUser | null }) {
   const pathname = usePathname();
-  const [exportOpen, setExportOpen] = useState(false);
   // The sign-in / access-denied pages are pre-auth: show only the brand, not the
   // app nav (links there go nowhere useful and read as a broken logged-out state).
   const authPage = pathname === "/signin" || pathname === "/denied";
@@ -24,39 +26,25 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
       <div className="navbar-inner">
         <span className="navbar-brand">Nutritional Tracker</span>
         {!authPage && (
-        <div className="navbar-links">
-          {LINKS.map((l) => {
-            const active =
-              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`nav-link${active ? " active" : ""}`}
-                aria-current={active ? "page" : undefined}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            className="nav-link nav-link-button"
-            onClick={() => setExportOpen(true)}
-          >
-            Export
-          </button>
-          {signedIn && (
-            <form action={signOutAction} style={{ display: "inline" }}>
-              <button type="submit" className="nav-link nav-link-button">
-                Sign out
-              </button>
-            </form>
-          )}
-        </div>
+          <div className="navbar-links">
+            {LINKS.map((l) => {
+              const active =
+                l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`nav-link${active ? " active" : ""}`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+            {user && <AccountMenu name={user.name} email={user.email} />}
+          </div>
         )}
       </div>
-      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
     </nav>
   );
 }

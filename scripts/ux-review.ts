@@ -423,9 +423,20 @@ async function run(vp: Viewport): Promise<void> {
     }
   });
 
+  // ============ ACCOUNT MENU ============
+  await step("account.menu", async () => {
+    await page.locator(".account-menu-trigger").click();
+    await page.waitForSelector(".account-menu-panel");
+    await settle();
+    await shot("account", "menu-open");
+    await page.keyboard.press("Escape");
+  });
+
   // ============ CSV EXPORT ============
   await step("export.modal", async () => {
-    await page.getByRole("button", { name: "Export" }).click();
+    // Export now lives inside the account dropdown.
+    await page.locator(".account-menu-trigger").click();
+    await page.getByRole("menuitem", { name: "Export data" }).click();
     await page.waitForSelector(".modal");
     await settle(); // let the modal finish animating in before capturing
     await shot("export", "modal-default");

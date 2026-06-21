@@ -2,6 +2,7 @@ import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { ROLLING_WINDOW_DAYS, type NutrientKey, type TargetMode } from "@/lib/constants";
 import { db } from "@/lib/db/client";
 import { getOrCreateDailyTargets, loadAllSummaries, loadUserSettings } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import { getNutrientMode } from "@/lib/domain/targets";
 import {
   prepareCaloriesWeight,
@@ -14,11 +15,12 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10);
+  const userId = await requireUserId();
   const [all, targets, settings] = await Promise.all([
-    loadAllSummaries(db),
+    loadAllSummaries(db, userId),
     // current target modes drive the RDI strips' floor/ceiling semantics
-    getOrCreateDailyTargets(db, today),
-    loadUserSettings(db),
+    getOrCreateDailyTargets(db, userId, today),
+    loadUserSettings(db, userId),
   ]);
 
   // Cap the range to yesterday — today is usually incomplete (callbacks.py:148-151)

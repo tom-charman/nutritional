@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { deleteMeal, getFoodItem, saveMeal } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import { calculateNutrients } from "@/lib/domain/nutrients";
 import type { Meal, MealIngredient } from "@/lib/domain/types";
 
@@ -33,9 +34,10 @@ export async function saveMealAction(
     return { ok: false, message: "Add at least one ingredient" };
   }
 
+  const userId = await requireUserId();
   const resolved: MealIngredient[] = [];
   for (const ing of ingredients) {
-    const food = await getFoodItem(db, ing.food_id);
+    const food = await getFoodItem(db, userId, ing.food_id);
     if (!food) return { ok: false, message: "Food item not found" };
     const amount = ing.weight_g ?? ing.quantity;
     if (amount === null || !Number.isFinite(amount) || amount <= 0) {
@@ -60,7 +62,7 @@ export async function saveMealAction(
   };
 
   try {
-    await saveMeal(db, meal);
+    await saveMeal(db, userId, meal);
   } catch (e) {
     // drizzle wraps DB errors — check the cause chain
     let isDuplicate = false;
@@ -85,7 +87,8 @@ export async function saveMealAction(
 }
 
 export async function deleteMealAction(mealId: string): Promise<ActionResult> {
-  const deleted = await deleteMeal(db, mealId);
+  const userId = await requireUserId();
+  const deleted = await deleteMeal(db, userId, mealId);
   if (!deleted) return { ok: false, message: "Meal not found" };
   revalidatePath("/meals");
   revalidatePath("/entry");

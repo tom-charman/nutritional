@@ -13,7 +13,21 @@
  *    → defaults.
  *  - updated_at is maintained by DB triggers — never written here.
  */
-import { and, asc, count, desc, eq, ilike, lt, max } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  isNull,
+  isNotNull,
+  lt,
+  max,
+  notInArray,
+  or,
+  type SQL,
+} from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { NUTRIENT_KEYS, type Nutrients, type TargetMode, type UnitType } from "@/lib/constants";
 import { num, num0, dec, decOrNull } from "@/lib/db/coerce";
@@ -111,8 +125,28 @@ const NULL_NUTRIENT_COLS = {
 
 // ============= Food Items =============
 
-export async function loadFoodDatabase(db: DB): Promise<FoodItem[]> {
-  const rows = await db.select().from(foodItems).orderBy(asc(foodItems.name));
+/**
+ * The effective-food-list predicate for a user (Option A copy-on-write overlay):
+ * the user's own rows (private adds + overrides) UNION canonical rows
+ * (`user_id IS NULL`) the user has not shadowed with an override.
+ */
+function visibleFoods(db: DB, userId: string): SQL {
+  const shadowedCanonicalIds = db
+    .select({ id: foodItems.canonicalId })
+    .from(foodItems)
+    .where(and(eq(foodItems.userId, userId), isNotNull(foodItems.canonicalId)));
+  return or(
+    eq(foodItems.userId, userId),
+    and(isNull(foodItems.userId), notInArray(foodItems.id, shadowedCanonicalIds)),
+  ) as SQL;
+}
+
+export async function loadFoodDatabase(db: DB, userId: string): Promise<FoodItem[]> {
+  const rows = await db
+    .select()
+    .from(foodItems)
+    .where(visibleFoods(db, userId))
+    .orderBy(asc(foodItems.name));
   return rows.map(rowToFoodItem);
 }
 
@@ -126,34 +160,57 @@ export async function loadFoodDatabase(db: DB): Promise<FoodItem[]> {
  * ingredients also count, since `food_id` is set on those rows too. Meals
  * themselves are intentionally excluded.
  */
-export async function loadRecentFoods(db: DB, limit = 8): Promise<FoodItem[]> {
+export async function loadRecentFoods(db: DB, userId: string, limit = 8): Promise<FoodItem[]> {
   const ranked = await db
     .select({ food: foodItems })
     .from(foodEntries)
     .innerJoin(foodItems, eq(foodEntries.foodId, foodItems.id))
+    .where(eq(foodEntries.userId, userId))
     .groupBy(foodItems.id)
     .orderBy(desc(max(foodEntries.entryDate)), desc(count()))
     .limit(limit);
   return ranked.map((r) => rowToFoodItem(r.food));
 }
 
-export async function searchFoodItems(db: DB, query: string): Promise<FoodItem[]> {
+export async function searchFoodItems(
+  db: DB,
+  userId: string,
+  query: string,
+): Promise<FoodItem[]> {
   const rows = await db
     .select()
     .from(foodItems)
-    .where(ilike(foodItems.name, `%${query}%`))
+    .where(and(visibleFoods(db, userId), ilike(foodItems.name, `%${query}%`)))
     .orderBy(asc(foodItems.name));
   return rows.map(rowToFoodItem);
 }
 
-export async function getFoodItem(db: DB, foodId: string): Promise<FoodItem | null> {
+export async function getFoodItem(
+  db: DB,
+  userId: string,
+  foodId: string,
+): Promise<FoodItem | null> {
   // Python strips a legacy "food:" prefix — preserve that behavior.
   const id = foodId.startsWith("food:") ? foodId.slice(5) : foodId;
-  const rows = await db.select().from(foodItems).where(eq(foodItems.id, id)).limit(1);
+  // Visible to this user = canonical OR owned by them (never another user's food).
+  const rows = await db
+    .select()
+    .from(foodItems)
+    .where(and(eq(foodItems.id, id), or(isNull(foodItems.userId), eq(foodItems.userId, userId))))
+    .limit(1);
   return rows.length ? rowToFoodItem(rows[0]) : null;
 }
 
-export async function saveFoodItem(db: DB, item: FoodItem): Promise<void> {
+/**
+ * Save a food under the copy-on-write overlay. Returns the effective row id
+ * (which differs from `item.id` when editing a canonical food creates an
+ * override):
+ *  - no existing row        → a brand-new private food (user_id = them).
+ *  - the user's own row      → updated in place (their add or existing override).
+ *  - a canonical row          → never mutated; create/update a private OVERRIDE
+ *    (user_id = them, canonical_id = the canonical row it shadows).
+ */
+export async function saveFoodItem(db: DB, userId: string, item: FoodItem): Promise<string> {
   // Enforce the per_item/per_100g serving-size invariant before the DB CHECK.
   if (item.unit_type === "per_item" && item.serving_size_g === null) {
     throw new Error("serving_size_g is required when unit_type is per_item");
@@ -161,31 +218,65 @@ export async function saveFoodItem(db: DB, item: FoodItem): Promise<void> {
   if (item.unit_type === "per_100g" && item.serving_size_g !== null) {
     throw new Error("serving_size_g should be null when unit_type is per_100g");
   }
-  const values = {
-    id: item.id,
+  const cols = {
     name: item.name,
     unitType: item.unit_type,
     servingSizeG: decOrNull(item.serving_size_g),
     ...nutrientCols(item),
   };
-  await db
-    .insert(foodItems)
-    .values(values)
-    .onConflictDoUpdate({
-      target: foodItems.id,
-      set: {
-        name: values.name,
-        unitType: values.unitType,
-        servingSizeG: values.servingSizeG,
-        ...nutrientCols(item),
-      },
-    });
+
+  const existing = item.id
+    ? await db
+        .select({ id: foodItems.id, userId: foodItems.userId })
+        .from(foodItems)
+        .where(eq(foodItems.id, item.id))
+        .limit(1)
+    : [];
+  const row = existing[0];
+
+  if (!row) {
+    // Brand-new private food owned by the user.
+    const inserted = await db
+      .insert(foodItems)
+      .values({ id: item.id || undefined, userId, canonicalId: null, ...cols })
+      .returning({ id: foodItems.id });
+    return inserted[0].id;
+  }
+
+  if (row.userId === userId) {
+    // The user's own food or an existing override — update in place.
+    await db.update(foodItems).set(cols).where(eq(foodItems.id, item.id));
+    return item.id;
+  }
+
+  if (row.userId === null) {
+    // Editing a canonical food → copy-on-write. Reuse this user's existing
+    // override of it if present, else create one. The canonical row is untouched.
+    const override = await db
+      .select({ id: foodItems.id })
+      .from(foodItems)
+      .where(and(eq(foodItems.userId, userId), eq(foodItems.canonicalId, item.id)))
+      .limit(1);
+    if (override.length) {
+      await db.update(foodItems).set(cols).where(eq(foodItems.id, override[0].id));
+      return override[0].id;
+    }
+    const inserted = await db
+      .insert(foodItems)
+      .values({ userId, canonicalId: item.id, ...cols })
+      .returning({ id: foodItems.id });
+    return inserted[0].id;
+  }
+
+  throw new Error("Cannot edit another user's food");
 }
 
-export async function deleteFoodItem(db: DB, foodId: string): Promise<boolean> {
+/** Delete only the user's OWN food (private add or override); canonical rows are
+ *  shared and cannot be deleted by a user. Returns false if not theirs. */
+export async function deleteFoodItem(db: DB, userId: string, foodId: string): Promise<boolean> {
   const deleted = await db
     .delete(foodItems)
-    .where(eq(foodItems.id, foodId))
+    .where(and(eq(foodItems.id, foodId), eq(foodItems.userId, userId)))
     .returning({ id: foodItems.id });
   return deleted.length > 0;
 }
@@ -237,13 +328,21 @@ async function mealWithIngredients(db: DB, mealRow: { id: string; name: string }
   return { id: mealRow.id, name: mealRow.name, ingredients };
 }
 
-export async function loadMeals(db: DB): Promise<Meal[]> {
-  const rows = await db.select().from(meals).orderBy(asc(meals.name));
+export async function loadMeals(db: DB, userId: string): Promise<Meal[]> {
+  const rows = await db
+    .select()
+    .from(meals)
+    .where(eq(meals.userId, userId))
+    .orderBy(asc(meals.name));
   return Promise.all(rows.map((r) => mealWithIngredients(db, r)));
 }
 
-export async function getMeal(db: DB, mealId: string): Promise<Meal | null> {
-  const rows = await db.select().from(meals).where(eq(meals.id, mealId)).limit(1);
+export async function getMeal(db: DB, userId: string, mealId: string): Promise<Meal | null> {
+  const rows = await db
+    .select()
+    .from(meals)
+    .where(and(eq(meals.id, mealId), eq(meals.userId, userId)))
+    .limit(1);
   return rows.length ? mealWithIngredients(db, rows[0]) : null;
 }
 
@@ -251,11 +350,11 @@ export async function getMeal(db: DB, mealId: string): Promise<Meal | null> {
  * save_meal (sqlmodel_storage.py:171-211): upsert the meal row, then
  * delete-and-reinsert its ingredients.
  */
-export async function saveMeal(db: DB, meal: Meal): Promise<void> {
+export async function saveMeal(db: DB, userId: string, meal: Meal): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .insert(meals)
-      .values({ id: meal.id, name: meal.name })
+      .values({ id: meal.id, userId, name: meal.name })
       .onConflictDoUpdate({ target: meals.id, set: { name: meal.name } });
     await tx.delete(mealIngredients).where(eq(mealIngredients.mealId, meal.id));
     if (meal.ingredients.length > 0) {
@@ -276,15 +375,16 @@ export async function saveMeal(db: DB, meal: Meal): Promise<void> {
  * food_entries referencing the meal keep their data but lose the grouping —
  * clear meal_id first so history stays intact (entries become individual).
  */
-export async function deleteMeal(db: DB, mealId: string): Promise<boolean> {
+export async function deleteMeal(db: DB, userId: string, mealId: string): Promise<boolean> {
   return db.transaction(async (tx) => {
+    // Clear meal_id only on THIS user's entries (keeps their history intact).
     await tx
       .update(foodEntries)
       .set({ mealId: null })
-      .where(eq(foodEntries.mealId, mealId));
+      .where(and(eq(foodEntries.mealId, mealId), eq(foodEntries.userId, userId)));
     const deleted = await tx
       .delete(meals)
-      .where(eq(meals.id, mealId))
+      .where(and(eq(meals.id, mealId), eq(meals.userId, userId)))
       .returning({ id: meals.id });
     return deleted.length > 0;
   });
@@ -292,7 +392,11 @@ export async function deleteMeal(db: DB, mealId: string): Promise<boolean> {
 
 // ============= Daily Entries =============
 
-export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | null> {
+export async function loadDailyEntry(
+  db: DB,
+  userId: string,
+  date: string,
+): Promise<DailyData | null> {
   const entryRows = await db
     .select({
       entry: foodEntries,
@@ -300,13 +404,13 @@ export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | 
     })
     .from(foodEntries)
     .leftJoin(foodItems, eq(foodEntries.foodId, foodItems.id))
-    .where(eq(foodEntries.entryDate, date))
+    .where(and(eq(foodEntries.userId, userId), eq(foodEntries.entryDate, date)))
     .orderBy(asc(foodEntries.timestamp));
 
   const summaryRows = await db
     .select()
     .from(dailySummaries)
-    .where(eq(dailySummaries.summaryDate, date))
+    .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.summaryDate, date)))
     .limit(1);
   const summary = summaryRows[0] ?? null;
 
@@ -345,7 +449,11 @@ export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | 
 
   const mealEntries: DayEntry[] = [];
   for (const group of mealGroups.values()) {
-    const mealRows = await db.select().from(meals).where(eq(meals.id, group.mealId)).limit(1);
+    const mealRows = await db
+      .select()
+      .from(meals)
+      .where(and(eq(meals.id, group.mealId), eq(meals.userId, userId)))
+      .limit(1);
     if (mealRows.length) {
       const me: MealEntry = {
         meal_id: group.mealId,
@@ -368,12 +476,14 @@ export async function loadDailyEntry(db: DB, date: string): Promise<DailyData | 
   };
 }
 
-export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
+export async function saveDailyEntry(db: DB, userId: string, daily: DailyData): Promise<void> {
   const totals = dailyTotals(daily.entries);
 
   await db.transaction(async (tx) => {
-    // Delete existing entries for this date (replaced wholesale)
-    await tx.delete(foodEntries).where(eq(foodEntries.entryDate, daily.date));
+    // Delete this user's existing entries for this date (replaced wholesale)
+    await tx
+      .delete(foodEntries)
+      .where(and(eq(foodEntries.userId, userId), eq(foodEntries.entryDate, daily.date)));
 
     // Insert entries — meal ingredients carry meal_id, individual rows don't
     const rows: (typeof foodEntries.$inferInsert)[] = [];
@@ -381,6 +491,7 @@ export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
       if (e.kind === "food") {
         rows.push({
           id: e.entry.entry_id,
+          userId,
           entryDate: daily.date,
           timestamp: new Date(e.entry.timestamp),
           foodId: e.entry.food_id,
@@ -395,6 +506,7 @@ export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
         for (const ing of e.entry.ingredients) {
           rows.push({
             id: ing.entry_id,
+            userId,
             entryDate: daily.date,
             timestamp: new Date(ing.timestamp),
             foodId: ing.food_id,
@@ -417,18 +529,19 @@ export async function saveDailyEntry(db: DB, daily: DailyData): Promise<void> {
     const summarySet = totals !== null ? nutrientCols(totals) : NULL_NUTRIENT_COLS;
     await tx
       .insert(dailySummaries)
-      .values({ summaryDate: daily.date, ...summarySet })
+      .values({ userId, summaryDate: daily.date, ...summarySet })
       .onConflictDoUpdate({
-        target: dailySummaries.summaryDate,
+        target: [dailySummaries.userId, dailySummaries.summaryDate],
         set: summarySet, // weight columns intentionally absent
       });
   });
 }
 
-export async function getAllDates(db: DB): Promise<string[]> {
+export async function getAllDates(db: DB, userId: string): Promise<string[]> {
   const rows = await db
     .selectDistinct({ d: foodEntries.entryDate })
     .from(foodEntries)
+    .where(eq(foodEntries.userId, userId))
     .orderBy(desc(foodEntries.entryDate));
   return rows.map((r) => r.d);
 }
@@ -437,6 +550,7 @@ export async function getAllDates(db: DB): Promise<string[]> {
 
 export async function updateMeasurements(
   db: DB,
+  userId: string,
   date: string,
   weights: { morning_weight_kg?: number | null; evening_weight_kg?: number | null },
 ): Promise<void> {
@@ -458,16 +572,19 @@ export async function updateMeasurements(
   const existing = await db
     .select({ id: dailySummaries.id })
     .from(dailySummaries)
-    .where(eq(dailySummaries.summaryDate, date))
+    .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.summaryDate, date)))
     .limit(1);
 
   if (existing.length) {
     if (Object.keys(set).length > 0) {
-      await db.update(dailySummaries).set(set).where(eq(dailySummaries.summaryDate, date));
+      await db
+        .update(dailySummaries)
+        .set(set)
+        .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.summaryDate, date)));
     }
   } else {
     // New row: weights only, nutrients stay NULL
-    await db.insert(dailySummaries).values({ summaryDate: date, ...set });
+    await db.insert(dailySummaries).values({ userId, summaryDate: date, ...set });
   }
 }
 
@@ -504,23 +621,28 @@ function rowToTargets(row: TargetsRow): DailyTargets {
   };
 }
 
-export async function loadDailyTargets(db: DB, date: string): Promise<DailyTargets | null> {
+export async function loadDailyTargets(
+  db: DB,
+  userId: string,
+  date: string,
+): Promise<DailyTargets | null> {
   const rows = await db
     .select()
     .from(dailyTargets)
-    .where(eq(dailyTargets.targetDate, date))
+    .where(and(eq(dailyTargets.userId, userId), eq(dailyTargets.targetDate, date)))
     .limit(1);
   return rows.length ? rowToTargets(rows[0]) : null;
 }
 
 export async function getPreviousDayTargets(
   db: DB,
+  userId: string,
   date: string,
 ): Promise<DailyTargets | null> {
   const rows = await db
     .select()
     .from(dailyTargets)
-    .where(lt(dailyTargets.targetDate, date))
+    .where(and(eq(dailyTargets.userId, userId), lt(dailyTargets.targetDate, date)))
     .orderBy(desc(dailyTargets.targetDate))
     .limit(1);
   if (!rows.length) return null;
@@ -529,16 +651,25 @@ export async function getPreviousDayTargets(
   return targets;
 }
 
-export async function getOrCreateDailyTargets(db: DB, date: string): Promise<DailyTargets> {
+export async function getOrCreateDailyTargets(
+  db: DB,
+  userId: string,
+  date: string,
+): Promise<DailyTargets> {
   return (
-    (await loadDailyTargets(db, date)) ??
-    (await getPreviousDayTargets(db, date)) ??
+    (await loadDailyTargets(db, userId, date)) ??
+    (await getPreviousDayTargets(db, userId, date)) ??
     getDefaultTargets(date)
   );
 }
 
-export async function saveDailyTargets(db: DB, targets: DailyTargets): Promise<void> {
+export async function saveDailyTargets(
+  db: DB,
+  userId: string,
+  targets: DailyTargets,
+): Promise<void> {
   const values = {
+    userId,
     targetDate: targets.date,
     defaultMode: targets.mode,
     energyKcal: dec(targets.values.energy_kcal),
@@ -560,19 +691,20 @@ export async function saveDailyTargets(db: DB, targets: DailyTargets): Promise<v
     saltMode: targets.modes.salt_g,
     calciumMode: targets.modes.calcium_mg,
   };
-  const { targetDate: _ignored, ...set } = values;
+  const { userId: _u, targetDate: _ignored, ...set } = values;
   await db
     .insert(dailyTargets)
     .values(values)
-    .onConflictDoUpdate({ target: dailyTargets.targetDate, set });
+    .onConflictDoUpdate({ target: [dailyTargets.userId, dailyTargets.targetDate], set });
 }
 
 // ============= Summaries (dashboard) =============
 
-export async function loadAllSummaries(db: DB): Promise<DailySummary[]> {
+export async function loadAllSummaries(db: DB, userId: string): Promise<DailySummary[]> {
   const rows = await db
     .select()
     .from(dailySummaries)
+    .where(eq(dailySummaries.userId, userId))
     .orderBy(asc(dailySummaries.summaryDate));
   return rows.map((row) => ({
     date: row.summaryDate,
@@ -590,17 +722,18 @@ export async function loadAllSummaries(db: DB): Promise<DailySummary[]> {
   }));
 }
 
-// ============= User Settings (cross-day, single row) =============
+// ============= User Settings (cross-day, one row per user) =============
 
 /**
- * Load the single user_settings row (id = 1). Returns all-null defaults if the
- * seed row is somehow absent, so callers never have to null-check the result.
+ * Load this user's settings row. Returns all-null defaults if no row exists yet
+ * (e.g. a brand-new user who hasn't saved settings), so callers never have to
+ * null-check the result. A row is created lazily on first save.
  */
-export async function loadUserSettings(db: DB): Promise<UserSettings> {
+export async function loadUserSettings(db: DB, userId: string): Promise<UserSettings> {
   const rows = await db
     .select()
     .from(userSettings)
-    .where(eq(userSettings.id, 1))
+    .where(eq(userSettings.userId, userId))
     .limit(1);
   const r = rows[0];
   return {
@@ -613,10 +746,14 @@ export async function loadUserSettings(db: DB): Promise<UserSettings> {
 }
 
 /**
- * Upsert the single user_settings row on the fixed id = 1. updated_at is left to
- * the DB trigger (never written here), matching the daily-targets invariant.
+ * Upsert this user's settings row (keyed by user_id). updated_at is left to the
+ * DB trigger (never written here), matching the daily-targets invariant.
  */
-export async function saveUserSettings(db: DB, s: UserSettings): Promise<void> {
+export async function saveUserSettings(
+  db: DB,
+  userId: string,
+  s: UserSettings,
+): Promise<void> {
   const set = {
     goalWeightKg: decOrNull(s.goal_weight_kg),
     weeklyRateTargetKg: decOrNull(s.weekly_rate_target_kg),
@@ -626,8 +763,8 @@ export async function saveUserSettings(db: DB, s: UserSettings): Promise<void> {
   };
   await db
     .insert(userSettings)
-    .values({ id: 1, ...set })
-    .onConflictDoUpdate({ target: userSettings.id, set });
+    .values({ userId, ...set })
+    .onConflictDoUpdate({ target: userSettings.userId, set });
 }
 
 // keep NUTRIENT_KEYS referenced for editors that tree-shake unused imports

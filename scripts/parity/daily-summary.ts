@@ -14,16 +14,24 @@ import { NUTRIENT_KEYS } from "@/lib/constants";
 
 const TOLERANCE = 0.011; // DECIMAL(8,2) rounding per entry can stack slightly
 
+async function getUserId(): Promise<string> {
+  const [existing] = await sql`SELECT id FROM users ORDER BY created_at LIMIT 1`;
+  if (existing) return existing.id as string;
+  const [inserted] = await sql`INSERT INTO users (email, name) VALUES ('parity@example.com', 'Parity User') RETURNING id`;
+  return inserted.id as string;
+}
+
 async function main() {
-  const summaries = await loadAllSummaries(db);
+  const userId = await getUserId();
+  const summaries = await loadAllSummaries(db, userId);
   const summaryByDate = new Map(summaries.map((s) => [s.date, s]));
-  const dates = await getAllDates(db);
+  const dates = await getAllDates(db, userId);
 
   let checked = 0;
   let failures = 0;
 
   for (const date of dates) {
-    const day = await loadDailyEntry(db, date);
+    const day = await loadDailyEntry(db, userId, date);
     const summary = summaryByDate.get(date);
     if (!summary) {
       console.error(`✗ ${date}: entries exist but no daily_summaries row`);

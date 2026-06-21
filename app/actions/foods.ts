@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { deleteFoodItem, saveFoodItem } from "@/lib/data/storage";
+import { requireUserId } from "@/lib/data/user";
 import type { FoodItem } from "@/lib/domain/types";
 import { NUTRIENT_KEYS, type Nutrients, type UnitType } from "@/lib/constants";
 
@@ -55,7 +56,8 @@ export async function saveFoodAction(input: FoodFormInput): Promise<ActionResult
   }
 
   try {
-    await saveFoodItem(db, food);
+    const userId = await requireUserId();
+    await saveFoodItem(db, userId, food);
   } catch (e) {
     if (errorChainMatches(e, /unique|duplicate/i)) {
       return { ok: false, message: `A food named '${name}' already exists` };
@@ -79,7 +81,8 @@ function errorChainMatches(e: unknown, pattern: RegExp): boolean {
 
 export async function deleteFoodAction(foodId: string): Promise<ActionResult> {
   try {
-    const deleted = await deleteFoodItem(db, foodId);
+    const userId = await requireUserId();
+    const deleted = await deleteFoodItem(db, userId, foodId);
     if (!deleted) return { ok: false, message: "Food item not found" };
   } catch (e) {
     return {
