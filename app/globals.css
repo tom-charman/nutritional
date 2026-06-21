@@ -1,4 +1,4 @@
-/* Nutritional Tracker - Artisan Design System (2026) */
+/* Nutritional — Artisan Design System (2026) */
 /* Brand: Kaolin Paper, Sumi Iron Ink, Oxidized Brass, Matcha Stone, Baked Terracotta */
 /* Ported from nutritional/assets/style.css (Dash) — fonts now via next/font. */
 
@@ -395,6 +395,104 @@ p {
 
 .account-menu-item:hover {
     background-color: var(--background);
+}
+
+/* ==================== Sign-in ==================== */
+.signin-screen {
+    /* full canvas — the navbar is hidden on auth pages (minus app-container's 4px top) */
+    min-height: calc(100dvh - 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl) var(--space-lg);
+}
+
+.signin-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 48px 44px 36px;
+    text-align: center;
+    animation: settle-in var(--dur-settle) var(--ease-settle);
+}
+
+.signin-title {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-bold);
+    font-size: clamp(32px, 8vw, 44px);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    color: var(--text-body); /* Sumi Iron ink, not the near-black heading tone */
+    margin: 0;
+}
+
+.signin-rule {
+    width: 40px;
+    height: 1px;
+    background: var(--border-hover);
+    margin: var(--space-lg) auto;
+}
+
+.signin-tagline {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--font-size-lg);
+    line-height: 1.45;
+    color: var(--text-body);
+    margin: 0 auto var(--space-2xl);
+    max-width: 26ch;
+    text-wrap: balance;
+}
+
+.signin-google {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 46px;
+    padding: 0 20px;
+    background: var(--surface);
+    color: var(--text-body);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: border-color var(--dur-quick) var(--ease-settle),
+        box-shadow var(--dur-quick) var(--ease-settle),
+        transform var(--dur-quick) var(--ease-settle),
+        background-color var(--dur-quick) var(--ease-settle);
+}
+
+.signin-google:hover {
+    border-color: var(--border-hover);
+    background-color: var(--background);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.signin-google:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-press);
+}
+
+.signin-google-mark {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.signin-note {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: var(--space-xl) 0 0;
 }
 
 /* ==================== Cards ==================== */

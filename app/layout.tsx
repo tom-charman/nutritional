@@ -27,8 +27,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nutritional Tracker",
-  description: "Personal nutrition tracking",
+  title: "Nutritional",
+  description: "A precision instrument for what you eat.",
 };
 
 export default async function RootLayout({
