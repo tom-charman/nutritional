@@ -79,7 +79,7 @@ export function limitOverPct(projected: number, target: number): number {
   return Math.round((projected / target - 1) * 100);
 }
 
-export type CalorieStatus = "over" | "near" | "default";
+export type CalorieStatus = "over" | "met" | "near" | "default";
 
 /**
  * Calories-remaining card (entry.py:1564-1615), judged against the energy
@@ -87,7 +87,11 @@ export type CalorieStatus = "over" | "near" | "default";
  * remaining display = max(0, target - consumed);
  *  - consumed > target*(1+band) → "over" (red); the overage is ≥ band·target,
  *    so it never reads as a misleading bare "0 over".
- *  - within ±band of target → "near" (green, "Target nearly met").
+ *  - remaining rounds to 0 (reached the target, incl. the upper grace band) →
+ *    "met" ("Target met"). NOT "nearly met": a bare "0 remaining / nearly met"
+ *    is the same rounding-to-zero nonsense the bands exist to kill.
+ *  - still short but within the band → "near" ("Target nearly met"); always a
+ *    real positive remainder, so the copy and the number agree.
  *  - comfortably under → "default" ("On track", room remaining).
  */
 export function calorieStatus(
@@ -106,6 +110,11 @@ export function calorieStatus(
       status: "over",
       statusText: "over target",
     };
+  }
+  if (remaining === 0) {
+    // Hit the target (within the upper grace band). "0 remaining" means met,
+    // not "nearly" — keep the number and the words consistent.
+    return { remaining, over: 0, status: "met", statusText: "Target met" };
   }
   if (consumed >= target * (1 - band)) {
     return { remaining, over: 0, status: "near", statusText: "Target nearly met" };
