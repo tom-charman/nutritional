@@ -10,6 +10,7 @@
  *  - a limit breach can never hide behind a green-looking day (it wins the state).
  */
 import {
+  NUTRIENT_BANDS,
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
   NUTRIENT_UNITS,
@@ -58,7 +59,7 @@ export function planDayVerdict(
   const perNutrient: NutrientVerdict[] = NUTRIENT_KEYS.map((k) => {
     const mode = getNutrientMode(targets, k);
     const target = targets.values[k];
-    return { nutrient: k, mode, planned: planned[k], target, indicator: macroIndicator(planned[k], target, mode) };
+    return { nutrient: k, mode, planned: planned[k], target, indicator: macroIndicator(planned[k], target, mode, NUTRIENT_BANDS[k]) };
   });
 
   // A breach of any limit cap dominates (Patient: it must never hide).
@@ -79,7 +80,9 @@ export function planDayVerdict(
   }
 
   // Otherwise, a missed target floor.
-  const misses = perNutrient.filter((v) => v.mode === "target" && v.planned < v.target);
+  const misses = perNutrient.filter(
+    (v) => v.mode === "target" && v.planned < v.target * (1 - NUTRIENT_BANDS[v.nutrient]),
+  );
   if (misses.length > 0) {
     // Worst = largest relative shortfall.
     const worst = misses.reduce((a, b) =>

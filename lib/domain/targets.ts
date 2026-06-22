@@ -46,21 +46,26 @@ export function getNutrientMode(
 export type IndicatorState = "met" | "warning" | "exceeded" | null;
 
 /**
- * Macro bar indicator (pages/entry.py create_macro_bar):
- *  - limit mode: value > target*1.1 → exceeded(⚠), value > target → warning(⚠)
- *  - target mode: value >= target → met(✓)
+ * Macro bar indicator, judged against a per-nutrient on-target band (a
+ * fraction of the target; see NUTRIENT_BANDS). The band is the grace zone so
+ * a trivial deviation never raises an alarm:
+ *  - limit mode: value > target*(1+2·band) → exceeded(⚠); value > target*(1+band)
+ *    → warning(⚠); at/under cap or within grace → null.
+ *  - target mode: value >= target*(1−band) → met(✓) (close enough); below → null
+ *    (a real shortfall, surfaced as "short" by the bars/verdict).
  */
 export function macroIndicator(
   value: number,
   target: number,
   mode: TargetMode,
+  band: number,
 ): IndicatorState {
   if (mode === "limit") {
-    if (value > target * 1.1) return "exceeded";
-    if (value > target) return "warning";
+    if (value > target * (1 + 2 * band)) return "exceeded";
+    if (value > target * (1 + band)) return "warning";
     return null;
   }
-  return value >= target ? "met" : null;
+  return value >= target * (1 - band) ? "met" : null;
 }
 
 /**
@@ -77,27 +82,32 @@ export function limitOverPct(projected: number, target: number): number {
 export type CalorieStatus = "over" | "near" | "default";
 
 /**
- * Calories-remaining card (entry.py:1564-1615):
+ * Calories-remaining card (entry.py:1564-1615), judged against the energy
+ * on-target band (a fraction of target; see NUTRIENT_BANDS.energy_kcal):
  * remaining display = max(0, target - consumed);
- * over target → red; within 200 kcal of target → green.
+ *  - consumed > target*(1+band) → "over" (red); the overage is ≥ band·target,
+ *    so it never reads as a misleading bare "0 over".
+ *  - within ±band of target → "near" (green, "Target nearly met").
+ *  - comfortably under → "default" ("On track", room remaining).
  */
 export function calorieStatus(
   consumed: number,
   target: number,
+  band: number,
 ): { remaining: number; over: number; status: CalorieStatus; statusText: string } {
   const rawRemaining = target - consumed;
   const remaining = Math.max(0, Math.round(rawRemaining));
-  if (rawRemaining < 0) {
+  if (consumed > target * (1 + band)) {
     // Surface the overage as its own number so the card can show it prominently
     // ("Calories Over: 1,725") instead of a misleading bare "0 remaining".
     return {
       remaining,
-      over: Math.round(-rawRemaining),
+      over: Math.round(consumed - target),
       status: "over",
       statusText: "over target",
     };
   }
-  if (rawRemaining < 200) {
+  if (consumed >= target * (1 - band)) {
     return { remaining, over: 0, status: "near", statusText: "Target nearly met" };
   }
   return { remaining, over: 0, status: "default", statusText: "On track" };

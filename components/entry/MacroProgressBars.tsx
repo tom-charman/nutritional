@@ -5,7 +5,12 @@
  * filling a washed channel (area tone on wash track: the soft dilutions,
  * carried by the channel's thickness). Energy leads; ✓/⚠ verdicts stamp in.
  */
-import { NUTRIENT_SHORT_NAMES, type NutrientKey, type Nutrients } from "@/lib/constants";
+import {
+  NUTRIENT_BANDS,
+  NUTRIENT_SHORT_NAMES,
+  type NutrientKey,
+  type Nutrients,
+} from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
 import type { DailyTargets } from "@/lib/domain/types";
 
@@ -51,7 +56,7 @@ export default function MacroProgressBars({
           const value = consumed[key];
           const target = targets.values[key];
           const mode = getNutrientMode(targets, key);
-          const indicator = macroIndicator(value, target, mode);
+          const indicator = macroIndicator(value, target, mode, NUTRIENT_BANDS[key]);
           const pct = target > 0 ? Math.min((value / target) * 100, 100) : 0;
           const ind = indicator ? INDICATOR[indicator] : null;
           return (

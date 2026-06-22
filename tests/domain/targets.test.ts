@@ -47,27 +47,30 @@ describe("getNutrientMode", () => {
   });
 });
 
-describe("macroIndicator (entry.py create_macro_bar thresholds)", () => {
-  it("limit mode: >1.1x → exceeded", () => {
-    expect(macroIndicator(23, 20, "limit")).toBe("exceeded");
+describe("macroIndicator (per-nutrient on-target band)", () => {
+  // band = 0.10 → grace zone to target*1.1, exceeded beyond target*1.2.
+  it("limit mode: > target*(1+2·band) → exceeded", () => {
+    expect(macroIndicator(25, 20, "limit", 0.1)).toBe("exceeded");
   });
 
-  it("limit mode: >1x but <=1.1x → warning", () => {
-    expect(macroIndicator(21, 20, "limit")).toBe("warning");
+  it("limit mode: between +band and +2·band → warning", () => {
+    expect(macroIndicator(23, 20, "limit", 0.1)).toBe("warning");
   });
 
-  it("limit mode: at or under limit → null", () => {
-    expect(macroIndicator(20, 20, "limit")).toBeNull();
-    expect(macroIndicator(15, 20, "limit")).toBeNull();
+  it("limit mode: within the grace band → null (no alarm for a trivial overage)", () => {
+    expect(macroIndicator(21, 20, "limit", 0.1)).toBeNull(); // +5% ≤ +10% grace
+    expect(macroIndicator(20, 20, "limit", 0.1)).toBeNull();
+    expect(macroIndicator(15, 20, "limit", 0.1)).toBeNull();
   });
 
-  it("target mode: >= target → met", () => {
-    expect(macroIndicator(150, 150, "target")).toBe("met");
-    expect(macroIndicator(151, 150, "target")).toBe("met");
+  it("target mode: within band below target → met (close enough)", () => {
+    expect(macroIndicator(150, 150, "target", 0.08)).toBe("met");
+    expect(macroIndicator(151, 150, "target", 0.08)).toBe("met");
+    expect(macroIndicator(149, 150, "target", 0.08)).toBe("met"); // within 8% band
   });
 
-  it("target mode: below target → null", () => {
-    expect(macroIndicator(149, 150, "target")).toBeNull();
+  it("target mode: below the band → null (a real shortfall)", () => {
+    expect(macroIndicator(130, 150, "target", 0.08)).toBeNull(); // 13% short
   });
 });
 
@@ -86,35 +89,44 @@ describe("limitOverPct (live preview breach copy)", () => {
 describe("limit alert projection (committed total + pending entry)", () => {
   // The preview feeds projected = dayTotals + entry into macroIndicator, the
   // same function the committed macro bars use.
+  // Salt band = 0.08 → grace to 6.48g, exceeded beyond 6.96g.
   it("warns once the pending entry pushes the day past a cap", () => {
-    // 5g salt already logged, adding 1.5g → 6.5g vs 6g cap (≤1.1x) → warning
-    expect(macroIndicator(5 + 1.5, 6, "limit")).toBe("warning");
-    // adding 2g → 7g vs 6g (>1.1x) → exceeded
-    expect(macroIndicator(5 + 2, 6, "limit")).toBe("exceeded");
+    // 5g salt already logged, adding 1.5g → 6.5g (>6.48, ≤6.96) → warning
+    expect(macroIndicator(5 + 1.5, 6, "limit", 0.08)).toBe("warning");
+    // adding 2g → 7g (>6.96) → exceeded
+    expect(macroIndicator(5 + 2, 6, "limit", 0.08)).toBe("exceeded");
   });
 
-  it("stays silent while the projected total is within the cap", () => {
-    expect(macroIndicator(3 + 2, 6, "limit")).toBeNull();
+  it("stays silent while the projected total is within the cap + grace", () => {
+    expect(macroIndicator(3 + 2, 6, "limit", 0.08)).toBeNull();
+    expect(macroIndicator(6.3, 6, "limit", 0.08)).toBeNull(); // +5% ≤ +8% grace
   });
 });
 
-describe("calorieStatus (entry.py calories-remaining card)", () => {
-  it("over target → over amount surfaced, remaining clamped to 0", () => {
-    const s = calorieStatus(2200, 2000);
+describe("calorieStatus (energy on-target band = 0.04)", () => {
+  it("clearly over the band → over amount surfaced, remaining clamped to 0", () => {
+    const s = calorieStatus(2200, 2000, 0.04);
     expect(s.remaining).toBe(0);
     expect(s.over).toBe(200);
     expect(s.status).toBe("over");
     expect(s.statusText).toBe("over target");
   });
 
-  it("within 200 kcal → near", () => {
-    const s = calorieStatus(1850, 2000);
-    expect(s.remaining).toBe(150);
+  it("a trivial overage within the band reads as near, never '0 over'", () => {
+    const s = calorieStatus(2010, 2000, 0.04); // +0.5% ≤ +4%
+    expect(s.over).toBe(0);
+    expect(s.status).toBe("near");
+    expect(s.statusText).toBe("Target nearly met");
+  });
+
+  it("within band below target → near", () => {
+    const s = calorieStatus(1950, 2000, 0.04);
+    expect(s.remaining).toBe(50);
     expect(s.status).toBe("near");
   });
 
   it("plenty remaining → default", () => {
-    const s = calorieStatus(1000, 2000);
+    const s = calorieStatus(1000, 2000, 0.04);
     expect(s.remaining).toBe(1000);
     expect(s.status).toBe("default");
     expect(s.statusText).toBe("On track");
