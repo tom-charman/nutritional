@@ -33,6 +33,7 @@ import type {
   WeekPlan,
 } from "@/lib/domain/types";
 import {
+  NUTRIENT_BANDS,
   NUTRIENT_COLORS,
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
@@ -165,6 +166,21 @@ export default function PlannerClient({
   const [denom, setDenom] = useState<"planned" | "calendar">("planned");
   const avg = denom === "planned" ? aggregate.avgPerPlannedDay : aggregate.avgPerCalendarDay;
 
+  // --- analysis charts: hideable, sticky per-device (a view preference, not a
+  // cross-device setting, so it lives in localStorage rather than user_settings).
+  // Default visible; hydrate after mount to avoid an SSR hydration mismatch.
+  const [chartsHidden, setChartsHidden] = useState(false);
+  useEffect(() => {
+    setChartsHidden(localStorage.getItem("planner-charts-hidden") === "1");
+  }, []);
+  const toggleCharts = useCallback(() => {
+    setChartsHidden((h) => {
+      const next = !h;
+      localStorage.setItem("planner-charts-hidden", next ? "1" : "0");
+      return next;
+    });
+  }, []);
+
   // --- add panel: dropdown (recent + all + meals) → quantity → day(s) → Add ---
   const foodOption = useCallback(
     (f: FoodItem, section: string): ComboOption => ({
@@ -198,12 +214,15 @@ export default function PlannerClient({
 
   const handleSelect = useCallback(
     (key: string) => {
-      setAmount("");
       if (key.startsWith("food:")) {
         const food = foods.find((f) => f.id === key.slice(5));
+        // A food needs an explicit weight/quantity — leave it blank to prompt one.
+        setAmount("");
         if (food) setSelection({ kind: "food", food });
       } else if (key.startsWith("meal:")) {
         const meal = meals.find((m) => m.id === key.slice(5));
+        // A meal's natural unit is one portion — auto-fill it so adding is one click.
+        setAmount("1");
         if (meal) setSelection({ kind: "meal", meal });
       }
     },
@@ -552,19 +571,40 @@ export default function PlannerClient({
         })}
       </div>
 
-      {!empty && (
-        <div className="planner-analysis">
-          <WeekSummary
-            aggregate={aggregate}
-            targets={targets}
-            denom={denom}
-            onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
-            avg={avg}
-            dates={dates}
-          />
-          <WeekTargets dates={dates} avg={avg} targets={targets} />
-        </div>
-      )}
+      {!empty &&
+        (chartsHidden ? (
+          <button
+            type="button"
+            className="weekly-show-affordance"
+            onClick={toggleCharts}
+            data-testid="planner-charts-toggle"
+          >
+            Show charts
+          </button>
+        ) : (
+          <div className="planner-analysis">
+            <div className="planner-analysis-head">
+              <button
+                type="button"
+                className="planner-charts-hide"
+                onClick={toggleCharts}
+                data-testid="planner-charts-toggle"
+                title="Hide the weekly charts"
+              >
+                Hide charts
+              </button>
+            </div>
+            <WeekSummary
+              aggregate={aggregate}
+              targets={targets}
+              denom={denom}
+              onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
+              avg={avg}
+              dates={dates}
+            />
+            <WeekTargets dates={dates} avg={avg} targets={targets} />
+          </div>
+        ))}
 
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
@@ -633,7 +673,7 @@ function DayMacros({ planned, targets }: { planned: Nutrients | null; targets: D
   const kcalDelta = Math.round(planned.energy_kcal - kcalTarget);
   const deltaStr = `${kcalDelta >= 0 ? "+" : "−"}${Math.abs(kcalDelta)}`;
   const overLimits = LIMIT_MACROS.filter((k) => {
-    const ind = macroIndicator(planned[k], targets.values[k], getNutrientMode(targets, k));
+    const ind = macroIndicator(planned[k], targets.values[k], getNutrientMode(targets, k), NUTRIENT_BANDS[k]);
     return ind === "warning" || ind === "exceeded";
   });
   return (
@@ -647,7 +687,7 @@ function DayMacros({ planned, targets }: { planned: Nutrients | null; targets: D
         {STRIP_MACROS.map((k) => {
           const v = planned[k];
           const t = targets.values[k];
-          const ind = macroIndicator(v, t, getNutrientMode(targets, k));
+          const ind = macroIndicator(v, t, getNutrientMode(targets, k), NUTRIENT_BANDS[k]);
           const d = Math.round(v - t);
           return (
             <span key={k} className="planner-day-macro" title={`${NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}: ${round1(v)} / ${round1(t)} ${NUTRIENT_UNITS[k]}`}>

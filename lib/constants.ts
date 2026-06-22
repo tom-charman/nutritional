@@ -150,6 +150,29 @@ export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
   calcium_mg: { ink: "#3F8C80", line: "#2F7468", area: "#9CC7BF", wash: "#E4F0ED" },
 };
 
+/**
+ * Per-nutrient "on-target" tolerance, as a fraction of the day's target.
+ * A value within ±band of target reads as on-target (✓) — so a trivial
+ * overage never shows as an alarmist "0% over", while a meaningful deviation
+ * still flags. Tuned per nutrient: TIGHT where small daily swings compound
+ * into real outcomes (energy → weight), LOOSER where intake is naturally
+ * lumpy/imprecise (fibre, calcium). For limit nutrients the band is the grace
+ * zone above the cap; the band DOUBLED is the hard "exceeded" edge.
+ * Consumed by macroIndicator/calorieStatus (lib/domain/targets.ts) so every
+ * warning surface (entry bars, live preview, planner, RDI chart) agrees.
+ */
+export const NUTRIENT_BANDS: Record<NutrientKey, number> = {
+  energy_kcal: 0.04, // ±80 @2000 / ±120 @3000 — a sustained ~150 kcal cut still flags
+  fat_g: 0.1, //         ±7g  @67  — calorie-dense, lumpy (≈½ tbsp oil)
+  saturated_fat_g: 0.1, // ±2g @20 (limit)
+  carbohydrates_g: 0.1, // ±22g @225 — high-volume, flexible
+  sugar_g: 0.08, //      ±7g  @90  (limit)
+  protein_g: 0.08, //    ±12g @150 — protein comes in chunky portions
+  fibre_g: 0.12, //      ±3.6g @30 — hard to hit precisely
+  salt_g: 0.08, //       ±0.5g @6  (limit) — small target, one processed food ≈ 0.5–1g
+  calcium_mg: 0.12, //   ±84mg @700 — lumpy (≈glass of milk = 300mg)
+};
+
 /** CSS channel class per nutrient (progress bars + preview channels). */
 export const NUTRIENT_CSS_CLASS: Record<NutrientKey, string> = {
   energy_kcal: "progress-calories",

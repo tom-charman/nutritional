@@ -22,6 +22,7 @@ import {
 import { setWeeklyPanelHiddenAction } from "@/app/actions/settings";
 import { applyPlanItemAction } from "@/app/actions/planner";
 import {
+  NUTRIENT_BANDS,
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
   ZERO_NUTRIENTS,
@@ -230,7 +231,11 @@ export default function EntryClient({
 
   // --- totals & summary ---
   const totals = dailyTotals(initialDay.entries) ?? ZERO_NUTRIENTS;
-  const calStatus = calorieStatus(totals.energy_kcal, targets.values.energy_kcal);
+  const calStatus = calorieStatus(
+    totals.energy_kcal,
+    targets.values.energy_kcal,
+    NUTRIENT_BANDS.energy_kcal,
+  );
   const statusClass =
     calStatus.status === "over"
       ? " target-exceeded"

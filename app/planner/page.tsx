@@ -10,7 +10,7 @@ import {
 import { requireUserId } from "@/lib/data/user";
 import { aggregateWeek } from "@/lib/domain/plan/aggregate";
 import { planDayVerdict, type DayVerdict } from "@/lib/domain/plan/verdict";
-import { mondayOf, weekDates } from "@/lib/domain/plan/week";
+import { addDays, mondayOf, weekDates } from "@/lib/domain/plan/week";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,13 @@ export default async function PlannerPage({
   const today = todayIso();
   // The planner is deliberately NOT capped at today — planning the future is the
   // point. (Only applying a plan into the LOG is today-only; see planner.ts.)
-  const requested =
-    params.week && /^\d{4}-\d{2}-\d{2}$/.test(params.week) ? params.week : today;
-  const weekStart = mondayOf(requested);
+  // Default landing = NEXT week: the current week is already being executed on
+  // the daily-entry screen, so the planner opens on the week you plan ahead for.
+  // An explicit ?week= (the stepper / "This week" button) always wins.
+  const weekStart =
+    params.week && /^\d{4}-\d{2}-\d{2}$/.test(params.week)
+      ? mondayOf(params.week)
+      : addDays(mondayOf(today), 7);
 
   const userId = await requireUserId();
   const [week, meals, foods, recentFoods, targets] = await Promise.all([

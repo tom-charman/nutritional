@@ -3206,6 +3206,26 @@ button.ingredient-name-swap:hover {
 .planner-week-rdi { padding: var(--space-lg); }
 .planner-week-rdi .planner-summary-top { margin-bottom: var(--space-sm); }
 
+/* "Hide charts" affordance — spans the full analysis row so it sits above the
+   two cards, right-aligned; a quiet text button (no border, brand: no fanfare). */
+.planner-analysis-head {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: calc(-1 * var(--space-sm));
+}
+.planner-charts-hide {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    padding: 2px 0;
+}
+.planner-charts-hide:hover { color: var(--primary); text-decoration: underline; }
+
 /* Per-day verdict mark: ✓ bamboo (met) / ⚠ rust (a target missed or limit over).
    Icon only — the macro strip carries the detail; the tooltip names the reason. */
 .planner-verdict {

@@ -65,7 +65,12 @@ test.describe("weekly planner", () => {
   test("add panel adds a meal across every day in one flow", async ({ page }) => {
     await gotoPlanner(page, FUTURE_MONDAY);
 
-    await selectInPanel(page, "E2E Plan Lunch", "1");
+    // Selecting a meal auto-fills one portion — no manual amount needed.
+    await page.getByTestId("planner-food-search").click();
+    await page.getByTestId("planner-food-search").fill("E2E Plan Lunch");
+    await page.getByText("E2E Plan Lunch (meal)", { exact: true }).click();
+    await expect(page.getByTestId("planner-amount")).toHaveValue("1");
+
     await page.getByTestId("days-every").click();
     await page.getByTestId("planner-add-btn").click();
     await expectToast(page, /Added to 7 days/);
@@ -84,6 +89,14 @@ test.describe("weekly planner", () => {
     await expect(page.locator(".planner-analysis .planner-week-rdi .chart-svg")).toBeVisible();
     await expect(page.getByTestId("planner-day-0").getByTestId("day-strip")).toContainText("kcal");
     await shot(page, "planner", "01-week-planned");
+
+    // Charts are hideable; the preference sticks across a reload (localStorage).
+    await page.getByTestId("planner-charts-toggle").click();
+    await expect(page.locator(".planner-analysis")).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator(".planner-analysis")).toHaveCount(0);
+    await page.getByTestId("planner-charts-toggle").click(); // "Show charts"
+    await expect(page.locator(".planner-analysis .planner-week-summary .chart-svg")).toBeVisible();
   });
 
   test("edit amount; copy + clear a day via the day kebab (no button footer)", async ({ page }) => {
@@ -135,5 +148,22 @@ test.describe("weekly planner", () => {
     await expectToast(page, /Added E2E Plan Lunch/);
     await expect(page.locator(".ghost-row").filter({ hasText: "E2E Plan Lunch" })).toHaveCount(0);
     await expect(page.getByText("E2E Plan Lunch").first()).toBeVisible();
+  });
+
+  test("opens on NEXT week by default; the current week is one step back", async ({ page }) => {
+    // The current week is executed on the daily-entry screen, so the planner
+    // lands on the week ahead. (Date-independent: assert relative positions.)
+    await page.goto("/planner");
+    await expect(page.locator(".planner-week")).toBeVisible();
+    const defaultHeading = (await page.locator(".planner-week-heading").textContent()) ?? "";
+
+    // The current week (explicit ?week=today) is NOT the default landing…
+    const today = new Date().toISOString().slice(0, 10);
+    await page.goto(`/planner?week=${today}`);
+    await expect(page.locator(".planner-week-heading")).not.toHaveText(defaultHeading);
+
+    // …and stepping forward one week from it reaches the default landing.
+    await page.getByTestId("next-week").click();
+    await expect(page.locator(".planner-week-heading")).toHaveText(defaultHeading);
   });
 });

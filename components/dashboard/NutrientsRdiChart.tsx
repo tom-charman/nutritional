@@ -21,6 +21,7 @@
 import { useCallback } from "react";
 import { area, curveMonotoneX, line } from "d3-shape";
 import {
+  NUTRIENT_BANDS,
   NUTRIENT_COLORS,
   NUTRIENT_SHORT_NAMES,
   NUTRIENT_UNITS,
@@ -158,7 +159,10 @@ export default function NutrientsRdiChart({
             const hoverValue = hover ? values[hover.index] : null;
             const mode = modes?.[s.key];
             // verdict per the entry-channel grammar (value vs the 100% rule)
-            const verdict = last && mode ? macroIndicator(last.value, 100, mode) : null;
+            const verdict =
+              last && mode
+                ? macroIndicator(last.value, 100, mode, NUTRIENT_BANDS[s.key])
+                : null;
 
             return (
               <g key={s.key} transform={`translate(0,${stripTop})`}>

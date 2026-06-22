@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  NUTRIENT_BANDS,
   NUTRIENT_CSS_CLASS,
   NUTRIENT_INK,
   NUTRIENT_KEYS,
@@ -48,7 +49,12 @@ export default function NutrientPreview({
         let alert: { state: "warning" | "exceeded"; over: number } | null = null;
         if (targets && dayTotals && target && target > 0) {
           const projected = dayTotals[key] + value;
-          const indicator = macroIndicator(projected, target, getNutrientMode(targets, key));
+          const indicator = macroIndicator(
+            projected,
+            target,
+            getNutrientMode(targets, key),
+            NUTRIENT_BANDS[key],
+          );
           if (indicator === "warning" || indicator === "exceeded") {
             alert = { state: indicator, over: limitOverPct(projected, target) };
           }
