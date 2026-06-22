@@ -239,7 +239,7 @@ export default function EntryClient({
   const statusClass =
     calStatus.status === "over"
       ? " target-exceeded"
-      : calStatus.status === "near"
+      : calStatus.status === "met" || calStatus.status === "near"
         ? " target-met"
         : "";
 

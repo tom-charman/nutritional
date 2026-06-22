@@ -112,17 +112,39 @@ describe("calorieStatus (energy on-target band = 0.04)", () => {
     expect(s.statusText).toBe("over target");
   });
 
-  it("a trivial overage within the band reads as near, never '0 over'", () => {
+  it("a trivial overage within the band reads as met, never '0 over'", () => {
     const s = calorieStatus(2010, 2000, 0.04); // +0.5% ≤ +4%
     expect(s.over).toBe(0);
+    expect(s.remaining).toBe(0);
+    expect(s.status).toBe("met");
+    expect(s.statusText).toBe("Target met");
+  });
+
+  it("reached the target → met (0 remaining never reads as 'nearly met')", () => {
+    const s = calorieStatus(2000, 2000, 0.04);
+    expect(s.remaining).toBe(0);
+    expect(s.status).toBe("met");
+    expect(s.statusText).toBe("Target met");
+  });
+
+  it("a hair under, remaining rounds to 0 → met, not 'nearly met'", () => {
+    const s = calorieStatus(1999.7, 2000, 0.04);
+    expect(s.remaining).toBe(0);
+    expect(s.status).toBe("met");
+  });
+
+  it("within band below target with a real remainder → near", () => {
+    const s = calorieStatus(1950, 2000, 0.04);
+    expect(s.remaining).toBe(50);
     expect(s.status).toBe("near");
     expect(s.statusText).toBe("Target nearly met");
   });
 
-  it("within band below target → near", () => {
-    const s = calorieStatus(1950, 2000, 0.04);
-    expect(s.remaining).toBe(50);
-    expect(s.status).toBe("near");
+  it("empty day → On track, full target remaining (never 'nearly met')", () => {
+    const s = calorieStatus(0, 2000, 0.04);
+    expect(s.remaining).toBe(2000);
+    expect(s.status).toBe("default");
+    expect(s.statusText).toBe("On track");
   });
 
   it("plenty remaining → default", () => {
