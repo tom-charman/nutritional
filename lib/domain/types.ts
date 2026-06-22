@@ -98,20 +98,28 @@ export interface UserSettings {
   hide_weekly_panel: boolean;
 }
 
-/** Meal slots a planned day is divided into. */
-export type PlanSlot = "breakfast" | "lunch" | "dinner" | "snack";
-export const PLAN_SLOTS: PlanSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+/**
+ * Slots (breakfast/lunch/dinner/snack) were removed — a planned day is now a
+ * single flat list, so the `slot` column is vestigial. We keep writing a fixed
+ * value into it (the column is `NOT NULL` and a legacy CHECK still restricts it
+ * to the four slot names) purely to avoid a prod DB migration: deploys are
+ * code-only, so changing the column or constraint would be a manual, risky step.
+ * The value is arbitrary among the allowed set — "breakfast" — and nothing reads
+ * it for grouping. Old rows keep their original slot and merge into the same list.
+ */
+export const FLAT_SLOT = "breakfast";
 
 /**
- * One planned item in a (day, slot) cell. References EITHER a meal template OR a
- * single food. `nutrients` is computed server-side (never persisted); `applied`
- * is true when a logged food_entries row already references this item.
+ * One planned item on a day. References EITHER a meal template OR a single food.
+ * `nutrients` is computed server-side (never persisted); `applied` is true when a
+ * logged food_entries row already references this item.
  */
 export interface PlanItem {
   id: string;
   /** ISO date (YYYY-MM-DD) */
   plan_date: string;
-  slot: PlanSlot;
+  /** Retained for storage compatibility; not used for grouping (see FLAT_SLOT). */
+  slot: string;
   position: number;
   ref:
     | { kind: "meal"; meal_id: string; meal_name: string; portions: number }

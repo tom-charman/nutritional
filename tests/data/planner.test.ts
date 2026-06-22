@@ -7,7 +7,6 @@ import {
   copyPlanDay,
   deletePlanItem,
   loadWeekPlan,
-  paintMealAcrossDays,
   savePlanItem,
   saveDailyEntry,
   saveFoodItem,
@@ -115,19 +114,6 @@ describe("week plan storage", () => {
     ).rejects.toThrow();
   });
 
-  it("paints a meal across many days in one call", async () => {
-    const food = makeFood({ name: "Chili base", energy_kcal: 120 });
-    await saveFoodItem(db, userId, food);
-    const meal = await seedMeal("Chili", food, 100);
-
-    const n = await paintMealAcrossDays(db, userId, WEEK, meal.id, 1, "lunch", [MON, TUE, WED, THU]);
-    expect(n).toBe(4);
-
-    const plan = await loadWeekPlan(db, userId, WEEK);
-    const lunches = plan.items.filter((i) => i.slot === "lunch" && i.ref.kind === "meal");
-    expect(lunches.map((i) => i.plan_date).sort()).toEqual([MON, TUE, WED, THU]);
-  });
-
   it("edits an item amount in place", async () => {
     const food = makeFood({ energy_kcal: 200 });
     await saveFoodItem(db, userId, food);
@@ -164,6 +150,9 @@ describe("week plan storage", () => {
   });
 
   it("clears a day", async () => {
+    const food = makeFood({ energy_kcal: 100 });
+    await saveFoodItem(db, userId, food);
+    await savePlanItem(db, userId, { weekStart: WEEK, planDate: THU, slot: "dinner", foodId: food.id, weightG: 100 });
     const plan = await loadWeekPlan(db, userId, WEEK);
     const before = plan.items.filter((i) => i.plan_date === THU).length;
     expect(before).toBeGreaterThan(0);

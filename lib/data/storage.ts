@@ -53,7 +53,6 @@ import type {
   Meal,
   MealEntry,
   PlanItem,
-  PlanSlot,
   UserSettings,
   WeekPlan,
 } from "@/lib/domain/types";
@@ -885,7 +884,7 @@ export async function loadWeekPlan(
     items.push({
       id: row.id,
       plan_date: row.planDate,
-      slot: row.slot as PlanSlot,
+      slot: row.slot,
       position: row.position,
       ref,
       nutrients,
@@ -923,7 +922,7 @@ export interface PlanItemInput {
   id?: string;
   weekStart: string;
   planDate: string;
-  slot: PlanSlot;
+  slot: string;
   position?: number;
   mealId?: string | null;
   portions?: number | null;
@@ -1052,33 +1051,6 @@ export async function copyPlanDay(
   return rows.length;
 }
 
-/** Stamp one meal into `slot` on each of `dates`. Returns count inserted. */
-export async function paintMealAcrossDays(
-  db: DB,
-  userId: string,
-  weekStart: string,
-  mealId: string,
-  portions: number,
-  slot: PlanSlot,
-  dates: string[],
-): Promise<number> {
-  if (!(portions > 0)) throw new Error("Meal portions must be greater than 0");
-  if (dates.length === 0) return 0;
-  const planId = await getOrCreatePlan(db, userId, weekStart);
-  await db.insert(mealPlanItems).values(
-    dates.map((d) => ({
-      planId,
-      userId,
-      planDate: d,
-      slot,
-      position: 0,
-      mealId,
-      portions: dec(portions),
-    })),
-  );
-  return dates.length;
-}
-
 /** Remove all plan items for a day (user-scoped). Returns count. */
 export async function clearPlanDay(
   db: DB,
@@ -1125,7 +1097,7 @@ export async function getPlanItem(
     return {
       id: row.id,
       plan_date: row.planDate,
-      slot: row.slot as PlanSlot,
+      slot: row.slot,
       position: row.position,
       ref: { kind: "meal", meal_id: meal.id, meal_name: meal.name, portions },
       nutrients,
@@ -1140,7 +1112,7 @@ export async function getPlanItem(
     return {
       id: row.id,
       plan_date: row.planDate,
-      slot: row.slot as PlanSlot,
+      slot: row.slot,
       position: row.position,
       ref: { kind: "food", food_id: food.id, food_name: food.name, weight_g: weightG, quantity },
       nutrients: calculateNutrients(food, { weight_g: weightG, quantity }),

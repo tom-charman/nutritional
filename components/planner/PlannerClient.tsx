@@ -5,8 +5,11 @@
  * writes to the diary. Intentions reach the log only as faint "ghost" suggestions
  * on the daily-entry screen, added with one click there.
  *
- * Composition (multi-day assignment) is "Stamp mode": load a meal, then press the
- * cells (or a whole slot across the week) where it goes — no wizard, no chips.
+ * Adding is one flow, modelled on the daily-entry screen: pick a food/meal from a
+ * dropdown (recent foods pinned + search), set the quantity up front, choose which
+ * day(s) it lands on, then Add. There are no breakfast/lunch/dinner slots — a day
+ * is a single flat list, sorted by a stable content key so two days holding the
+ * same foods render identically and line up column-for-column.
  *
  * Desktop renders a 7-day grid; the same markup stacks into a vertical day-list
  * on mobile (today pinned).
@@ -15,48 +18,56 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  addPlanFoodAction,
-  addPlanMealAction,
+  addPlanItemsAcrossDaysAction,
   clearPlanDayAction,
   clearPlanWeekAction,
   copyPlanDayAction,
   editPlanItemAmountAction,
-  paintMealAcrossDaysAction,
   removePlanItemAction,
 } from "@/app/actions/planner";
-import {
-  PLAN_SLOTS,
-  type DailyTargets,
-  type FoodItem,
-  type Meal,
-  type PlanItem,
-  type PlanSlot,
-  type WeekPlan,
+import type {
+  DailyTargets,
+  FoodItem,
+  Meal,
+  PlanItem,
+  WeekPlan,
 } from "@/lib/domain/types";
 import {
   NUTRIENT_COLORS,
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
   NUTRIENT_UNITS,
+  ZERO_NUTRIENTS,
   type NutrientKey,
+  type Nutrients,
+  type TargetMode,
 } from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
+import { calculateNutrients } from "@/lib/domain/nutrients";
+import MacroBreakdownChart from "@/components/dashboard/MacroBreakdownChart";
+import NutrientsRdiChart from "@/components/dashboard/NutrientsRdiChart";
+import type { MacroBreakdownData, NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import type { WeeklyPlanAggregate } from "@/lib/domain/plan/aggregate";
 import type { DayVerdict } from "@/lib/domain/plan/verdict";
-import type { WeekComparison } from "@/lib/domain/plan/compare";
 import { addDays, weekDates } from "@/lib/domain/plan/week";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
+import NutrientPreview from "@/components/entry/NutrientPreview";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
-const SLOT_LABELS: Record<PlanSlot, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snacks",
-};
 const WEEKDAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Macros shown on every day's strip; limit nutrients surface only when breached. */
+const STRIP_MACROS: NutrientKey[] = ["protein_g", "carbohydrates_g", "fat_g"];
+const MACRO_ABBR: Partial<Record<NutrientKey, string>> = {
+  protein_g: "P",
+  carbohydrates_g: "C",
+  fat_g: "F",
+};
+const LIMIT_MACROS: NutrientKey[] = ["sugar_g", "saturated_fat_g", "salt_g"];
+
+type Selection = { kind: "food"; food: FoodItem } | { kind: "meal"; meal: Meal };
 
 function dayNumber(iso: string): string {
   return iso.slice(8, 10);
@@ -71,6 +82,22 @@ function fmtWeekRange(a: string, b: string): string {
     ? `${da.getUTCDate()}–${db.getUTCDate()} ${mb} ${yr}`
     : `${da.getUTCDate()} ${ma} – ${db.getUTCDate()} ${mb} ${yr}`;
 }
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** A day's items in a stable order: meals first, then foods, each A→Z by name. */
+function sortItems(items: PlanItem[]): PlanItem[] {
+  return [...items].sort((a, b) => {
+    const ak = a.ref.kind === "meal" ? 0 : 1;
+    const bk = b.ref.kind === "meal" ? 0 : 1;
+    if (ak !== bk) return ak - bk;
+    const an = (a.ref.kind === "meal" ? a.ref.meal_name : a.ref.food_name).toLowerCase();
+    const bn = (b.ref.kind === "meal" ? b.ref.meal_name : b.ref.food_name).toLowerCase();
+    if (an !== bn) return an < bn ? -1 : 1;
+    return a.id < b.id ? -1 : 1; // final tiebreak for total stability
+  });
+}
 
 export default function PlannerClient({
   weekStart,
@@ -78,20 +105,20 @@ export default function PlannerClient({
   initialWeek,
   meals,
   foods,
+  recentFoods,
   aggregate,
   verdicts,
   targets,
-  comparison,
 }: {
   weekStart: string;
   today: string;
   initialWeek: WeekPlan;
   meals: Meal[];
   foods: FoodItem[];
+  recentFoods: FoodItem[];
   aggregate: WeeklyPlanAggregate;
   verdicts: Record<string, DayVerdict>;
   targets: DailyTargets;
-  comparison: WeekComparison;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -122,90 +149,173 @@ export default function PlannerClient({
   const dates = useMemo(() => weekDates(weekStart), [weekStart]);
   const currentWeek = useMemo(() => weekDates(today)[0] === dates[0], [today, dates]);
 
-  const byCell = useMemo(() => {
+  // Items grouped by date only (no slots), each list in stable content order so
+  // identical days render row-for-row identically.
+  const byDay = useMemo(() => {
     const m = new Map<string, PlanItem[]>();
     for (const it of initialWeek.items) {
-      const key = `${it.plan_date}|${it.slot}`;
-      const arr = m.get(key) ?? [];
+      const arr = m.get(it.plan_date) ?? [];
       arr.push(it);
-      m.set(key, arr);
+      m.set(it.plan_date, arr);
     }
+    for (const [k, v] of m) m.set(k, sortItems(v));
     return m;
   }, [initialWeek]);
 
   const [denom, setDenom] = useState<"planned" | "calendar">("planned");
   const avg = denom === "planned" ? aggregate.avgPerPlannedDay : aggregate.avgPerCalendarDay;
 
-  const addOptions = useMemo<ComboOption[]>(
-    () => [
-      ...meals.map((m) => ({ key: `meal:${m.id}`, label: m.name, section: "Meals" })),
-      ...foods.map((f) => ({
-        key: `food:${f.id}`,
-        label: f.unit_type === "per_100g" ? `${f.name} (per 100g)` : `${f.name} (per item)`,
-        section: "Foods",
-      })),
-    ],
-    [meals, foods],
+  // --- add panel: dropdown (recent + all + meals) → quantity → day(s) → Add ---
+  const foodOption = useCallback(
+    (f: FoodItem, section: string): ComboOption => ({
+      key: `food:${f.id}`,
+      label:
+        f.unit_type === "per_100g"
+          ? `${f.name} (per 100g)`
+          : `${f.name} (per item, ~${f.serving_size_g}g)`,
+      section,
+    }),
+    [],
   );
-  const mealOptions = useMemo<ComboOption[]>(
-    () => meals.map((m) => ({ key: m.id, label: m.name })),
-    [meals],
+  const options = useMemo<ComboOption[]>(() => {
+    const recentIds = new Set(recentFoods.map((f) => f.id));
+    const recentOpts = recentFoods.map((f) => foodOption(f, "Recent"));
+    const restOpts = foods.filter((f) => !recentIds.has(f.id)).map((f) => foodOption(f, "All foods"));
+    const mealOpts = meals.map((m) => ({
+      key: `meal:${m.id}`,
+      label: `${m.name} (meal)`,
+      section: "Meals",
+    }));
+    return [...recentOpts, ...restOpts, ...mealOpts];
+  }, [foods, meals, recentFoods, foodOption]);
+
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [amount, setAmount] = useState("");
+  const [days, setDays] = useState<Set<string>>(new Set());
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const amountRef = useRef<HTMLInputElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelect = useCallback(
+    (key: string) => {
+      setAmount("");
+      if (key.startsWith("food:")) {
+        const food = foods.find((f) => f.id === key.slice(5));
+        if (food) setSelection({ kind: "food", food });
+      } else if (key.startsWith("meal:")) {
+        const meal = meals.find((m) => m.id === key.slice(5));
+        if (meal) setSelection({ kind: "meal", meal });
+      }
+    },
+    [foods, meals],
   );
 
-  // --- add-to-cell ---
-  const [adding, setAdding] = useState<{ date: string; slot: PlanSlot } | null>(null);
-  function addToCell(date: string, slot: PlanSlot, optionKey: string) {
-    setAdding(null);
-    if (optionKey.startsWith("meal:")) {
-      run(() => addPlanMealAction(weekStart, date, slot, optionKey.slice(5), 1));
-    } else if (optionKey.startsWith("food:")) {
-      const foodId = optionKey.slice(5);
-      const food = foods.find((f) => f.id === foodId);
-      const amount = food?.unit_type === "per_item" ? 1 : 100;
-      run(() => addPlanFoodAction(weekStart, date, slot, foodId, amount));
+  // amount input config per selection type (mirrors the daily-entry screen)
+  const amountConfig =
+    selection === null
+      ? null
+      : selection.kind === "meal"
+        ? { label: "Portions", placeholder: "1.0", min: 0.1, step: 0.1 }
+        : selection.food.unit_type === "per_100g"
+          ? { label: "Weight (g)", placeholder: "e.g. 150", min: 0, step: 1 }
+          : {
+              label: `Quantity (1 item ≈ ${selection.food.serving_size_g}g)`,
+              placeholder: "e.g. 1.5",
+              min: 0,
+              step: 0.5,
+            };
+
+  // live nutrient preview for the pending item (shared pure domain code)
+  const preview = useMemo<Nutrients | null>(() => {
+    const n = Number(amount);
+    if (!selection || !Number.isFinite(n) || n <= 0) return null;
+    if (selection.kind === "food") {
+      const isPerItem = selection.food.unit_type === "per_item";
+      try {
+        return calculateNutrients(selection.food, {
+          weight_g: isPerItem ? null : n,
+          quantity: isPerItem ? n : null,
+        });
+      } catch {
+        return null;
+      }
     }
+    const totals = { ...ZERO_NUTRIENTS };
+    for (const ing of selection.meal.ingredients) {
+      for (const key of Object.keys(totals) as NutrientKey[]) totals[key] += ing.nutrients[key] * n;
+    }
+    return totals;
+  }, [selection, amount]);
+
+  const toggleDay = (d: string) =>
+    setDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  const setEveryDay = () => setDays(new Set(dates));
+  const setWeekdays = () => setDays(new Set(dates.slice(0, 5)));
+  const clearDays = () => setDays(new Set());
+
+  function resetSelection() {
+    setSelection(null);
+    setAmount("");
   }
 
-  // --- stamp mode (replaces the paint wizard): load a meal, press where it goes ---
-  const [stampMode, setStampMode] = useState(false);
-  const [stampMealId, setStampMealId] = useState<string | null>(null);
-  const [stampPortions, setStampPortions] = useState("1");
-  const stampMeal = meals.find((m) => m.id === stampMealId) ?? null;
-  const stampReady = stampMode && stampMealId !== null;
-  const portionsNum = Number(stampPortions);
-
-  const openStamp = useCallback((mealId?: string, portions?: number) => {
-    setStampMode(true);
-    if (mealId) setStampMealId(mealId);
-    if (portions) setStampPortions(String(portions));
-  }, []);
-  const closeStamp = useCallback(() => {
-    setStampMode(false);
-    setStampMealId(null);
-    setStampPortions("1");
-  }, []);
-  useEffect(() => {
-    if (!stampMode) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && closeStamp();
-    document.addEventListener("keydown", k);
-    return () => document.removeEventListener("keydown", k);
-  }, [stampMode, closeStamp]);
-
-  function stampInto(date: string, slot: PlanSlot) {
-    if (!stampMealId || !(portionsNum > 0)) return;
-    run(() => addPlanMealAction(weekStart, date, slot, stampMealId, portionsNum));
+  function handleAdd() {
+    if (isPending) return;
+    const n = Number(amount);
+    if (!selection) return pushToast("Pick a food or meal first", false);
+    if (!Number.isFinite(n) || n <= 0) return pushToast("Enter an amount", false);
+    if (days.size === 0) return pushToast("Pick at least one day", false);
+    const key = selection.kind === "food" ? `food:${selection.food.id}` : `meal:${selection.meal.id}`;
+    const chosen = dates.filter((d) => days.has(d)); // keep canonical Mon→Sun order
+    startTransition(async () => {
+      const res = await addPlanItemsAcrossDaysAction(weekStart, chosen, key, n);
+      pushToast(res.message, res.ok);
+      if (res.ok) {
+        resetSelection(); // keep day selection — adding several foods to the same days is common
+        searchRef.current?.focus();
+      }
+      router.refresh();
+    });
   }
-  function stampAcrossWeek(slot: PlanSlot) {
-    if (!stampMealId || !(portionsNum > 0)) return;
-    run(() => paintMealAcrossDaysAction(weekStart, stampMealId, portionsNum, slot, dates));
+
+  // Pull a planned row back into the add panel, ready to drop on more days.
+  function repeatItem(item: PlanItem) {
+    if (item.ref.kind === "meal") {
+      const meal = meals.find((m) => m.id === (item.ref as { meal_id: string }).meal_id);
+      if (meal) {
+        setSelection({ kind: "meal", meal });
+        setAmount(String((item.ref as { portions: number }).portions));
+      }
+    } else {
+      const food = foods.find((f) => f.id === (item.ref as { food_id: string }).food_id);
+      if (food) {
+        setSelection({ kind: "food", food });
+        const r = item.ref as { weight_g: number | null; quantity: number | null };
+        setAmount(String(r.weight_g ?? r.quantity ?? ""));
+      }
+    }
+    clearDays();
+    panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => amountRef.current?.focus(), 60);
+  }
+
+  // A day's "+ add" preselects that day and drops focus into the search.
+  function quickAddToDay(date: string) {
+    setDays(new Set([date]));
+    panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => searchRef.current?.focus(), 60);
   }
 
   const goWeek = (target: string) => router.push(`/planner?week=${target}`);
   const empty = initialWeek.items.length === 0;
 
   return (
-    <div className={`planner${stampMode ? " stamping" : ""}`}>
-      {/* ── Week stepper — identical treatment to the daily-entry day stepper ── */}
+    <div className="planner">
+      {/* ── Week stepper — same treatment as the daily-entry day stepper ── */}
       <header className="planner-header">
         <div className="planner-weeknav">
           <button
@@ -240,15 +350,6 @@ export default function PlannerClient({
         </div>
 
         <div className="planner-rail">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => (stampMode ? closeStamp() : openStamp())}
-            disabled={meals.length === 0}
-            data-testid="compose-toggle"
-          >
-            {stampMode ? "Done composing" : "Compose"}
-          </button>
           <KebabMenu label="Week actions" testId="week-menu">
             {(close) => (
               <button
@@ -267,76 +368,105 @@ export default function PlannerClient({
         </div>
       </header>
 
-      {/* ── Stamp chit: the only new chrome for multi-day assignment ── */}
-      {stampMode && (
-        <div className="planner-stamp-chit card" data-testid="stamp-chit">
-          <span className="section-label">Stamp a meal</span>
-          <div className="planner-stamp-row">
-            <Combobox
-              options={mealOptions}
-              placeholder="Load a meal to stamp…"
-              selectedLabel={stampMeal?.name ?? null}
-              onSelect={(key) => setStampMealId(key)}
-              onClear={() => setStampMealId(null)}
-              testId="stamp-meal"
-            />
-            <label className="planner-stamp-field">
-              Portions
+      {/* ── Add panel: pick item → quantity → day(s) → Add ── */}
+      <section className="planner-add-panel card" data-testid="add-panel" ref={panelRef}>
+        <span className="section-label">Add to plan</span>
+        <div className="planner-add-row">
+          <Combobox
+            options={options}
+            placeholder="Search foods and meals…"
+            testId="planner-food-search"
+            inputRef={searchRef}
+            selectedLabel={
+              selection === null
+                ? null
+                : selection.kind === "food"
+                  ? selection.food.name
+                  : `${selection.meal.name} (meal)`
+            }
+            onSelect={handleSelect}
+            onClear={resetSelection}
+          />
+          {amountConfig && (
+            <div className="planner-add-amount">
+              <label className="form-label-sm">{amountConfig.label}</label>
               <input
-                className="planner-amount-input"
+                ref={amountRef}
                 type="number"
-                min={0}
-                step={0.5}
-                value={stampPortions}
-                onChange={(e) => setStampPortions(e.target.value)}
+                data-testid="planner-amount"
+                className="form-control"
+                min={amountConfig.min}
+                step={amountConfig.step}
+                placeholder={amountConfig.placeholder}
+                value={amount}
+                autoFocus
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd();
+                }}
               />
-            </label>
-          </div>
-          {stampReady ? (
-            <p className="planner-stamp-hint">
-              Press any slot below to stamp it there — or stamp a whole week’s slot:
-            </p>
-          ) : (
-            <p className="planner-stamp-hint muted">Load a meal, then press where it goes.</p>
-          )}
-          {stampReady && (
-            <div className="planner-stamp-allweek">
-              <span className="planner-stamp-allweek-label">All week</span>
-              {PLAN_SLOTS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="planner-chip-btn"
-                  onClick={() => stampAcrossWeek(s)}
-                  disabled={isPending}
-                  data-testid={`stamp-allweek-${s}`}
-                >
-                  {SLOT_LABELS[s]}
-                </button>
-              ))}
             </div>
           )}
         </div>
-      )}
 
-      {empty && !stampMode ? (
-        <p className="planner-empty-aside">An open week. Compose a meal across days to begin.</p>
-      ) : (
-        <WeekSummary
-          aggregate={aggregate}
-          targets={targets}
-          denom={denom}
-          onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
-          avg={avg}
-          dates={dates}
-        />
+        <div className="planner-add-days">
+          <span className="planner-add-days-label">Add to</span>
+          <div className="planner-daychips" role="group" aria-label="Days to add to">
+            {dates.map((d, i) => (
+              <button
+                key={d}
+                type="button"
+                className={`planner-daychip${days.has(d) ? " on" : ""}${d === today ? " today" : ""}`}
+                aria-pressed={days.has(d)}
+                onClick={() => toggleDay(d)}
+                data-testid={`daychip-${i}`}
+              >
+                <span className="planner-daychip-name">{WEEKDAY[i]}</span>
+                <span className="planner-daychip-num">{dayNumber(d)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="planner-add-quick">
+            <button type="button" className="planner-chip-btn" onClick={setEveryDay} data-testid="days-every">
+              Every day
+            </button>
+            <button type="button" className="planner-chip-btn" onClick={setWeekdays} data-testid="days-weekdays">
+              Weekdays
+            </button>
+            {days.size > 0 && (
+              <button type="button" className="planner-chip-btn ghost" onClick={clearDays}>
+                Clear
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary planner-add-btn"
+            onClick={handleAdd}
+            disabled={isPending || !selection || days.size === 0}
+            data-testid="planner-add-btn"
+          >
+            Add{days.size > 1 ? ` · ${days.size} days` : ""}
+          </button>
+        </div>
+
+        {preview && (
+          <div className="planner-add-preview">
+            <NutrientPreview nutrients={preview} />
+          </div>
+        )}
+      </section>
+
+      {empty && (
+        <p className="planner-empty-aside">An open week. Pick a food or meal above and choose the days it lands on.</p>
       )}
 
       <div className="planner-week">
         {dates.map((date, i) => {
           const isToday = date === today;
-          const kcal = aggregate.byDay[date]?.energy_kcal ?? null;
+          const planned = aggregate.byDay[date] ?? null;
           const verdict = verdicts[date];
+          const items = byDay.get(date) ?? [];
           return (
             <section
               key={date}
@@ -351,7 +481,7 @@ export default function PlannerClient({
                   {isToday && <span className="planner-today-badge">Today</span>}
                 </div>
                 <div className="planner-day-head-right">
-                  <VerdictHanko verdict={verdict} kcal={kcal} />
+                  <VerdictHanko verdict={verdict} />
                   <KebabMenu label={`${WEEKDAY[i]} actions`} testId={`day-menu-${i}`} compact>
                     {(close) => (
                       <>
@@ -395,89 +525,46 @@ export default function PlannerClient({
                 </div>
               </header>
 
-              {verdict.reason && (
-                <p className={`planner-day-reason ${verdict.state}`}>{verdict.reason}</p>
-              )}
+              <DayMacros planned={planned} targets={targets} />
 
-              {(() => {
-                const c = comparison.byDay[i]?.byNutrient.energy_kcal;
-                if (!c || c.actual === null) return null;
-                return (
-                  <p className="planner-day-actual">
-                    Logged <span className="mono">{Math.round(c.actual)}</span> kcal
-                    {c.delta !== null && (
-                      <span className="planner-delta">
-                        {" "}
-                        ({c.delta >= 0 ? "+" : "−"}
-                        {Math.abs(Math.round(c.delta))} vs plan)
-                      </span>
-                    )}
-                  </p>
-                );
-              })()}
+              <div className="planner-day-items">
+                {items.map((it) => (
+                  <PlanItemRow
+                    key={it.id}
+                    item={it}
+                    onEdit={(amt) => run(() => editPlanItemAmountAction(it.id, amt))}
+                    onRemove={() => run(() => removePlanItemAction(it.id))}
+                    onRepeat={() => repeatItem(it)}
+                  />
+                ))}
+              </div>
 
-              {PLAN_SLOTS.map((slot) => {
-                const items = byCell.get(`${date}|${slot}`) ?? [];
-                return (
-                  <div key={slot} className="planner-slot" data-slot={slot}>
-                    <div className="planner-slot-head">
-                      <span className="planner-slot-label">{SLOT_LABELS[slot]}</span>
-                    </div>
-
-                    {items.map((it) => (
-                      <PlanItemRow
-                        key={it.id}
-                        item={it}
-                        onEdit={(amt) => run(() => editPlanItemAmountAction(it.id, amt))}
-                        onRemove={() => run(() => removePlanItemAction(it.id))}
-                        onRepeat={
-                          it.ref.kind === "meal"
-                            ? () => openStamp((it.ref as { meal_id: string }).meal_id, (it.ref as { portions: number }).portions)
-                            : undefined
-                        }
-                      />
-                    ))}
-
-                    {stampReady ? (
-                      <button
-                        type="button"
-                        className="planner-stamp-target"
-                        onClick={() => stampInto(date, slot)}
-                        disabled={isPending}
-                        data-testid={`stamp-${i}-${slot}`}
-                      >
-                        ⊕ stamp here
-                      </button>
-                    ) : adding && adding.date === date && adding.slot === slot ? (
-                      <Combobox
-                        options={addOptions}
-                        placeholder="Add meal or food…"
-                        selectedLabel={null}
-                        startOpen
-                        onSelect={(key) => addToCell(date, slot, key)}
-                        onClear={() => setAdding(null)}
-                        onCancel={() => setAdding(null)}
-                        testId={`add-${i}-${slot}`}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="planner-add"
-                        onClick={() => setAdding({ date, slot })}
-                        data-testid={`add-open-${i}-${slot}`}
-                      >
-                        + add
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              <button
+                type="button"
+                className="planner-add"
+                onClick={() => quickAddToDay(date)}
+                data-testid={`add-open-${i}`}
+              >
+                + add
+              </button>
             </section>
           );
         })}
       </div>
 
-      {comparison.anyLogged && <PlanVsActual comparison={comparison} />}
+      {!empty && (
+        <div className="planner-analysis">
+          <WeekSummary
+            aggregate={aggregate}
+            targets={targets}
+            denom={denom}
+            onToggleDenom={() => setDenom((d) => (d === "planned" ? "calendar" : "planned"))}
+            avg={avg}
+            dates={dates}
+          />
+          <WeekTargets dates={dates} avg={avg} targets={targets} />
+        </div>
+      )}
 
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
@@ -533,6 +620,62 @@ function KebabMenu({
   );
 }
 
+/** Per-day macro strip: kcal vs target up front, then P/C/F, limits only if over. */
+function DayMacros({ planned, targets }: { planned: Nutrients | null; targets: DailyTargets }) {
+  if (!planned) {
+    return (
+      <div className="planner-day-strip empty" data-testid="day-strip">
+        No plan yet
+      </div>
+    );
+  }
+  const kcalTarget = targets.values.energy_kcal;
+  const kcalDelta = Math.round(planned.energy_kcal - kcalTarget);
+  const deltaStr = `${kcalDelta >= 0 ? "+" : "−"}${Math.abs(kcalDelta)}`;
+  const overLimits = LIMIT_MACROS.filter((k) => {
+    const ind = macroIndicator(planned[k], targets.values[k], getNutrientMode(targets, k));
+    return ind === "warning" || ind === "exceeded";
+  });
+  return (
+    <div className="planner-day-strip" data-testid="day-strip">
+      <div className="planner-day-kcal">
+        <span className="planner-day-kcal-val">{Math.round(planned.energy_kcal)}</span>
+        <span className="planner-day-kcal-unit">kcal</span>
+        <span className={`planner-day-kcal-delta ${kcalDelta >= 0 ? "over" : "under"}`}>{deltaStr}</span>
+      </div>
+      <div className="planner-day-macros">
+        {STRIP_MACROS.map((k) => {
+          const v = planned[k];
+          const t = targets.values[k];
+          const ind = macroIndicator(v, t, getNutrientMode(targets, k));
+          const d = Math.round(v - t);
+          return (
+            <span key={k} className="planner-day-macro" title={`${NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}: ${round1(v)} / ${round1(t)} ${NUTRIENT_UNITS[k]}`}>
+              <span className="planner-day-macro-key" style={{ color: NUTRIENT_COLORS[k].ink }}>
+                {MACRO_ABBR[k]}
+              </span>
+              <span className="planner-day-macro-val">{Math.round(v)}</span>
+              <span className={`planner-day-macro-delta ${ind === "met" ? "met" : "miss"}`}>
+                ({d >= 0 ? "+" : "−"}
+                {Math.abs(d)})
+              </span>
+            </span>
+          );
+        })}
+      </div>
+      {overLimits.length > 0 && (
+        <div className="planner-day-limits">
+          {overLimits.map((k) => (
+            <span key={k} className="planner-day-limit warn">
+              ⚠ {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")} {round1(planned[k])} {NUTRIENT_UNITS[k]}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlanItemRow({
   item,
   onEdit,
@@ -542,7 +685,7 @@ function PlanItemRow({
   item: PlanItem;
   onEdit: (amount: number) => void;
   onRemove: () => void;
-  onRepeat?: () => void;
+  onRepeat: () => void;
 }) {
   const { ref } = item;
   let display: string;
@@ -564,97 +707,144 @@ function PlanItemRow({
   }
   return (
     <div className={`planner-item${item.applied ? " applied" : ""}`} data-testid="plan-item">
-      <span className="planner-item-name" title={name}>
-        {item.applied && (
-          <span className="planner-item-check" title="Logged from plan">✓</span>
-        )}
-        {name}
-      </span>
-      <span className="planner-item-amount">
-        <EditableAmount display={display} value={value} onSave={onEdit} onRemove={onRemove} />
-      </span>
-      <span className="planner-item-controls">
-        {onRepeat && (
+      <div className="planner-item-main">
+        <span className="planner-item-name" title={name}>
+          {item.applied && (
+            <span className="planner-item-check" title="Logged from plan">✓</span>
+          )}
+          {name}
+        </span>
+        <span className="planner-item-controls">
           <button
             type="button"
             className="planner-item-repeat"
-            aria-label={`Repeat ${name} on other days`}
-            title="Repeat on other days"
+            aria-label={`Add ${name} to other days`}
+            title="Add to other days"
             onClick={onRepeat}
           >
             ⤺
           </button>
-        )}
-        <button
-          type="button"
-          className="delete-icon"
-          aria-label={`Remove ${name}`}
-          onClick={onRemove}
-        >
-          ×
-        </button>
+          <button
+            type="button"
+            className="delete-icon"
+            aria-label={`Remove ${name}`}
+            onClick={onRemove}
+          >
+            ×
+          </button>
+        </span>
+      </div>
+      <span className="planner-item-amount">
+        <EditableAmount display={display} value={value} onSave={onEdit} onRemove={onRemove} />
       </span>
     </div>
   );
 }
 
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
-}
-function signed(n: number, unit: string): string {
-  const v = unit === "g" ? round1(Math.abs(n)) : Math.round(Math.abs(n));
-  return `${n >= 0 ? "+" : "−"}${v} ${unit}`;
-}
+/** Nutrients shown in the weekly RDI strips — every macro except energy. */
+const RDI_NUTRIENTS: NutrientKey[] = NUTRIENT_KEYS.filter((k) => k !== "energy_kcal");
 
-function PlanVsActual({ comparison }: { comparison: WeekComparison }) {
+/**
+ * Week vs targets — the dashboard's RDI strip chart, fed the week's AVERAGE as a
+ * single point per nutrient (a flat band across the week) measured against each
+ * nutrient's own target/limit. Reuses NutrientsRdiChart in compact mode.
+ */
+function WeekTargets({
+  dates,
+  avg,
+  targets,
+}: {
+  dates: string[];
+  avg: Record<NutrientKey, number> | null;
+  targets: DailyTargets;
+}) {
+  const span = [dates[0], dates[dates.length - 1]];
+  const series: Record<string, (number | null)[]> = {};
+  const modes: Record<string, TargetMode> = {};
+  const guidelines: Partial<Record<NutrientKey, number>> = {};
+  for (const k of RDI_NUTRIENTS) {
+    const t = targets.values[k];
+    const v = avg ? avg[k] : null;
+    const pct = v === null || !(t > 0) ? null : (v / t) * 100;
+    series[k] = [pct, pct]; // flat band = the week's single average value
+    modes[k] = getNutrientMode(targets, k);
+    guidelines[k] = t;
+  }
+  const data: NutrientsRdiData = { dates: span, series };
   return (
-    <section className="planner-pva card">
-      <span className="section-label">Plan vs actual · this week</span>
-      <div className="planner-pva-head">
-        <span />
-        <span>Planned</span>
-        <span>Logged</span>
-        <span>Δ</span>
+    <section className="planner-week-rdi card">
+      <div className="planner-summary-top">
+        <span className="section-label">Week average vs targets</span>
       </div>
-      {NUTRIENT_KEYS.map((k) => {
-        const d = comparison.week[k];
-        const unit = NUTRIENT_UNITS[k];
-        return (
-          <div key={k} className="planner-pva-row">
-            <span className="planner-pva-label">
-              <span
-                className="planner-nutrient-dot"
-                style={{ background: NUTRIENT_COLORS[k].ink }}
-                aria-hidden="true"
-              />
-              {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
-            </span>
-            <span className="planner-pva-num">{d.planned === null ? "—" : `${round1(d.planned)}`}</span>
-            <span className="planner-pva-num">{d.actual === null ? "—" : `${round1(d.actual)}`}</span>
-            <span className="planner-pva-delta">{d.delta === null ? "—" : signed(d.delta, unit)}</span>
-          </div>
-        );
-      })}
-      <p className="planner-pva-note">
-        Compared over the {comparison.comparableDays} day
-        {comparison.comparableDays === 1 ? "" : "s"} you both planned and logged. Per-day drift is on
-        each day above; “—” means one side is missing — never counted as zero.
-      </p>
+      <NutrientsRdiChart
+        data={data}
+        modes={modes}
+        nutrients={RDI_NUTRIENTS}
+        guidelines={guidelines}
+        compact
+      />
     </section>
   );
 }
 
-function VerdictHanko({ verdict, kcal }: { verdict: DayVerdict; kcal: number | null }) {
-  if (verdict.state === "unknown") {
-    return <span className="planner-verdict unknown">— plan</span>;
-  }
+/**
+ * At-a-glance day mark — icon only. The per-day macro strip already carries the
+ * kcal/macro deltas, so a word here ("Over"/"Under") was redundant AND misleading:
+ * a day far UNDER on energy but over one limit nutrient read as "Over". The icon
+ * (✓ all good / ⚠ something needs attention) keeps the glance; the tooltip names
+ * the specific reason. Empty days show nothing — the strip says "No plan yet".
+ */
+function VerdictHanko({ verdict }: { verdict: DayVerdict }) {
+  if (verdict.state === "unknown") return null;
   const met = verdict.state === "met";
   return (
-    <span className={`planner-verdict ${met ? "met" : "warn"}`} title={verdict.reason ?? undefined}>
-      <span className="planner-verdict-mark">{met ? "✓" : "⚠"}</span>
-      <span className="planner-verdict-kcal">{kcal === null ? "—" : `${Math.round(kcal)} kcal`}</span>
+    <span
+      className={`planner-verdict ${met ? "met" : "warn"}`}
+      title={verdict.reason ?? (met ? "On target" : undefined)}
+      aria-label={met ? "On target" : verdict.reason ?? "Needs attention"}
+    >
+      {met ? "✓" : "⚠"}
     </span>
   );
+}
+
+/**
+ * Build the dashboard's MacroBreakdownData shape from the week's per-day plan,
+ * so the planner can render the SAME chart component. Decomposition mirrors
+ * prepareMacroBreakdown: protein/carbs/fat → kcal (4/4/9), carbs split into
+ * sugar (sugar_g/carbs_g share) + other carbs, fat split into sat + other.
+ * Unplanned days are null (a gap), never zero.
+ */
+function weeklyMacroBreakdown(
+  dates: string[],
+  byDay: Record<string, Nutrients | null>,
+): MacroBreakdownData {
+  const protein_cal: (number | null)[] = [];
+  const other_carbs_cal: (number | null)[] = [];
+  const sugar_cal: (number | null)[] = [];
+  const other_fat_cal: (number | null)[] = [];
+  const saturated_fat_cal: (number | null)[] = [];
+  for (const d of dates) {
+    const n = byDay[d] ?? null;
+    if (!n) {
+      protein_cal.push(null);
+      other_carbs_cal.push(null);
+      sugar_cal.push(null);
+      other_fat_cal.push(null);
+      saturated_fat_cal.push(null);
+      continue;
+    }
+    const carbsCal = n.carbohydrates_g * 4;
+    const sugarCal = n.carbohydrates_g > 0 ? (n.sugar_g / n.carbohydrates_g) * carbsCal : 0;
+    const fatCal = n.fat_g * 9;
+    const satFatCal = Math.min(n.saturated_fat_g * 9, fatCal);
+    protein_cal.push(n.protein_g * 4);
+    sugar_cal.push(Math.min(sugarCal, carbsCal));
+    other_carbs_cal.push(Math.max(0, carbsCal - sugarCal));
+    saturated_fat_cal.push(satFatCal);
+    other_fat_cal.push(Math.max(0, fatCal - satFatCal));
+  }
+  return { dates, protein_cal, other_carbs_cal, sugar_cal, other_fat_cal, saturated_fat_cal };
 }
 
 function WeekSummary({
@@ -673,11 +863,10 @@ function WeekSummary({
   dates: string[];
 }) {
   const totalKcal = Math.round(aggregate.total.energy_kcal);
-  const maxDayKcal = Math.max(1, ...dates.map((d) => aggregate.byDay[d]?.energy_kcal ?? 0));
   return (
     <section className="planner-week-summary card">
       <div className="planner-summary-top">
-        <span className="section-label">Week average</span>
+        <span className="section-label">Week at a glance</span>
         <button
           type="button"
           className="planner-denom-toggle"
@@ -688,59 +877,16 @@ function WeekSummary({
           {denom === "planned" ? "÷ days planned" : "÷ 7 days"}
         </button>
       </div>
-      <div className="planner-summary-grid">
-        <div className="planner-summary-headline">
-          <span className="planner-summary-avg">{avg ? Math.round(avg.energy_kcal) : "—"}</span>
-          <span className="planner-summary-avg-label">kcal avg / day</span>
-          <span className="planner-summary-sub">
-            {aggregate.daysPlanned} of 7 days planned · {totalKcal} kcal total
-          </span>
-        </div>
-        <div className="planner-distribution" aria-hidden="true">
-          {dates.map((d) => {
-            const k = aggregate.byDay[d]?.energy_kcal ?? null;
-            const h = k === null ? 0 : Math.max(3, Math.round((k / maxDayKcal) * 100));
-            return (
-              <span
-                key={d}
-                className={`planner-dist-bar${k === null ? " empty" : ""}`}
-                style={{ height: `${h}%` }}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <div className="planner-nutrient-rows">
-        {NUTRIENT_KEYS.filter((k) => k !== "energy_kcal").map((k) => {
-          const v = avg ? avg[k] : null;
-          const mode = getNutrientMode(targets, k);
-          const ind = v === null ? null : macroIndicator(v, targets.values[k], mode);
-          const mark = ind === "met" ? "✓" : ind === "warning" || ind === "exceeded" ? "⚠" : "";
-          const markCls = ind === "met" ? "met" : ind ? "warn" : "";
-          return (
-            <div key={k} className="planner-nutrient-row">
-              <span className="planner-nutrient-label">
-                <span
-                  className="planner-nutrient-dot"
-                  style={{ background: NUTRIENT_COLORS[k].ink }}
-                  aria-hidden="true"
-                />
-                {NUTRIENT_LABELS[k].replace(/ \(.*\)$/, "")}
-              </span>
-              <span className="planner-nutrient-val">
-                {v === null ? "—" : `${round1(v)} ${NUTRIENT_UNITS[k]}`}
-              </span>
-              <span className="planner-nutrient-target">
-                {mode === "limit" ? "≤ " : "/ "}
-                {round1(targets.values[k])}
-              </span>
-              <span className={`planner-nutrient-mark ${markCls}`} aria-hidden="true">
-                {mark}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+
+      <p className="planner-summary-line">
+        <span className="planner-summary-avg">{avg ? Math.round(avg.energy_kcal) : "—"}</span>
+        <span className="planner-summary-avg-unit">kcal avg/day</span>
+        <span className="planner-summary-sub">
+          {aggregate.daysPlanned} of 7 days planned · {totalKcal} kcal total
+        </span>
+      </p>
+
+      <MacroBreakdownChart data={weeklyMacroBreakdown(dates, aggregate.byDay)} />
     </section>
   );
 }
