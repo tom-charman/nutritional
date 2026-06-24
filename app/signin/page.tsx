@@ -15,7 +15,7 @@ export const metadata = {
 function safeCallbackUrl(raw: string | string[] | undefined): string {
   const url = Array.isArray(raw) ? raw[0] : raw;
   if (url && url.startsWith("/") && !url.startsWith("//")) return url;
-  return "/";
+  return "/entry"; // Daily Entry is the landing surface
 }
 
 export default async function SignInPage({

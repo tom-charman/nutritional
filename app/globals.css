@@ -326,27 +326,26 @@ p {
     box-shadow: inset 0 1px 1.5px rgba(43, 38, 34, 0.12);
 }
 
-/* ==================== Account menu ==================== */
-.account-menu {
+/* ==================== Navbar dropdowns (Planning, Account) ==================== */
+.nav-menu {
     position: relative;
     display: inline-block;
 }
 
-.account-menu-trigger {
+.nav-menu-trigger {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.account-menu-caret {
+.nav-menu-caret {
     font-size: 0.7em;
     opacity: 0.7;
 }
 
-.account-menu-panel {
+.nav-menu-panel {
     position: absolute;
     top: calc(100% + 6px);
-    right: 0;
     min-width: 200px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -356,6 +355,35 @@ p {
     z-index: 100;
 }
 
+.nav-menu-panel-left {
+    left: 0;
+}
+
+.nav-menu-panel-right {
+    right: 0;
+}
+
+.nav-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-sm);
+    color: var(--text-body);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+    text-decoration: none;
+}
+
+.nav-menu-item:hover {
+    background-color: var(--background);
+}
+
+/* Account-menu header block (name / email shown above the items) */
 .account-menu-header {
     padding: 8px 10px 6px;
 }
@@ -376,25 +404,6 @@ p {
     height: 1px;
     background: var(--border);
     margin: 4px 0;
-}
-
-.account-menu-item {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font: inherit;
-    font-size: var(--font-size-sm);
-    color: var(--text-body);
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.15s ease;
-}
-
-.account-menu-item:hover {
-    background-color: var(--background);
 }
 
 /* ==================== Sign-in ==================== */

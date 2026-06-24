@@ -3,7 +3,7 @@ import { shot } from "./pages/helpers";
 
 test.describe("dashboard", () => {
   test("three chart tabs render with prod-copy data", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     // tab 1: calories & weight (default)
     const svg = page.locator(".graph-wrapper svg.chart-svg");
     await expect(svg).toBeVisible();
@@ -20,7 +20,7 @@ test.describe("dashboard", () => {
   });
 
   test("range selector windows the chart (3M default, ALL widens)", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     const rangeGroup = page.getByRole("radiogroup", { name: "Date range" });
     await expect(rangeGroup.getByRole("radio", { name: "3M" })).toHaveAttribute(
       "aria-checked",
@@ -42,7 +42,7 @@ test.describe("dashboard", () => {
   });
 
   test("unified hover tooltip appears", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     const svg = page.locator(".graph-wrapper svg.chart-svg");
     await expect(svg).toBeVisible();
     const box = (await svg.boundingBox())!;
