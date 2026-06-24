@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AccountMenu from "@/components/nav/AccountMenu";
+import PlanningMenu from "@/components/nav/PlanningMenu";
 
 const LINKS = [
-  { href: "/", label: "Dashboard" },
   { href: "/entry", label: "Daily Entry" },
-  { href: "/planner", label: "Weekly Planner" },
-  { href: "/foods", label: "Food Database" },
-  { href: "/meals", label: "Meal Planner" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 export interface NavUser {
@@ -29,8 +27,7 @@ export default function Navbar({ user = null }: { user?: NavUser | null }) {
         <span className="navbar-brand">Nutritional</span>
         <div className="navbar-links">
           {LINKS.map((l) => {
-            const active =
-              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+            const active = pathname.startsWith(l.href);
             return (
               <Link
                 key={l.href}
@@ -42,6 +39,7 @@ export default function Navbar({ user = null }: { user?: NavUser | null }) {
               </Link>
             );
           })}
+          <PlanningMenu />
           {user && <AccountMenu name={user.name} email={user.email} />}
         </div>
       </div>
