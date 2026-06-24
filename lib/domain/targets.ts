@@ -50,9 +50,13 @@ export type IndicatorState = "met" | "warning" | "exceeded" | null;
  * fraction of the target; see NUTRIENT_BANDS). The band is the grace zone so
  * a trivial deviation never raises an alarm:
  *  - limit mode: value > target*(1+2·band) → exceeded(⚠); value > target*(1+band)
- *    → warning(⚠); at/under cap or within grace → null.
- *  - target mode: value >= target*(1−band) → met(✓) (close enough); below → null
- *    (a real shortfall, surfaced as "short" by the bars/verdict).
+ *    → warning(⚠); at/under the cap (within grace) → met(✓) — staying under a
+ *    cap is a win and earns the tick, just like hitting a floor does.
+ *  - target mode: value >= target*(1−band) → met(✓) (close enough, any overage
+ *    is fine for a floor); below → null (a real shortfall, surfaced as "short").
+ *
+ * Energy is a window, not a floor — see `energyIndicator`; route per-nutrient
+ * judgements through `nutrientIndicator` so calories get the right treatment.
  */
 export function macroIndicator(
   value: number,
@@ -63,9 +67,45 @@ export function macroIndicator(
   if (mode === "limit") {
     if (value > target * (1 + 2 * band)) return "exceeded";
     if (value > target * (1 + band)) return "warning";
-    return null;
+    return "met";
   }
   return value >= target * (1 - band) ? "met" : null;
+}
+
+/**
+ * Calories are special: a tick means "in the band", so both a shortfall AND an
+ * overage break it (eating far under target is no more "on target" than eating
+ * over). Judged as a window around the energy target:
+ *  - value > target*(1+2·band) → exceeded(⚠); value > target*(1+band) → warning(⚠);
+ *  - within ±band of target → met(✓);
+ *  - below target*(1−band) → null (a real shortfall, never a tick).
+ * Mirrors the energy half of `calorieStatus` (the remaining-card copy).
+ */
+export function energyIndicator(
+  value: number,
+  target: number,
+  band: number,
+): IndicatorState {
+  if (value > target * (1 + 2 * band)) return "exceeded";
+  if (value > target * (1 + band)) return "warning";
+  return value >= target * (1 - band) ? "met" : null;
+}
+
+/**
+ * The single entry point UI surfaces should use to judge a nutrient: energy
+ * gets the in-band window (`energyIndicator`); every other nutrient follows its
+ * stored target/limit `mode` via `macroIndicator`.
+ */
+export function nutrientIndicator(
+  nutrient: NutrientKey,
+  value: number,
+  target: number,
+  mode: TargetMode,
+  band: number,
+): IndicatorState {
+  return nutrient === "energy_kcal"
+    ? energyIndicator(value, target, band)
+    : macroIndicator(value, target, mode, band);
 }
 
 /**

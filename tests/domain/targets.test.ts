@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   calorieStatus,
+  energyIndicator,
   getDefaultTargets,
   getNutrientMode,
   limitOverPct,
   macroIndicator,
+  nutrientIndicator,
 } from "@/lib/domain/targets";
 
 describe("getDefaultTargets (models.py get_default_targets port)", () => {
@@ -57,10 +59,10 @@ describe("macroIndicator (per-nutrient on-target band)", () => {
     expect(macroIndicator(23, 20, "limit", 0.1)).toBe("warning");
   });
 
-  it("limit mode: within the grace band → null (no alarm for a trivial overage)", () => {
-    expect(macroIndicator(21, 20, "limit", 0.1)).toBeNull(); // +5% ≤ +10% grace
-    expect(macroIndicator(20, 20, "limit", 0.1)).toBeNull();
-    expect(macroIndicator(15, 20, "limit", 0.1)).toBeNull();
+  it("limit mode: at/under the cap (within grace) → met (staying under earns the tick)", () => {
+    expect(macroIndicator(21, 20, "limit", 0.1)).toBe("met"); // +5% ≤ +10% grace
+    expect(macroIndicator(20, 20, "limit", 0.1)).toBe("met");
+    expect(macroIndicator(15, 20, "limit", 0.1)).toBe("met");
   });
 
   it("target mode: within band below target → met (close enough)", () => {
@@ -69,8 +71,45 @@ describe("macroIndicator (per-nutrient on-target band)", () => {
     expect(macroIndicator(149, 150, "target", 0.08)).toBe("met"); // within 8% band
   });
 
+  it("target mode: any overage above a floor is still met", () => {
+    expect(macroIndicator(300, 150, "target", 0.08)).toBe("met"); // 2× the floor
+  });
+
   it("target mode: below the band → null (a real shortfall)", () => {
     expect(macroIndicator(130, 150, "target", 0.08)).toBeNull(); // 13% short
+  });
+});
+
+describe("energyIndicator (calories are a window, not a floor)", () => {
+  // energy band = 0.04 → grace to 2080, exceeded beyond 2160; floor at 1920.
+  it("within ±band of target → met", () => {
+    expect(energyIndicator(2000, 2000, 0.04)).toBe("met");
+    expect(energyIndicator(1920, 2000, 0.04)).toBe("met"); // bottom of the band
+    expect(energyIndicator(2080, 2000, 0.04)).toBe("met"); // top of the band
+  });
+
+  it("over the band → warning then exceeded (an overage is a real miss)", () => {
+    expect(energyIndicator(2100, 2000, 0.04)).toBe("warning"); // >2080, ≤2160
+    expect(energyIndicator(2200, 2000, 0.04)).toBe("exceeded"); // >2160
+  });
+
+  it("below the band → null, never a tick (under-eating is not on-target)", () => {
+    expect(energyIndicator(1500, 2000, 0.04)).toBeNull();
+  });
+});
+
+describe("nutrientIndicator (dispatch: energy → window, else mode)", () => {
+  it("routes energy through the window — overage breaks the tick", () => {
+    expect(nutrientIndicator("energy_kcal", 2200, 2000, "target", 0.04)).toBe("exceeded");
+    expect(nutrientIndicator("energy_kcal", 2000, 2000, "target", 0.04)).toBe("met");
+  });
+
+  it("routes a floor nutrient through macroIndicator — overage stays met", () => {
+    expect(nutrientIndicator("protein_g", 300, 150, "target", 0.08)).toBe("met");
+  });
+
+  it("routes a cap nutrient through macroIndicator — under cap is met", () => {
+    expect(nutrientIndicator("salt_g", 5, 6, "limit", 0.08)).toBe("met");
   });
 });
 
@@ -97,9 +136,10 @@ describe("limit alert projection (committed total + pending entry)", () => {
     expect(macroIndicator(5 + 2, 6, "limit", 0.08)).toBe("exceeded");
   });
 
-  it("stays silent while the projected total is within the cap + grace", () => {
-    expect(macroIndicator(3 + 2, 6, "limit", 0.08)).toBeNull();
-    expect(macroIndicator(6.3, 6, "limit", 0.08)).toBeNull(); // +5% ≤ +8% grace
+  it("no breach while the projected total is within the cap + grace (met, not warning/exceeded)", () => {
+    // The preview only raises an alert on warning/exceeded; "met" leaves it silent.
+    expect(macroIndicator(3 + 2, 6, "limit", 0.08)).toBe("met");
+    expect(macroIndicator(6.3, 6, "limit", 0.08)).toBe("met"); // +5% ≤ +8% grace
   });
 });
 
