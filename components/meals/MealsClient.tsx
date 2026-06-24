@@ -1,20 +1,32 @@
 "use client";
 
 /**
- * Meal Planner — port of pages/meal_planner.py: 2-column mise-en-place.
- * Left: meal composer (name, food selector, amount, ingredients, totals).
- * Right: saved meals (click to load for editing, delete link).
+ * Recipe Planner — port of pages/meal_planner.py: 2-column mise-en-place.
+ * Left: recipe composer (name, yield mode, food selector, amount, ingredients, totals).
+ * Right: saved recipes (click to load for editing, delete link).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteMealAction, saveMealAction } from "@/app/actions/meals";
-import { type Nutrients } from "@/lib/constants";
-import { calculateNutrients, sumNutrients } from "@/lib/domain/nutrients";
+import { type MealYieldMode, type Nutrients } from "@/lib/constants";
+import { calculateNutrients, scaleNutrients, sumNutrients } from "@/lib/domain/nutrients";
 import type { DailyTargets, FoodItem, Meal, MealIngredient } from "@/lib/domain/types";
 import Combobox from "@/components/ui/Combobox";
 import EditableAmount from "@/components/ui/EditableAmount";
 import NutrientPreview from "@/components/entry/NutrientPreview";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
+
+const YIELD_OPTIONS: { mode: MealYieldMode; label: string }[] = [
+  { mode: "whole", label: "Whole batch" },
+  { mode: "by_weight", label: "By weight" },
+  { mode: "by_count", label: "By count" },
+];
+
+const YIELD_HINT: Record<MealYieldMode, string> = {
+  whole: "Eat the whole thing — log it scaled by portions.",
+  by_weight: "Cooked as a batch (cake, stew) — weigh the finished dish, then log a weighed portion.",
+  by_count: "Makes a number of items (cookies) — log how many you eat.",
+};
 
 export default function MealsClient({
   foods,
@@ -42,6 +54,9 @@ export default function MealsClient({
   // --- composer state ---
   const [mealId, setMealId] = useState<string | null>(null);
   const [mealName, setMealName] = useState("");
+  const [yieldMode, setYieldMode] = useState<MealYieldMode>("whole");
+  const [yieldWeight, setYieldWeight] = useState("");
+  const [yieldCount, setYieldCount] = useState("");
   const [ingredients, setIngredients] = useState<MealIngredient[]>([]);
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [amount, setAmount] = useState("");
@@ -82,6 +97,19 @@ export default function MealsClient({
 
   const totals: Nutrients | null =
     ingredients.length > 0 ? sumNutrients(ingredients.map((i) => i.nutrients)) : null;
+
+  // Per-unit breakdown of the batch, shown live so the cook sees the cooked
+  // dish's per-100g / per-item macros as they enter the finished yield.
+  const yieldWeightNum = Number(yieldWeight);
+  const yieldCountNum = Number(yieldCount);
+  const perUnit: { label: string; nutrients: Nutrients } | null =
+    !totals
+      ? null
+      : yieldMode === "by_weight" && yieldWeightNum > 0
+        ? { label: "Per 100 g cooked", nutrients: scaleNutrients(totals, 100 / yieldWeightNum) }
+        : yieldMode === "by_count" && yieldCountNum > 0
+          ? { label: "Per item", nutrients: scaleNutrients(totals, 1 / yieldCountNum) }
+          : null;
 
   function addIngredient() {
     const n = Number(amount);
@@ -131,6 +159,9 @@ export default function MealsClient({
   function clearComposer() {
     setMealId(null);
     setMealName("");
+    setYieldMode("whole");
+    setYieldWeight("");
+    setYieldCount("");
     setIngredients([]);
     setSelectedFood(null);
     setAmount("");
@@ -139,6 +170,9 @@ export default function MealsClient({
   function loadMealForEditing(meal: Meal) {
     setMealId(meal.id);
     setMealName(meal.name);
+    setYieldMode(meal.yield_mode);
+    setYieldWeight(meal.yield_weight_g != null ? String(meal.yield_weight_g) : "");
+    setYieldCount(meal.yield_count != null ? String(meal.yield_count) : "");
     setIngredients(meal.ingredients);
     setSelectedFood(null);
     setAmount("");
@@ -154,6 +188,11 @@ export default function MealsClient({
           weight_g: ing.weight_g,
           quantity: ing.quantity,
         })),
+        {
+          yield_mode: yieldMode,
+          yield_weight_g: yieldMode === "by_weight" ? Number(yieldWeight) : null,
+          yield_count: yieldMode === "by_count" ? Number(yieldCount) : null,
+        },
       );
       pushToast(result.message, result.ok);
       if (result.ok) {
@@ -188,25 +227,81 @@ export default function MealsClient({
   return (
     <div className="meal-planner-container">
       <div className="page-header">
-        <h1 className="page-title">Meal Planner</h1>
+        <h1 className="page-title">Recipe Planner</h1>
         <p className="text-muted">
-          Create reusable meal templates by combining foods with specific amounts.
+          Create reusable recipes by combining foods with specific amounts.
         </p>
       </div>
 
       <div className="mise-planner-container">
-        {/* Column 1: Meal Composer */}
+        {/* Column 1: Recipe Composer */}
         <div className="mise-planner-column">
-          <div className="section-label">Meal Composer</div>
+          <div className="section-label">Recipe Composer</div>
 
           <input
             type="text"
             data-testid="meal-name"
-            placeholder="Meal name (e.g., Breakfast Smoothie)"
+            placeholder="Recipe name (e.g., Breakfast Smoothie)"
             value={mealName}
             onChange={(e) => setMealName(e.target.value)}
             style={{ marginBottom: 12 }}
           />
+
+          <div className="yield-mode" style={{ marginBottom: 12 }}>
+            <label className="form-label-sm">How is this recipe portioned?</label>
+            <div
+              className="yield-mode-options"
+              role="group"
+              data-testid="yield-mode"
+              style={{ display: "flex", gap: 6, marginTop: 4 }}
+            >
+              {YIELD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.mode}
+                  type="button"
+                  className={yieldMode === opt.mode ? "btn-primary" : "btn-secondary"}
+                  aria-pressed={yieldMode === opt.mode}
+                  data-testid={`yield-mode-${opt.mode}`}
+                  onClick={() => setYieldMode(opt.mode)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-muted" style={{ marginTop: 4, fontSize: "0.85em" }}>
+              {YIELD_HINT[yieldMode]}
+            </p>
+            {yieldMode === "by_weight" && (
+              <div className="compact-input">
+                <label className="form-label-sm">Finished weight (g)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min={0}
+                  step={1}
+                  data-testid="yield-weight"
+                  placeholder="e.g. 1200"
+                  value={yieldWeight}
+                  onChange={(e) => setYieldWeight(e.target.value)}
+                />
+              </div>
+            )}
+            {yieldMode === "by_count" && (
+              <div className="compact-input">
+                <label className="form-label-sm">Yields (number of items)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min={0}
+                  step={1}
+                  data-testid="yield-count"
+                  placeholder="e.g. 12"
+                  value={yieldCount}
+                  onChange={(e) => setYieldCount(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
 
           <Combobox
             options={options}
@@ -284,7 +379,20 @@ export default function MealsClient({
           )}
 
           {totals && totals.energy_kcal > 0 && (
-            <NutrientPreview nutrients={totals} targets={targets} />
+            <>
+              <div className="form-label-sm" style={{ marginTop: 12 }}>
+                {yieldMode === "whole" ? "Per batch" : "Whole batch"}
+              </div>
+              <NutrientPreview nutrients={totals} targets={targets} />
+              {perUnit && (
+                <>
+                  <div className="form-label-sm" style={{ marginTop: 12 }}>
+                    {perUnit.label}
+                  </div>
+                  <NutrientPreview nutrients={perUnit.nutrients} targets={targets} />
+                </>
+              )}
+            </>
           )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
@@ -294,7 +402,7 @@ export default function MealsClient({
               onClick={handleSave}
               disabled={isPending}
             >
-              {isPending ? "Saving..." : mealId ? "Update Meal" : "Save Meal"}
+              {isPending ? "Saving..." : mealId ? "Update Recipe" : "Save Recipe"}
             </button>
             <button className="btn-secondary" onClick={clearComposer}>
               Clear
@@ -302,13 +410,13 @@ export default function MealsClient({
           </div>
         </div>
 
-        {/* Column 2: Saved Meals */}
+        {/* Column 2: Saved Recipes */}
         <div className="mise-planner-column">
-          <div className="section-label">Saved Meals</div>
+          <div className="section-label">Saved Recipes</div>
           <div className="saved-meals-list">
             {initialMeals.length === 0 ? (
               <p className="empty-state-message">
-                No meals saved yet. Create your first meal using the composer.
+                No recipes saved yet. Create your first recipe using the composer.
               </p>
             ) : (
               initialMeals.map((meal) => {
@@ -332,6 +440,11 @@ export default function MealsClient({
                         {meal.ingredients.length} ingredient
                         {meal.ingredients.length === 1 ? "" : "s"} ·{" "}
                         {Math.round(mealTotals.energy_kcal)} kcal
+                        {meal.yield_mode === "by_weight" && meal.yield_weight_g
+                          ? ` · ${meal.yield_weight_g} g batch`
+                          : meal.yield_mode === "by_count" && meal.yield_count
+                            ? ` · makes ${meal.yield_count}`
+                            : ""}
                       </span>
                     </div>
                     <div className="meal-card-controls">
@@ -348,7 +461,7 @@ export default function MealsClient({
                       </button>
                       <button
                         className="delete-icon"
-                        title="Delete meal"
+                        title="Delete recipe"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDelete(meal);

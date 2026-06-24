@@ -215,3 +215,12 @@ export const WEIGHT_BAND_FILL = "rgba(120, 148, 64, 0.08)";
 export type TargetMode = "target" | "limit";
 
 export type UnitType = "per_100g" | "per_item";
+
+/**
+ * How a saved recipe (meal) converts into a logged amount:
+ *   'whole'     — eat the assembled batch, scaled by portions (legacy default).
+ *   'by_weight' — batch has a finished cooked weight (e.g. a 1200 g cake); log a
+ *                 weighed portion (a 150 g slice → its share of the macros).
+ *   'by_count'  — batch yields N identical items (e.g. 12 cookies); log a count.
+ */
+export type MealYieldMode = "whole" | "by_weight" | "by_count";

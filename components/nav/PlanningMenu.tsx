@@ -6,10 +6,10 @@ import NavMenu from "@/components/nav/NavMenu";
 
 const ITEMS = [
   { href: "/planner", label: "Weekly Planner" },
-  { href: "/meals", label: "Meal Planner" },
+  { href: "/meals", label: "Recipes" },
 ];
 
-/** Planning dropdown — groups the forward-looking tools (weekly + meal planners). */
+/** Planning dropdown — groups the forward-looking tools (weekly planner + recipes). */
 export default function PlanningMenu() {
   const pathname = usePathname();
   const active = ITEMS.some((i) => pathname.startsWith(i.href));

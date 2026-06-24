@@ -187,6 +187,9 @@ describe("multi-user isolation", () => {
     const breakfast = (owner: string): Meal => ({
       id: randomUUID(),
       name: "Breakfast",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         {
           food_id: canonical,

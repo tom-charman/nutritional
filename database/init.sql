@@ -156,6 +156,21 @@ ALTER TABLE meals ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
 ALTER TABLE meals DROP CONSTRAINT IF EXISTS meals_name_key;
 CREATE UNIQUE INDEX IF NOT EXISTS meals_user_name ON meals(user_id, name);
 
+-- Yield mode — how the recipe converts into a logged amount:
+--   'whole'     eat the assembled batch, scaled by portions (default; legacy).
+--   'by_weight' batch has a finished cooked weight; consume a weighed portion
+--               (e.g. a 150 g slice of a 1200 g cake → per-100 g macros).
+--   'by_count'  batch yields N identical items; consume a count (e.g. 2 of 12 cookies).
+ALTER TABLE meals ADD COLUMN IF NOT EXISTS yield_mode VARCHAR(10) NOT NULL DEFAULT 'whole';
+ALTER TABLE meals ADD COLUMN IF NOT EXISTS yield_weight_g DECIMAL(8,2);
+ALTER TABLE meals ADD COLUMN IF NOT EXISTS yield_count DECIMAL(8,2);
+ALTER TABLE meals DROP CONSTRAINT IF EXISTS check_meal_yield;
+ALTER TABLE meals ADD CONSTRAINT check_meal_yield CHECK (
+    (yield_mode = 'whole'     AND yield_weight_g IS NULL AND yield_count IS NULL) OR
+    (yield_mode = 'by_weight' AND yield_weight_g IS NOT NULL AND yield_weight_g > 0 AND yield_count IS NULL) OR
+    (yield_mode = 'by_count'  AND yield_count IS NOT NULL AND yield_count > 0 AND yield_weight_g IS NULL)
+);
+
 -- Meal ingredients (links meals to foods with amounts). Scoped to a user via
 -- their parent meal (ON DELETE CASCADE), so no user_id of its own.
 CREATE TABLE IF NOT EXISTS meal_ingredients (

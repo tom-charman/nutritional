@@ -33,14 +33,20 @@ import {
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import {
   NUTRIENT_KEYS,
-  ZERO_NUTRIENTS,
+  type MealYieldMode,
   type Nutrients,
   type TargetMode,
   type UnitType,
 } from "@/lib/constants";
 import { num, num0, dec, decOrNull } from "@/lib/db/coerce";
 import * as schema from "@/lib/db/schema";
-import { calculateNutrients, dailyTotals, sumNutrients } from "@/lib/domain/nutrients";
+import {
+  calculateNutrients,
+  dailyTotals,
+  scaleNutrients,
+  sumNutrients,
+} from "@/lib/domain/nutrients";
+import { mealConsumedToFactor } from "@/lib/domain/meals";
 import { getDefaultTargets } from "@/lib/domain/targets";
 import { weekDates } from "@/lib/domain/plan/week";
 import type {
@@ -306,7 +312,15 @@ export async function deleteFoodItem(db: DB, userId: string, foodId: string): Pr
 
 // ============= Meals =============
 
-async function mealWithIngredients(db: DB, mealRow: { id: string; name: string }): Promise<Meal> {
+interface MealRow {
+  id: string;
+  name: string;
+  yieldMode?: string | null;
+  yieldWeightG?: string | number | null;
+  yieldCount?: string | number | null;
+}
+
+async function mealWithIngredients(db: DB, mealRow: MealRow): Promise<Meal> {
   const rows = await db
     .select({
       foodId: mealIngredients.foodId,
@@ -348,7 +362,14 @@ async function mealWithIngredients(db: DB, mealRow: { id: string; name: string }
       };
     });
 
-  return { id: mealRow.id, name: mealRow.name, ingredients };
+  return {
+    id: mealRow.id,
+    name: mealRow.name,
+    yield_mode: (mealRow.yieldMode as MealYieldMode | null) ?? "whole",
+    yield_weight_g: num(mealRow.yieldWeightG ?? null),
+    yield_count: num(mealRow.yieldCount ?? null),
+    ingredients,
+  };
 }
 
 export async function loadMeals(db: DB, userId: string): Promise<Meal[]> {
@@ -377,8 +398,23 @@ export async function saveMeal(db: DB, userId: string, meal: Meal): Promise<void
   await db.transaction(async (tx) => {
     await tx
       .insert(meals)
-      .values({ id: meal.id, userId, name: meal.name })
-      .onConflictDoUpdate({ target: meals.id, set: { name: meal.name } });
+      .values({
+        id: meal.id,
+        userId,
+        name: meal.name,
+        yieldMode: meal.yield_mode,
+        yieldWeightG: decOrNull(meal.yield_weight_g),
+        yieldCount: decOrNull(meal.yield_count),
+      })
+      .onConflictDoUpdate({
+        target: meals.id,
+        set: {
+          name: meal.name,
+          yieldMode: meal.yield_mode,
+          yieldWeightG: decOrNull(meal.yield_weight_g),
+          yieldCount: decOrNull(meal.yield_count),
+        },
+      });
     await tx.delete(mealIngredients).where(eq(mealIngredients.mealId, meal.id));
     if (meal.ingredients.length > 0) {
       await tx.insert(mealIngredients).values(
@@ -447,7 +483,8 @@ export async function loadDailyEntry(
   interface Group {
     mealId: string;
     mealLogId: string;
-    portions: number;
+    /** Literal consumed amount (portions/grams/count); the factor is derived. */
+    consumed: number;
     ingredients: FoodEntry[];
   }
   const mealGroups = new Map<string, Group>();
@@ -459,8 +496,8 @@ export async function loadDailyEntry(
       const group = mealGroups.get(key) ?? {
         mealId: entry.mealId,
         mealLogId: entry.mealLogId ?? entry.mealId,
-        // legacy rows have no stored portions → default to 1
-        portions: num(entry.portions) ?? 1.0,
+        // legacy rows have no stored amount → default to 1
+        consumed: num(entry.portions) ?? 1.0,
         ingredients: [],
       };
       group.ingredients.push(fe);
@@ -478,11 +515,22 @@ export async function loadDailyEntry(
       .where(and(eq(meals.id, group.mealId), eq(meals.userId, userId)))
       .limit(1);
     if (mealRows.length) {
+      // The stored amount is the literal consumed amount; derive the scaling
+      // factor from the meal's yield (for 'whole', factor === consumed).
+      const yieldMode = (mealRows[0].yieldMode as MealYieldMode | null) ?? "whole";
+      const meal: Pick<Meal, "yield_mode" | "yield_weight_g" | "yield_count"> = {
+        yield_mode: yieldMode,
+        yield_weight_g: num(mealRows[0].yieldWeightG),
+        yield_count: num(mealRows[0].yieldCount),
+      };
+      const factor = mealConsumedToFactor(meal, group.consumed) ?? group.consumed;
       const me: MealEntry = {
         meal_id: group.mealId,
         meal_log_id: group.mealLogId,
         meal_name: mealRows[0].name,
-        portions: group.portions,
+        portions: factor,
+        yield_mode: yieldMode,
+        consumed_amount: group.consumed,
         ingredients: group.ingredients,
       };
       mealEntries.push({ kind: "meal", entry: me });
@@ -537,7 +585,11 @@ export async function saveDailyEntry(db: DB, userId: string, daily: DailyData): 
             foodId: ing.food_id,
             mealId: e.entry.meal_id,
             mealLogId: e.entry.meal_log_id,
-            portions: dec(e.entry.portions),
+            // Store the literal consumed amount (portions/grams/count) — exact in
+            // DECIMAL(8,2); the scaling factor is re-derived from it + the meal's
+            // yield on load (storing the factor would round-trip lossily). For
+            // 'whole' meals consumed === factor, so legacy rows are unaffected.
+            portions: dec(e.entry.consumed_amount ?? e.entry.portions),
             weightG: decOrNull(ing.weight_g),
             quantity: decOrNull(ing.quantity),
             source: ing.source ?? null,
@@ -796,11 +848,41 @@ export async function saveUserSettings(
 
 // ============= Weekly Planner =============
 
-/** Scale a nutrient bundle by a factor (e.g. meal portions). */
-function scaleNutrients(n: Nutrients, factor: number): Nutrients {
-  const out = { ...ZERO_NUTRIENTS };
-  for (const key of NUTRIENT_KEYS) out[key] = n[key] * factor;
-  return out;
+/**
+ * Build a planned meal's ref + nutrients from its stored amount. The amount lives
+ * in whichever column matches the meal's yield mode (portions / weight_g / quantity);
+ * `factor` is the consumed fraction of the batch, applied to the summed ingredients.
+ * Shared by loadWeekPlan and getPlanItem so the two stay in lockstep.
+ */
+type AmountCol = string | number | null | undefined;
+function planMealRef(
+  meal: Meal,
+  row: { portions: AmountCol; weightG: AmountCol; quantity: AmountCol },
+): { ref: Extract<PlanItem["ref"], { kind: "meal" }>; nutrients: Nutrients } {
+  let consumed: number;
+  let factor: number;
+  if (meal.yield_mode === "by_weight") {
+    consumed = num(row.weightG) ?? 0;
+    factor = (meal.yield_weight_g ?? 0) > 0 ? consumed / (meal.yield_weight_g as number) : 0;
+  } else if (meal.yield_mode === "by_count") {
+    consumed = num(row.quantity) ?? 0;
+    factor = (meal.yield_count ?? 0) > 0 ? consumed / (meal.yield_count as number) : 0;
+  } else {
+    consumed = num(row.portions) ?? 1;
+    factor = consumed;
+  }
+  const base = sumNutrients(meal.ingredients.map((i) => i.nutrients));
+  return {
+    ref: {
+      kind: "meal",
+      meal_id: meal.id,
+      meal_name: meal.name,
+      portions: factor,
+      yield_mode: meal.yield_mode,
+      consumed_amount: consumed,
+    },
+    nutrients: scaleNutrients(base, factor),
+  };
 }
 
 /**
@@ -856,10 +938,7 @@ export async function loadWeekPlan(
     if (row.mealId) {
       const meal = mealMap.get(row.mealId);
       if (!meal) continue; // template gone (FK cascade normally prevents this)
-      const portions = num(row.portions) ?? 1;
-      const base = sumNutrients(meal.ingredients.map((i) => i.nutrients));
-      nutrients = scaleNutrients(base, portions);
-      ref = { kind: "meal", meal_id: meal.id, meal_name: meal.name, portions };
+      ({ ref, nutrients } = planMealRef(meal, row));
     } else if (row.foodId) {
       let food = foodCache.get(row.foodId);
       if (food === undefined) {
@@ -937,12 +1016,14 @@ function validatePlanRef(input: PlanItemInput): void {
   if (hasMeal === hasFood) {
     throw new Error("A plan item must reference exactly one of a meal or a food");
   }
-  if (hasMeal && !((input.portions ?? 0) > 0)) {
-    throw new Error("Meal portions must be greater than 0");
-  }
-  if (hasFood) {
-    const amount = input.weightG ?? input.quantity ?? 0;
-    if (!(amount > 0)) throw new Error("Food amount must be greater than 0");
+  // A meal ref carries its amount in exactly one of portions / weight_g / quantity,
+  // depending on the meal's yield mode ('whole' → portions, 'by_weight' → weight_g,
+  // 'by_count' → quantity). A food ref always uses weight_g or quantity.
+  const amount = input.portions ?? input.weightG ?? input.quantity ?? 0;
+  if (!(amount > 0)) {
+    throw new Error(
+      hasMeal ? "Meal amount must be greater than 0" : "Food amount must be greater than 0",
+    );
   }
 }
 
@@ -998,11 +1079,15 @@ export async function updatePlanItemAmount(
     .limit(1);
   if (!rows.length) return false;
   const row = rows[0];
-  const set = row.mealId
-    ? { portions: dec(amount) }
-    : row.weightG !== null
+  // Update whichever amount column the item already uses — works for both foods
+  // (weight_g/quantity) and meals (portions for 'whole', weight_g for 'by_weight',
+  // quantity for 'by_count'), so the stored shape never changes underneath a yield mode.
+  const set =
+    row.weightG !== null
       ? { weightG: dec(amount) }
-      : { quantity: dec(amount) };
+      : row.quantity !== null
+        ? { quantity: dec(amount) }
+        : { portions: dec(amount) };
   await db
     .update(mealPlanItems)
     .set(set)
@@ -1051,6 +1136,20 @@ export async function copyPlanDay(
   return rows.length;
 }
 
+/** True if any plan item (any week) references this meal — used to guard yield-mode changes. */
+export async function mealHasPlanItems(
+  db: DB,
+  userId: string,
+  mealId: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: mealPlanItems.id })
+    .from(mealPlanItems)
+    .where(and(eq(mealPlanItems.userId, userId), eq(mealPlanItems.mealId, mealId)))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Remove all plan items for a day (user-scoped). Returns count. */
 export async function clearPlanDay(
   db: DB,
@@ -1089,17 +1188,13 @@ export async function getPlanItem(
   if (row.mealId) {
     const meal = await getMeal(db, userId, row.mealId);
     if (!meal) return null;
-    const portions = num(row.portions) ?? 1;
-    const nutrients = scaleNutrients(
-      sumNutrients(meal.ingredients.map((i) => i.nutrients)),
-      portions,
-    );
+    const { ref, nutrients } = planMealRef(meal, row);
     return {
       id: row.id,
       plan_date: row.planDate,
       slot: row.slot,
       position: row.position,
-      ref: { kind: "meal", meal_id: meal.id, meal_name: meal.name, portions },
+      ref,
       nutrients,
       applied,
     };

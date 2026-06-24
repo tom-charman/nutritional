@@ -27,13 +27,13 @@ test.describe("meal entries", () => {
       { foodQuery: "E2E Meal Oats", amount: 50 },
       { foodQuery: "E2E Meal Milk", amount: 200 },
     ]);
-    await expectToast(page, "Meal 'E2E Breakfast' saved");
+    await expectToast(page, "Recipe 'E2E Breakfast' saved");
   });
 
   test("add a meal with 1 portion; ingredients hidden until expanded", async ({ page }) => {
     const entry = new EntryPage(page);
     await entry.goto(DATE);
-    await entry.selectFood("E2E Breakfast", /E2E Breakfast \(meal\)/);
+    await entry.selectFood("E2E Breakfast", /E2E Breakfast \(recipe\)/);
     // portions input defaults context
     await entry.amountInput.fill("1");
     // preview: 400*0.5 + 60*2 = 200 + 120 = 320 kcal
@@ -90,7 +90,7 @@ test.describe("meal entries", () => {
     await expectToast(page, "Entry removed");
     await expect(entry.mealRow("E2E Breakfast")).toHaveCount(0);
 
-    await entry.selectFood("E2E Breakfast", /E2E Breakfast \(meal\)/);
+    await entry.selectFood("E2E Breakfast", /E2E Breakfast \(recipe\)/);
     await entry.amountInput.fill("2");
     await expect(entry.nutrientPreview).toContainText("640 kcal");
     await entry.addButton.click();

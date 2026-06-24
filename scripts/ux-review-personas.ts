@@ -54,7 +54,7 @@ async function main() {
     const search = page.getByTestId("food-search");
     await search.click();
     await search.fill(MEAL);
-    await page.locator(".combobox-option").filter({ hasText: "(meal)" }).first().click();
+    await page.locator(".combobox-option").filter({ hasText: "(recipe)" }).first().click();
     await page.getByTestId("amount-input").fill(portions);
     await page.waitForSelector(".nutrient-preview-card");
     await page.getByTestId("add-button").click();
@@ -69,7 +69,7 @@ async function main() {
   const search = page.getByTestId("food-search");
   await search.click();
   await search.fill(MEAL);
-  await page.locator(".combobox-option").filter({ hasText: "(meal)" }).first().click();
+  await page.locator(".combobox-option").filter({ hasText: "(recipe)" }).first().click();
   await page.getByTestId("amount-input").fill("0.5");
   await page.waitForSelector(".nutrient-preview-card");
   await shot("entering-half-portion");

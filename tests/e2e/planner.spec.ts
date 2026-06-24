@@ -34,7 +34,7 @@ async function gotoPlanner(page: Page, week?: string) {
 async function selectInPanel(page: Page, optionLabel: string, amount: string) {
   await page.getByTestId("planner-food-search").click();
   await page.getByTestId("planner-food-search").fill(optionLabel);
-  await page.getByText(`${optionLabel} (meal)`, { exact: true }).click();
+  await page.getByText(`${optionLabel} (recipe)`, { exact: true }).click();
   await page.getByTestId("planner-amount").fill(amount);
 }
 
@@ -59,7 +59,7 @@ test.describe("weekly planner", () => {
       { foodQuery: "E2E Plan Rice", amount: 150 },
       { foodQuery: "E2E Plan Chicken", amount: 200 },
     ]);
-    await expectToast(page, "Meal 'E2E Plan Lunch' saved");
+    await expectToast(page, "Recipe 'E2E Plan Lunch' saved");
   });
 
   test("add panel adds a meal across every day in one flow", async ({ page }) => {
@@ -68,7 +68,7 @@ test.describe("weekly planner", () => {
     // Selecting a meal auto-fills one portion — no manual amount needed.
     await page.getByTestId("planner-food-search").click();
     await page.getByTestId("planner-food-search").fill("E2E Plan Lunch");
-    await page.getByText("E2E Plan Lunch (meal)", { exact: true }).click();
+    await page.getByText("E2E Plan Lunch (recipe)", { exact: true }).click();
     await expect(page.getByTestId("planner-amount")).toHaveValue("1");
 
     await page.getByTestId("days-every").click();

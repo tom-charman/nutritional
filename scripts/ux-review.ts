@@ -345,7 +345,7 @@ async function run(vp: Viewport): Promise<void> {
     const search = page.getByTestId("food-search");
     await search.click();
     await search.fill(REAL_MEAL);
-    await page.locator(".combobox-option").filter({ hasText: "(meal)" }).first().click();
+    await page.locator(".combobox-option").filter({ hasText: "(recipe)" }).first().click();
     await settle();
     await shot("entry", "portions-label");
     await page.getByTestId("amount-input").fill("1");

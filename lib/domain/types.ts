@@ -1,4 +1,4 @@
-import type { Nutrients, TargetMode, UnitType } from "@/lib/constants";
+import type { MealYieldMode, Nutrients, TargetMode, UnitType } from "@/lib/constants";
 
 /** Mirrors data_entry/models.py FoodItem. */
 export interface FoodItem extends Nutrients {
@@ -34,7 +34,20 @@ export interface MealEntry {
   /** Per-log instance id — distinguishes the same meal logged more than once a day. */
   meal_log_id: string;
   meal_name: string;
+  /**
+   * The scaling FACTOR applied to the recipe's ingredients. For 'whole' meals
+   * this equals the portions eaten (legacy meaning preserved). For 'by_weight' /
+   * 'by_count' it is the consumed fraction of the batch (consumed_amount ÷ yield).
+   */
   portions: number;
+  /**
+   * How the meal was measured when logged, plus the literal amount the user
+   * entered (portions / grams / item count). Drives the edit control + display.
+   * Optional for backward-compat with rows logged before yield modes existed
+   * ('whole' + consumed_amount === portions when absent).
+   */
+  yield_mode?: MealYieldMode;
+  consumed_amount?: number;
   ingredients: FoodEntry[];
 }
 
@@ -68,6 +81,12 @@ export interface MealIngredient {
 export interface Meal {
   id: string;
   name: string;
+  /** How the recipe converts to a logged amount (see MealYieldMode). */
+  yield_mode: MealYieldMode;
+  /** Finished cooked weight (g) — set iff yield_mode === 'by_weight'. */
+  yield_weight_g: number | null;
+  /** Number of items the batch yields — set iff yield_mode === 'by_count'. */
+  yield_count: number | null;
   ingredients: MealIngredient[];
 }
 
@@ -122,7 +141,16 @@ export interface PlanItem {
   slot: string;
   position: number;
   ref:
-    | { kind: "meal"; meal_id: string; meal_name: string; portions: number }
+    | {
+        kind: "meal";
+        meal_id: string;
+        meal_name: string;
+        /** Scaling factor (consumed_amount ÷ yield; === portions for 'whole'). */
+        portions: number;
+        yield_mode: MealYieldMode;
+        /** The literal planned amount: portions / grams / item count. */
+        consumed_amount: number;
+      }
     | {
         kind: "food";
         food_id: string;

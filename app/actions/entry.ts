@@ -20,6 +20,7 @@ import {
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
 import { calculateNutrients } from "@/lib/domain/nutrients";
+import { formatConsumed, mealConsumedToFactor } from "@/lib/domain/meals";
 import type { DailyData, DailyTargets, DayEntry, FoodEntry } from "@/lib/domain/types";
 import type { Nutrients } from "@/lib/constants";
 import { saveFoodAction } from "@/app/actions/foods";
@@ -121,29 +122,38 @@ export async function quickAddEntryAction(
   return addFoodEntryAction(date, id, 100);
 }
 
-/** Add a meal entry (entry.py add-entry flow, meal branch). */
+/**
+ * Add a meal entry (entry.py add-entry flow, meal branch). `amount` is the
+ * consumed amount in the meal's own unit: portions ('whole'), grams of the
+ * finished batch ('by_weight'), or item count ('by_count'). It is converted to
+ * a single scaling FACTOR applied to every ingredient (see lib/constants
+ * MealYieldMode), so all downstream nutrient math stays uniform.
+ */
 export async function addMealEntryAction(
   date: string,
   mealId: string,
-  portions: number,
+  amount: number,
   provenance?: EntryProvenance,
 ): Promise<ActionResult> {
-  if (!Number.isFinite(portions) || portions <= 0) {
-    return { ok: false, message: "Please enter valid portions" };
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, message: "Please enter a valid amount" };
   }
   const userId = await requireUserId();
   const meal = await getMeal(db, userId, mealId);
-  if (!meal) return { ok: false, message: "Meal not found" };
+  if (!meal) return { ok: false, message: "Recipe not found" };
 
-  // Each ingredient scaled by portions and stored as an independent FoodEntry.
+  const factor = mealConsumedToFactor(meal, amount);
+  if (factor === null) return { ok: false, message: "This recipe's yield is invalid" };
+
+  // Each ingredient scaled by `factor` and stored as an independent FoodEntry.
   // When applied from a plan, every ingredient carries the SAME plan_item_id so
   // the whole logged meal dedupes as one unit on re-apply.
   const ingredients: FoodEntry[] = [];
   for (const ing of meal.ingredients) {
     const food = await getFoodItem(db, userId, ing.food_id);
     if (!food) continue;
-    const scaledWeight = ing.weight_g !== null ? ing.weight_g * portions : null;
-    const scaledQuantity = ing.quantity !== null ? ing.quantity * portions : null;
+    const scaledWeight = ing.weight_g !== null ? ing.weight_g * factor : null;
+    const scaledQuantity = ing.quantity !== null ? ing.quantity * factor : null;
     const nutrients = calculateNutrients(food, {
       weight_g: scaledWeight,
       quantity: scaledQuantity,
@@ -161,7 +171,7 @@ export async function addMealEntryAction(
     });
   }
   if (ingredients.length === 0) {
-    return { ok: false, message: "Meal has no valid ingredients" };
+    return { ok: false, message: "Recipe has no valid ingredients" };
   }
 
   const day = await loadOrEmptyDay(userId, date);
@@ -171,7 +181,9 @@ export async function addMealEntryAction(
       meal_id: meal.id,
       meal_log_id: randomUUID(),
       meal_name: meal.name,
-      portions,
+      portions: factor,
+      yield_mode: meal.yield_mode,
+      consumed_amount: amount,
       ingredients,
     },
   });
@@ -179,18 +191,22 @@ export async function addMealEntryAction(
   revalidate();
   return {
     ok: true,
-    message: `Added ${meal.name} (${portions} portion${portions === 1 ? "" : "s"})`,
+    message: `Added ${meal.name} (${formatConsumed(meal.yield_mode, amount)})`,
   };
 }
 
-/** Rescale a logged meal to a new portion count (entry.py meal portion edit). */
+/**
+ * Rescale a logged meal to a new consumed amount (portions / grams / item count,
+ * per the meal's yield mode). Ingredients scale linearly with the consumed amount,
+ * so we rescale by newAmount/oldAmount — no need to refetch the recipe's yield.
+ */
 export async function editMealPortionsAction(
   date: string,
   mealLogId: string,
-  newPortions: number,
+  newAmount: number,
 ): Promise<ActionResult> {
-  if (!Number.isFinite(newPortions) || newPortions <= 0) {
-    return { ok: false, message: "Please enter valid portions" };
+  if (!Number.isFinite(newAmount) || newAmount <= 0) {
+    return { ok: false, message: "Please enter a valid amount" };
   }
   const userId = await requireUserId();
   const day = await loadDailyEntry(db, userId, date);
@@ -200,23 +216,26 @@ export async function editMealPortionsAction(
     (e): e is Extract<DayEntry, { kind: "meal" }> =>
       e.kind === "meal" && e.entry.meal_log_id === mealLogId,
   );
-  if (!target) return { ok: false, message: "Meal not found" };
+  if (!target) return { ok: false, message: "Recipe not found" };
 
-  const old = target.entry.portions;
-  if (old <= 0) return { ok: false, message: "Meal not found" };
-  const factor = newPortions / old;
+  // Old amount is the literal consumed amount; legacy rows fall back to portions
+  // (where consumed === factor === portions, so the ratio is unchanged).
+  const oldAmount = target.entry.consumed_amount ?? target.entry.portions;
+  if (oldAmount <= 0) return { ok: false, message: "Recipe not found" };
+  const rescale = newAmount / oldAmount;
 
   for (const ing of target.entry.ingredients) {
     const food = await getFoodItem(db, userId, ing.food_id);
     if (!food) continue;
-    ing.weight_g = ing.weight_g !== null ? ing.weight_g * factor : null;
-    ing.quantity = ing.quantity !== null ? ing.quantity * factor : null;
+    ing.weight_g = ing.weight_g !== null ? ing.weight_g * rescale : null;
+    ing.quantity = ing.quantity !== null ? ing.quantity * rescale : null;
     ing.nutrients = calculateNutrients(food, {
       weight_g: ing.weight_g,
       quantity: ing.quantity,
     });
   }
-  target.entry.portions = newPortions;
+  target.entry.portions = target.entry.portions * rescale;
+  target.entry.consumed_amount = newAmount;
 
   await saveDailyEntry(db, userId, day);
   revalidate();
