@@ -95,6 +95,13 @@ describe("planDayVerdict", () => {
     expect(v.state).toBe("under");
     expect(v.reason).toMatch(/Protein 50 g short/);
   });
+
+  it("over when calories blow past their band (energy is a window, not a floor)", () => {
+    // energy band = 0.04 → exceeded beyond 2160; 2400 is a real overage.
+    const v = planDayVerdict({ ...metDay, energy_kcal: 2400 }, targets);
+    expect(v.state).toBe("over");
+    expect(v.reason).toMatch(/Calories \+400 kcal over/);
+  });
 });
 
 import { comparePlanVsActual, summaryToNutrients } from "@/lib/domain/plan/compare";

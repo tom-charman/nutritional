@@ -29,7 +29,7 @@ import {
   type NutrientKey,
   type TargetMode,
 } from "@/lib/constants";
-import { macroIndicator } from "@/lib/domain/targets";
+import { nutrientIndicator } from "@/lib/domain/targets";
 import type { NutrientsRdiData } from "@/lib/domain/charts/prepare";
 import {
   AXIS_COLOR,
@@ -161,7 +161,7 @@ export default function NutrientsRdiChart({
             // verdict per the entry-channel grammar (value vs the 100% rule)
             const verdict =
               last && mode
-                ? macroIndicator(last.value, 100, mode, NUTRIENT_BANDS[s.key])
+                ? nutrientIndicator(s.key, last.value, 100, mode, NUTRIENT_BANDS[s.key])
                 : null;
 
             return (

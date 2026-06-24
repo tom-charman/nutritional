@@ -18,7 +18,7 @@ import {
   type Nutrients,
   type TargetMode,
 } from "@/lib/constants";
-import { getNutrientMode, macroIndicator, type IndicatorState } from "@/lib/domain/targets";
+import { getNutrientMode, nutrientIndicator, type IndicatorState } from "@/lib/domain/targets";
 import type { DailyTargets } from "@/lib/domain/types";
 
 /** met = every floor hit + no cap breached; over = a limit breach; under = a floor miss. */
@@ -59,12 +59,15 @@ export function planDayVerdict(
   const perNutrient: NutrientVerdict[] = NUTRIENT_KEYS.map((k) => {
     const mode = getNutrientMode(targets, k);
     const target = targets.values[k];
-    return { nutrient: k, mode, planned: planned[k], target, indicator: macroIndicator(planned[k], target, mode, NUTRIENT_BANDS[k]) };
+    return { nutrient: k, mode, planned: planned[k], target, indicator: nutrientIndicator(k, planned[k], target, mode, NUTRIENT_BANDS[k]) };
   });
 
-  // A breach of any limit cap dominates (Patient: it must never hide).
+  // A breach dominates (Patient: it must never hide) — a limit over its cap, or
+  // energy over its band (calories are a window, so an overage is a real miss).
   const breaches = perNutrient.filter(
-    (v) => v.mode === "limit" && (v.indicator === "warning" || v.indicator === "exceeded"),
+    (v) =>
+      (v.mode === "limit" || v.nutrient === "energy_kcal") &&
+      (v.indicator === "warning" || v.indicator === "exceeded"),
   );
   if (breaches.length > 0) {
     // Worst = largest relative overage.
