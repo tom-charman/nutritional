@@ -49,7 +49,12 @@ async function main() {
   await cleanup();
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
-  page.setDefaultTimeout(15_000);
+  // 30s + pre-warm: avoid spurious SKIPs from `next dev` compiling a route on its
+  // first hit (a silent coverage gap the review guide explicitly warns against).
+  page.setDefaultTimeout(30_000);
+  for (const path of ["/entry", "/foods", "/meals", "/planner", "/dashboard"]) {
+    await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" }).catch(() => {});
+  }
 
   const counters: Record<string, number> = {};
   const shot = async (area: string, name: string, full = false) => {

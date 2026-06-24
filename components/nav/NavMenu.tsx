@@ -52,7 +52,7 @@ export default function NavMenu({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        {label}
+        <span className="nav-menu-label">{label}</span>
         <span className="nav-menu-caret" aria-hidden>
           ▾
         </span>
