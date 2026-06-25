@@ -52,6 +52,7 @@ export function summaryToNutrients(s: DailySummary | undefined): Nutrients | nul
     fibre_g: s.fibre_g ?? 0,
     salt_g: s.salt_g ?? 0,
     calcium_mg: s.calcium_mg ?? 0,
+    vitamin_c_mg: s.vitamin_c_mg ?? 0,
   };
 }
 

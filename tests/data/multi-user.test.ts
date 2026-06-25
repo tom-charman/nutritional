@@ -73,6 +73,7 @@ function makeFood(partial: Partial<FoodItem> = {}): FoodItem {
     fibre_g: 3,
     salt_g: 0.5,
     calcium_mg: 50,
+    vitamin_c_mg: 5,
     ...partial,
   };
 }
@@ -96,6 +97,7 @@ async function insertCanonicalFood(name: string, energy = 100): Promise<string> 
       fibreG: "3",
       saltG: "0.5",
       calciumMg: "50",
+      vitaminCMg: "5",
     })
     .returning({ id: schema.foodItems.id });
   return r.id;

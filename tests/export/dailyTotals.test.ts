@@ -19,6 +19,7 @@ function summary(date: string, over: Partial<DailySummary> = {}): DailySummary {
     fibre_g: 0,
     salt_g: 0,
     calcium_mg: 0,
+    vitamin_c_mg: 0,
     morning_weight_kg: null,
     evening_weight_kg: null,
     ...over,

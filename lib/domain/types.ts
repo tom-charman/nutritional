@@ -156,6 +156,7 @@ export interface DailySummary {
   fibre_g: number | null;
   salt_g: number | null;
   calcium_mg: number | null;
+  vitamin_c_mg: number | null;
   morning_weight_kg: number | null;
   evening_weight_kg: number | null;
 }

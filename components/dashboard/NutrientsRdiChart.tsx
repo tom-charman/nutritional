@@ -47,7 +47,7 @@ import {
 } from "./chartCommon";
 
 /** Default strips (the dashboard's RDI tab) — keyed by RDI_GUIDELINES. */
-const SERIES: NutrientKey[] = ["saturated_fat_g", "sugar_g", "fibre_g", "salt_g", "calcium_mg"];
+const SERIES: NutrientKey[] = ["saturated_fat_g", "sugar_g", "fibre_g", "salt_g", "calcium_mg", "vitamin_c_mg"];
 
 const READOUT_W = 64; // engraved % gutter at the right
 

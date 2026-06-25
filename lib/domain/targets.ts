@@ -20,6 +20,7 @@ export function getDefaultTargets(date: string): DailyTargets {
       fibre_g: 30,
       salt_g: 6,
       calcium_mg: 700,
+      vitamin_c_mg: 200,
     },
     modes: {
       energy_kcal: "target",
@@ -31,6 +32,7 @@ export function getDefaultTargets(date: string): DailyTargets {
       fibre_g: "target",
       salt_g: "limit",
       calcium_mg: "target",
+      vitamin_c_mg: "target",
     },
   };
 }

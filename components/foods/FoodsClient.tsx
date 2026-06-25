@@ -39,6 +39,7 @@ const EMPTY_FORM: FormState = {
     fibre_g: "",
     salt_g: "",
     calcium_mg: "",
+    vitamin_c_mg: "",
   },
 };
 

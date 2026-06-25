@@ -24,6 +24,7 @@ const BARS: { key: NutrientKey; cssClass: string; unit: "g" | "mg" | "kcal" }[] 
   { key: "fibre_g", cssClass: "progress-fibre", unit: "g" },
   { key: "salt_g", cssClass: "progress-salt", unit: "g" },
   { key: "calcium_mg", cssClass: "progress-calcium", unit: "mg" },
+  { key: "vitamin_c_mg", cssClass: "progress-vitamin-c", unit: "mg" },
 ];
 
 const INDICATOR: Record<string, { symbol: string; cls: string; title: string }> = {

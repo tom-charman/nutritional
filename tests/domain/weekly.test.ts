@@ -43,6 +43,7 @@ function genSummaries(opts: {
     fibre_g: null,
     salt_g: null,
     calcium_mg: null,
+    vitamin_c_mg: null,
     morning_weight_kg: startWeight === null ? null : startWeight + perDay * i,
     evening_weight_kg: null,
   }));
