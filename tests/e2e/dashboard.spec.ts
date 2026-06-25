@@ -14,8 +14,8 @@ test.describe("dashboard", () => {
     await expect(svg.locator("path").first()).toBeVisible();
     await shot(page, "dashboard", "02-macros");
 
-    await page.getByRole("tab", { name: "Nutrients vs RDI" }).click();
-    await expect(page.locator(".graph-wrapper")).toContainText("100% RDI Target");
+    await page.getByRole("tab", { name: "Nutrients vs Target" }).click();
+    await expect(page.locator(".graph-wrapper")).toContainText("100% of target");
     await shot(page, "dashboard", "03-rdi");
   });
 

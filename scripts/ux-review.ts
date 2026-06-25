@@ -459,7 +459,7 @@ async function run(vp: Viewport): Promise<void> {
     await page.waitForSelector(".chart-svg path");
     await settle();
     await shot("dashboard", "macro-breakdown", true);
-    await page.getByRole("tab", { name: "Nutrients vs RDI" }).click();
+    await page.getByRole("tab", { name: "Nutrients vs Target" }).click();
     await page.waitForSelector(".chart-svg path");
     await settle();
     await shot("dashboard", "nutrients-rdi", true);

@@ -1,5 +1,5 @@
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
-import { ROLLING_WINDOW_DAYS, type NutrientKey, type TargetMode } from "@/lib/constants";
+import { RDI_GUIDELINES, ROLLING_WINDOW_DAYS, type NutrientKey, type TargetMode } from "@/lib/constants";
 import { db } from "@/lib/db/client";
 import { getOrCreateDailyTargets, loadAllSummaries, loadUserSettings } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
@@ -30,7 +30,14 @@ export default async function DashboardPage() {
   const caloriesWeight = prepareCaloriesWeight(summaries, ROLLING_WINDOW_DAYS, settings.goal_weight_kg);
   const weeklyReadout = computeWeeklyReadout(caloriesWeight, summaries, settings, yesterday);
   const macroBreakdown = prepareMacroBreakdown(summaries, ROLLING_WINDOW_DAYS);
-  const nutrientsRdi = prepareNutrientsRdi(summaries, ROLLING_WINDOW_DAYS);
+
+  // The panel measures intake against the user's CURRENT targets, not a generic
+  // RDI. RDI_GUIDELINES' keys still define WHICH nutrients this panel tracks
+  // (the curated micronutrient/limit set); the 100% datum is each one's target.
+  const targetGuidelines = Object.fromEntries(
+    (Object.keys(RDI_GUIDELINES) as NutrientKey[]).map((key) => [key, targets.values[key]]),
+  ) as Partial<Record<NutrientKey, number>>;
+  const nutrientsRdi = prepareNutrientsRdi(summaries, ROLLING_WINDOW_DAYS, targetGuidelines);
 
   const rdiModes = Object.fromEntries(
     (Object.keys(nutrientsRdi.series) as NutrientKey[]).map((key) => [
@@ -46,6 +53,7 @@ export default async function DashboardPage() {
         macroBreakdown={macroBreakdown}
         nutrientsRdi={nutrientsRdi}
         rdiModes={rdiModes}
+        rdiGuidelines={targetGuidelines}
         weeklyReadout={weeklyReadout}
         userSettings={settings}
         today={today}

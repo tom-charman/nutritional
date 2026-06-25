@@ -133,7 +133,7 @@ zeroes everything (global block at the bottom of globals.css).
 Stable selectors/roles asserted by `tests/e2e/` — **do not rename**:
 `.toast`, `.modal`, `.combobox-option`, `.chart-tooltip` (+ "Calories" row),
 `.ingredient-item`, `.macro-bar-*`, `.master-list-item`, `.meal-card`,
-`.delete-icon`, `svg.chart-svg`, text `100% RDI Target`, `radiogroup`
+`.delete-icon`, `svg.chart-svg`, text `100% of target`, `radiogroup`
 "Date range" with `radio`+`aria-checked`, `tab` roles, data-testids
 (`food-search`, `amount-input`, `add-button`, `weight-*`, `date-picker`,
 `meal-*`, `save-meal`, `prev-day`/`next-day`).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { TargetMode } from "@/lib/constants";
+import type { NutrientKey, TargetMode } from "@/lib/constants";
 import {
   windowCaloriesWeight,
   windowMacroBreakdown,
@@ -20,7 +20,7 @@ import type { UserSettings } from "@/lib/domain/types";
 const TABS = [
   "Calories & Weight",
   "Macronutrient Breakdown",
-  "Nutrients vs RDI",
+  "Nutrients vs Target",
 ] as const;
 
 const RANGES = [
@@ -46,6 +46,7 @@ export default function DashboardTabs({
   macroBreakdown,
   nutrientsRdi,
   rdiModes,
+  rdiGuidelines,
   weeklyReadout,
   userSettings,
   today,
@@ -54,6 +55,8 @@ export default function DashboardTabs({
   macroBreakdown: MacroBreakdownData;
   nutrientsRdi: NutrientsRdiData;
   rdiModes: Record<string, TargetMode>;
+  /** Per-nutrient 100% denominator — the user's current targets. */
+  rdiGuidelines: Partial<Record<NutrientKey, number>>;
   weeklyReadout: WeeklyReadout;
   userSettings: UserSettings;
   today: string;
@@ -125,7 +128,9 @@ export default function DashboardTabs({
       <div className="graph-wrapper" key={`${active}-${range}`}>
         {active === 0 && <CaloriesWeightChart data={windowed.caloriesWeight} />}
         {active === 1 && <MacroBreakdownChart data={windowed.macroBreakdown} />}
-        {active === 2 && <NutrientsRdiChart data={windowed.nutrientsRdi} modes={rdiModes} />}
+        {active === 2 && (
+          <NutrientsRdiChart data={windowed.nutrientsRdi} modes={rdiModes} guidelines={rdiGuidelines} />
+        )}
       </div>
     </div>
   );
