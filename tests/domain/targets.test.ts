@@ -23,6 +23,7 @@ describe("getDefaultTargets (models.py get_default_targets port)", () => {
       fibre_g: 30,
       salt_g: 6,
       calcium_mg: 700,
+      vitamin_c_mg: 200,
     });
   });
 
@@ -32,6 +33,7 @@ describe("getDefaultTargets (models.py get_default_targets port)", () => {
     expect(t.modes.salt_g).toBe("limit");
     expect(t.modes.protein_g).toBe("target");
     expect(t.modes.energy_kcal).toBe("target");
+    expect(t.modes.vitamin_c_mg).toBe("target");
   });
 });
 

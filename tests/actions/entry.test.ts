@@ -87,6 +87,7 @@ function makeFood(partial: Partial<FoodItem> = {}): FoodItem {
     fibre_g: 3,
     salt_g: 0.5,
     calcium_mg: 50,
+    vitamin_c_mg: 5,
     ...partial,
   };
 }

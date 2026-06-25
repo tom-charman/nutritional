@@ -46,6 +46,7 @@ export async function saveFoodAction(input: FoodFormInput): Promise<ActionResult
     fibre_g: input.nutrients.fibre_g ?? 0,
     salt_g: input.nutrients.salt_g ?? 0,
     calcium_mg: input.nutrients.calcium_mg ?? 0,
+    vitamin_c_mg: input.nutrients.vitamin_c_mg ?? 0,
   };
 
   // Reject negative values (model ge=0 validation)

@@ -90,6 +90,7 @@ function rowToFoodItem(row: FoodItemRow): FoodItem {
     fibre_g: num0(row.fibreG),
     salt_g: num0(row.saltG),
     calcium_mg: num0(row.calciumMg),
+    vitamin_c_mg: num0(row.vitaminCMg),
   };
 }
 
@@ -113,6 +114,7 @@ function rowToFoodEntry(row: FoodEntryRow, foodName: string): FoodEntry {
       fibre_g: num0(row.fibreG),
       salt_g: num0(row.saltG),
       calcium_mg: num0(row.calciumMg),
+      vitamin_c_mg: num0(row.vitaminCMg),
     },
     // Provenance — preserved across saveDailyEntry's delete+reinsert.
     source: (row.source as "manual" | "plan" | null) ?? undefined,
@@ -131,6 +133,7 @@ function nutrientCols(n: Nutrients) {
     fibreG: dec(n.fibre_g),
     saltG: dec(n.salt_g),
     calciumMg: dec(n.calcium_mg),
+    vitaminCMg: dec(n.vitamin_c_mg),
   };
 }
 
@@ -144,6 +147,7 @@ const NULL_NUTRIENT_COLS = {
   fibreG: null,
   saltG: null,
   calciumMg: null,
+  vitaminCMg: null,
 };
 
 // ============= Food Items =============
@@ -338,6 +342,7 @@ async function mealWithIngredients(db: DB, mealRow: { id: string; name: string }
         fibre_g: nutrients.fibre_g * multiplier,
         salt_g: nutrients.salt_g * multiplier,
         calcium_mg: nutrients.calcium_mg * multiplier,
+        vitamin_c_mg: nutrients.vitamin_c_mg * multiplier,
       };
       return {
         food_id: food.id,
@@ -633,6 +638,7 @@ function rowToTargets(row: TargetsRow): DailyTargets {
       fibre_g: num0(row.fibreG),
       salt_g: num0(row.saltG),
       calcium_mg: num0(row.calciumMg),
+      vitamin_c_mg: num0(row.vitaminCMg),
     },
     modes: {
       energy_kcal: (row.energyMode as TargetMode | null) ?? null,
@@ -644,6 +650,7 @@ function rowToTargets(row: TargetsRow): DailyTargets {
       fibre_g: (row.fibreMode as TargetMode | null) ?? null,
       salt_g: (row.saltMode as TargetMode | null) ?? null,
       calcium_mg: (row.calciumMode as TargetMode | null) ?? null,
+      vitamin_c_mg: (row.vitaminCMode as TargetMode | null) ?? null,
     },
   };
 }
@@ -708,6 +715,7 @@ export async function saveDailyTargets(
     fibreG: dec(targets.values.fibre_g),
     saltG: dec(targets.values.salt_g),
     calciumMg: dec(targets.values.calcium_mg),
+    vitaminCMg: dec(targets.values.vitamin_c_mg),
     energyMode: targets.modes.energy_kcal,
     proteinMode: targets.modes.protein_g,
     carbohydratesMode: targets.modes.carbohydrates_g,
@@ -717,6 +725,7 @@ export async function saveDailyTargets(
     fibreMode: targets.modes.fibre_g,
     saltMode: targets.modes.salt_g,
     calciumMode: targets.modes.calcium_mg,
+    vitaminCMode: targets.modes.vitamin_c_mg,
   };
   const { userId: _u, targetDate: _ignored, ...set } = values;
   await db
@@ -744,6 +753,7 @@ export async function loadAllSummaries(db: DB, userId: string): Promise<DailySum
     fibre_g: num(row.fibreG),
     salt_g: num(row.saltG),
     calcium_mg: num(row.calciumMg),
+    vitamin_c_mg: num(row.vitaminCMg),
     morning_weight_kg: num(row.morningWeightKg),
     evening_weight_kg: num(row.eveningWeightKg),
   }));

@@ -52,6 +52,7 @@
     --fibre-ink: #4F6D46;    --fibre-line: #3F5C38;    --fibre-area: #8FA587;    --fibre-wash: #E7EFE5;
     --salt-ink: #6E54A8;     --salt-line: #5B4196;     --salt-area: #B4A4D6;     --salt-wash: #EFEAF7;
     --calcium-ink: #3F8C80;  --calcium-line: #2F7468;  --calcium-area: #9CC7BF;  --calcium-wash: #E4F0ED;
+    --vitamin-c-ink: #D98A1F; --vitamin-c-line: #C2760F; --vitamin-c-area: #F0C06A; --vitamin-c-wash: #FBF0D9;
     --calories-ink: #2B2B2B; --calories-wash: #F2F0EB;
 
     /* legacy aliases (migration) */
@@ -63,6 +64,7 @@
     --fibre-text: var(--fibre-ink);               --fibre-bg: var(--fibre-wash);
     --salt-text: var(--salt-ink);                 --salt-bg: var(--salt-wash);
     --calcium-text: var(--calcium-ink);           --calcium-bg: var(--calcium-wash);
+    --vitamin-c-text: var(--vitamin-c-ink);       --vitamin-c-bg: var(--vitamin-c-wash);
     --calories-text: var(--calories-ink);         --calories-bg: var(--calories-wash);
 
     /* Spacing Scale */
@@ -1231,6 +1233,8 @@ input[type="checkbox"]:focus {
 .progress-salt .progress-bar { background: var(--salt-area); }
 .progress-calcium { background: var(--calcium-wash); }
 .progress-calcium .progress-bar { background: var(--calcium-area); }
+.progress-vitamin-c { background: var(--vitamin-c-wash); }
+.progress-vitamin-c .progress-bar { background: var(--vitamin-c-area); }
 
 /* Target/Limit Indicators - brand colors */
 .target-met {

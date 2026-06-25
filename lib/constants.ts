@@ -49,6 +49,7 @@ export const NUTRIENT_KEYS = [
   "fibre_g",
   "salt_g",
   "calcium_mg",
+  "vitamin_c_mg",
 ] as const;
 
 export type NutrientKey = (typeof NUTRIENT_KEYS)[number];
@@ -65,6 +66,7 @@ export const ZERO_NUTRIENTS: Nutrients = {
   fibre_g: 0,
   salt_g: 0,
   calcium_mg: 0,
+  vitamin_c_mg: 0,
 };
 
 /** Labels per models.py NUTRIENT_FIELD_INFO. */
@@ -78,6 +80,7 @@ export const NUTRIENT_LABELS: Record<NutrientKey, string> = {
   fibre_g: "Fibre (g)",
   salt_g: "Salt (g)",
   calcium_mg: "Calcium (mg)",
+  vitamin_c_mg: "Vitamin C (mg)",
 };
 
 export const NUTRIENT_UNITS: Record<NutrientKey, string> = {
@@ -90,6 +93,7 @@ export const NUTRIENT_UNITS: Record<NutrientKey, string> = {
   fibre_g: "g",
   salt_g: "g",
   calcium_mg: "mg",
+  vitamin_c_mg: "mg",
 };
 
 /**
@@ -102,6 +106,7 @@ export const RDI_GUIDELINES: Partial<Record<NutrientKey, number>> = {
   fibre_g: 30,
   salt_g: 6,
   calcium_mg: 1000,
+  vitamin_c_mg: 40, // NHS UK reference (the personal default target is 200; see getDefaultTargets)
 };
 
 /**
@@ -148,6 +153,8 @@ export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
   salt_g: { ink: "#6E54A8", line: "#5B4196", area: "#B4A4D6", wash: "#EFEAF7" },
   // Verdigris — mineral patina bridging blue and green
   calcium_mg: { ink: "#3F8C80", line: "#2F7468", area: "#9CC7BF", wash: "#E4F0ED" },
+  // Marigold — citrus pigment for Vitamin C (CANDIDATE A; locked via the Phase-2 sweep)
+  vitamin_c_mg: { ink: "#D98A1F", line: "#C2760F", area: "#F0C06A", wash: "#FBF0D9" },
 };
 
 /**
@@ -171,6 +178,7 @@ export const NUTRIENT_BANDS: Record<NutrientKey, number> = {
   fibre_g: 0.12, //      ±3.6g @30 — hard to hit precisely
   salt_g: 0.08, //       ±0.5g @6  (limit) — small target, one processed food ≈ 0.5–1g
   calcium_mg: 0.12, //   ±84mg @700 — lumpy (≈glass of milk = 300mg)
+  vitamin_c_mg: 0.12, // ±24mg @200 — lumpy (one orange ≈ 70mg)
 };
 
 /** CSS channel class per nutrient (progress bars + preview channels). */
@@ -184,6 +192,7 @@ export const NUTRIENT_CSS_CLASS: Record<NutrientKey, string> = {
   fibre_g: "progress-fibre",
   salt_g: "progress-salt",
   calcium_mg: "progress-calcium",
+  vitamin_c_mg: "progress-vitamin-c",
 };
 
 /** Convenience: the recognizable identity tone per nutrient. */
@@ -205,6 +214,7 @@ export const NUTRIENT_SHORT_NAMES: Record<NutrientKey, string> = {
   fibre_g: "Fibre",
   salt_g: "Salt",
   calcium_mg: "Calcium",
+  vitamin_c_mg: "Vitamin C",
 };
 
 /** Weight series color (Wakatake Bamboo) and band fill. */

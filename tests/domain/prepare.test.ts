@@ -23,6 +23,7 @@ function summary(
     fibre_g: null,
     salt_g: null,
     calcium_mg: null,
+    vitamin_c_mg: null,
     morning_weight_kg: null,
     evening_weight_kg: null,
     ...partial,
@@ -198,6 +199,7 @@ describe("prepareNutrientsRdi (transforms.py port)", () => {
       "salt_g",
       "saturated_fat_g",
       "sugar_g",
+      "vitamin_c_mg",
     ]);
   });
 

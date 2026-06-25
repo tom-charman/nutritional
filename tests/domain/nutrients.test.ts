@@ -22,6 +22,7 @@ const banana: FoodItem = {
   fibre_g: 3.1,
   salt_g: 0,
   calcium_mg: 5.9,
+  vitamin_c_mg: 10.3,
 };
 
 const oats: FoodItem = {
@@ -38,6 +39,7 @@ const oats: FoodItem = {
   fibre_g: 10.6,
   salt_g: 0.002,
   calcium_mg: 54,
+  vitamin_c_mg: 0,
 };
 
 function entry(nutrients: Partial<Nutrients>): FoodEntry {

@@ -74,6 +74,7 @@ describe("planDayVerdict", () => {
     fat_g: 67,
     fibre_g: 30,
     calcium_mg: 700,
+    vitamin_c_mg: 200,
   });
 
   it("unknown for an unplanned day (not a pass, not 0)", () => {
@@ -120,6 +121,7 @@ function summary(date: string, partial: Partial<Nutrients>): DailySummary {
     fibre_g: z.fibre_g,
     salt_g: z.salt_g,
     calcium_mg: z.calcium_mg,
+    vitamin_c_mg: z.vitamin_c_mg,
     morning_weight_kg: null,
     evening_weight_kg: null,
   };

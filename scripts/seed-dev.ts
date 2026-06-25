@@ -13,22 +13,22 @@ const FOODS: FoodItem[] = [
   {
     id: randomUUID(), name: "Porridge Oats", unit_type: "per_100g", serving_size_g: null,
     energy_kcal: 389, fat_g: 6.9, saturated_fat_g: 1.2, carbohydrates_g: 66.3,
-    sugar_g: 0.99, protein_g: 16.9, fibre_g: 10.6, salt_g: 0.002, calcium_mg: 54,
+    sugar_g: 0.99, protein_g: 16.9, fibre_g: 10.6, salt_g: 0.002, calcium_mg: 54, vitamin_c_mg: 0,
   },
   {
     id: randomUUID(), name: "Banana", unit_type: "per_item", serving_size_g: 118,
     energy_kcal: 105, fat_g: 0.4, saturated_fat_g: 0.1, carbohydrates_g: 27,
-    sugar_g: 14.4, protein_g: 1.3, fibre_g: 3.1, salt_g: 0, calcium_mg: 5.9,
+    sugar_g: 14.4, protein_g: 1.3, fibre_g: 3.1, salt_g: 0, calcium_mg: 5.9, vitamin_c_mg: 10.3,
   },
   {
     id: randomUUID(), name: "Chicken Breast", unit_type: "per_100g", serving_size_g: null,
     energy_kcal: 165, fat_g: 3.6, saturated_fat_g: 1, carbohydrates_g: 0,
-    sugar_g: 0, protein_g: 31, fibre_g: 0, salt_g: 0.1, calcium_mg: 15,
+    sugar_g: 0, protein_g: 31, fibre_g: 0, salt_g: 0.1, calcium_mg: 15, vitamin_c_mg: 0,
   },
   {
     id: randomUUID(), name: "Whole Milk", unit_type: "per_100g", serving_size_g: null,
     energy_kcal: 64, fat_g: 3.5, saturated_fat_g: 2.3, carbohydrates_g: 4.7,
-    sugar_g: 4.7, protein_g: 3.4, fibre_g: 0, salt_g: 0.1, calcium_mg: 120,
+    sugar_g: 4.7, protein_g: 3.4, fibre_g: 0, salt_g: 0.1, calcium_mg: 120, vitamin_c_mg: 1,
   },
 ];
 

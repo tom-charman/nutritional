@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS food_items (
     fibre_g DECIMAL(8,2) NOT NULL,
     salt_g DECIMAL(8,2) NOT NULL,
     calcium_mg DECIMAL(8,2) NOT NULL,
+    vitamin_c_mg DECIMAL(8,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT check_serving_size CHECK (
@@ -83,6 +84,7 @@ CREATE TABLE IF NOT EXISTS food_entries (
     fibre_g DECIMAL(8,2) NOT NULL,
     salt_g DECIMAL(8,2) NOT NULL,
     calcium_mg DECIMAL(8,2) NOT NULL,
+    vitamin_c_mg DECIMAL(8,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -102,6 +104,7 @@ CREATE TABLE IF NOT EXISTS daily_summaries (
     fibre_g DECIMAL(8,2),
     salt_g DECIMAL(8,2),
     calcium_mg DECIMAL(8,2),
+    vitamin_c_mg DECIMAL(8,2),
     morning_weight_kg DECIMAL(5,2),
     evening_weight_kg DECIMAL(5,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -127,6 +130,7 @@ CREATE TABLE IF NOT EXISTS daily_targets (
     fibre_g DECIMAL(8,2) NOT NULL DEFAULT 30,
     salt_g DECIMAL(8,2) NOT NULL DEFAULT 6,
     calcium_mg DECIMAL(8,2) NOT NULL DEFAULT 700,
+    vitamin_c_mg DECIMAL(8,2) NOT NULL DEFAULT 200,
     -- Per-nutrient mode overrides (NULL = use default_mode)
     energy_mode VARCHAR(10) CHECK (energy_mode IN ('target', 'limit')),
     protein_mode VARCHAR(10) CHECK (protein_mode IN ('target', 'limit')),
@@ -137,6 +141,7 @@ CREATE TABLE IF NOT EXISTS daily_targets (
     fibre_mode VARCHAR(10) CHECK (fibre_mode IN ('target', 'limit')),
     salt_mode VARCHAR(10) CHECK (salt_mode IN ('target', 'limit')) DEFAULT 'limit',
     calcium_mode VARCHAR(10) CHECK (calcium_mode IN ('target', 'limit')),
+    vitamin_c_mode VARCHAR(10) CHECK (vitamin_c_mode IN ('target', 'limit')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
