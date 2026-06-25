@@ -32,6 +32,7 @@ styles in `app/globals.css`, chart conventions in
 | Fibre | Aged Pine | `#4F6D46` | `#3F5C38` | `#8FA587` | `#E7EFE5` |
 | Salt | Wisteria | `#6E54A8` | `#5B4196` | `#B4A4D6` | `#EFEAF7` |
 | Calcium | Verdigris | `#3F8C80` | `#2F7468` | `#9CC7BF` | `#E4F0ED` |
+| Vitamin C | Marigold (citrus) | `#D98A1F` | `#C2760F` | `#F0C06A` | `#FBF0D9` |
 | Energy | Sumi (never tinted) | `#2B2B2B` | `#2B2B2B` | `#2B2B2B` | `#F2F0EB` |
 
 Consumption map: dots/tooltip-bullets/badge-text → `ink` · chart strokes +

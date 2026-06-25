@@ -153,7 +153,8 @@ export const NUTRIENT_COLORS: Record<NutrientKey, NutrientTones> = {
   salt_g: { ink: "#6E54A8", line: "#5B4196", area: "#B4A4D6", wash: "#EFEAF7" },
   // Verdigris — mineral patina bridging blue and green
   calcium_mg: { ink: "#3F8C80", line: "#2F7468", area: "#9CC7BF", wash: "#E4F0ED" },
-  // Marigold — citrus pigment for Vitamin C (CANDIDATE A; locked via the Phase-2 sweep)
+  // Marigold — citrus golden-orange; Vitamin C's pigment (kept clear of Sat-Fat's
+  // persimmon and Sugar's amber; locked via the UI/UX screenshot sweep)
   vitamin_c_mg: { ink: "#D98A1F", line: "#C2760F", area: "#F0C06A", wash: "#FBF0D9" },
 };
 
