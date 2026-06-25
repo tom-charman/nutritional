@@ -34,7 +34,7 @@ async function main() {
   await shot("02-macros-tab-3m");
   await page.getByRole("radio", { name: "ALL" }).click();
   await shot("02b-macros-tab-all");
-  await page.getByRole("tab", { name: "Nutrients vs RDI" }).click();
+  await page.getByRole("tab", { name: "Nutrients vs Target" }).click();
   await shot("03b-rdi-tab-all");
   await page.getByRole("radio", { name: "3M" }).click();
   await shot("03-rdi-tab-3m");

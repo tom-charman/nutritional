@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * Nutrients vs RDI — the etched grid.
+ * Nutrients vs Target — the etched grid.
  *
- * Five overlapping lines always tangled in a band around 100% (where a
+ * Overlapping lines always tangled in a band around 100% (where a
  * well-fed person lives), so each nutrient gets its own strip: a soft
  * pigment wash filled to its value, crossed by a common etched 100% datum
+ * (the user's CURRENT daily target for that nutrient, not a generic RDI)
  * at the same height in every strip. Where the wash pools ABOVE the datum,
  * the pigment deepens (ink dilution) — overage is visible at a glance
  * without a single overlapping line. The inked top edge carries precision;
@@ -97,7 +98,7 @@ export default function NutrientsRdiChart({
         const v = data.series[s.key][i];
         return {
           label: NUTRIENT_SHORT_NAMES[s.key],
-          value: v === null ? "—" : `${v.toFixed(1)}% of RDI`,
+          value: v === null ? "—" : `${v.toFixed(1)}% of target`,
           color: NUTRIENT_COLORS[s.key].ink,
         };
       }),
@@ -238,7 +239,7 @@ export default function NutrientsRdiChart({
                       letterSpacing="0.08em"
                       fill="#6B6B6B"
                     >
-                      100% RDI Target
+                      100% of target
                     </text>
                   </g>
                 )}
