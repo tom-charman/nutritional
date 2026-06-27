@@ -294,6 +294,9 @@ p {
     display: flex;
     align-items: center;
     gap: 2px;
+    flex-wrap: wrap; /* wrap onto a second line on narrow screens — never overflow into horizontal page scroll */
+    justify-content: flex-end;
+    min-width: 0;
 }
 
 .navbar .nav-link {
@@ -338,11 +341,26 @@ p {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-width: 0; /* let the label ellipsis-truncate instead of overflowing the bar */
+}
+
+/* The trigger text; truncates so a long account email never pushes past the
+   viewport edge (it pushed off-screen on narrow widths before). */
+.nav-menu-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The account trigger carries the email, the one label long enough to need a cap. */
+.account-menu-trigger {
+    max-width: 220px;
 }
 
 .nav-menu-caret {
     font-size: 0.7em;
     opacity: 0.7;
+    flex: none; /* never let the caret shrink/wrap when the label truncates */
 }
 
 .nav-menu-panel {
@@ -2781,6 +2799,11 @@ button.ingredient-name-swap:hover {
 
     .navbar {
         min-height: 52px;
+    }
+
+    /* Tighter cap on phones so the email can't crowd out the other nav items. */
+    .account-menu-trigger {
+        max-width: 42vw;
     }
 
     .card-body {

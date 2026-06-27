@@ -124,7 +124,15 @@ async function run(vp: Viewport): Promise<void> {
     viewport: { width: vp.width, height: vp.height },
     deviceScaleFactor: 2,
   });
-  page.setDefaultTimeout(15_000);
+  // 30s, not 15s: under `next dev` the first hit to a route compiles on demand,
+  // which alone can exceed a 15s step and cause spurious SKIPs (silent coverage
+  // gaps — the exact failure the review guide warns against).
+  page.setDefaultTimeout(30_000);
+
+  // Pre-warm every route so capture steps don't race a cold compile. Best-effort.
+  for (const path of ["/entry", "/foods", "/meals", "/planner", "/dashboard"]) {
+    await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" }).catch(() => {});
+  }
 
   let n = 0;
   const shot = async (section: string, name: string, full = false) => {
@@ -576,6 +584,12 @@ async function main() {
   const only = process.argv[2] as "desktop" | "mobile" | undefined;
   const viewports = only ? VIEWPORTS.filter((v) => v.tag === only) : VIEWPORTS;
   console.log(`Cleaning up prior artifacts…`);
+  // Wipe this run's own output (the per-viewport dirs only — siblings personas/
+  // matrix/yield are owned by other scripts) so stale frames from an earlier run
+  // can't survive and be mistaken for current state. Frame mtimes lie otherwise.
+  for (const vp of viewports) {
+    fs.rmSync(`${OUT}/${vp.tag}`, { recursive: true, force: true });
+  }
   await cleanup();
   await seedPlanner();
   for (const vp of viewports) {
