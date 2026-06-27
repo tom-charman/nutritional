@@ -28,7 +28,8 @@ import {
   ZERO_NUTRIENTS,
   type Nutrients,
 } from "@/lib/constants";
-import { calculateNutrients, dailyTotals } from "@/lib/domain/nutrients";
+import { calculateNutrients, dailyTotals, scaleNutrients, sumNutrients } from "@/lib/domain/nutrients";
+import { formatConsumed, mealAmountConfig, mealConsumedToFactor } from "@/lib/domain/meals";
 import { calorieStatus } from "@/lib/domain/targets";
 import {
   type DailyData,
@@ -177,7 +178,12 @@ export default function EntryClient({
       .map((f) => foodOption(f, "All foods"));
     const mealOpts = meals.map((m) => ({
       key: `meal:${m.id}`,
-      label: `${m.name} (meal)`,
+      label:
+        m.yield_mode === "by_weight"
+          ? `${m.name} (recipe · per g)`
+          : m.yield_mode === "by_count"
+            ? `${m.name} (recipe · per item)`
+            : `${m.name} (recipe)`,
       section: "All foods",
     }));
     return [...recentOpts, ...restOpts, ...mealOpts];
@@ -219,14 +225,11 @@ export default function EntryClient({
         return null;
       }
     }
-    // meal: scale template ingredient nutrients by portions
-    const totals = { ...ZERO_NUTRIENTS };
-    for (const ing of selection.meal.ingredients) {
-      for (const key of Object.keys(totals) as (keyof typeof totals)[]) {
-        totals[key] += ing.nutrients[key] * n;
-      }
-    }
-    return totals;
+    // meal: scale the summed template ingredients by the consumed fraction
+    // (portions / grams ÷ yield / count ÷ yield), mirroring addMealEntryAction.
+    const factor = mealConsumedToFactor(selection.meal, n);
+    if (factor === null) return null;
+    return scaleNutrients(sumNutrients(selection.meal.ingredients.map((i) => i.nutrients)), factor);
   }, [selection, amount]);
 
   // --- totals & summary ---
@@ -339,7 +342,7 @@ export default function EntryClient({
     selection === null
       ? null
       : selection.kind === "meal"
-        ? { label: "Portions", placeholder: "1.0", min: 0.1, step: 0.1 }
+        ? mealAmountConfig(selection.meal.yield_mode)
         : selection.food.unit_type === "per_100g"
           ? { label: "Weight (g)", placeholder: "e.g. 150", min: 0, step: 1 }
           : {
@@ -410,7 +413,7 @@ export default function EntryClient({
                 ? null
                 : selection.kind === "food"
                   ? selection.food.name
-                  : `${selection.meal.name} (meal)`
+                  : `${selection.meal.name} (recipe)`
             }
             onSelect={handleSelect}
             onClear={() => {
@@ -701,7 +704,7 @@ function QuickAddForm({
 
 function ghostAmount(item: PlanItem): string {
   const r = item.ref;
-  if (r.kind === "meal") return `${r.portions} portion${r.portions === 1 ? "" : "s"}`;
+  if (r.kind === "meal") return formatConsumed(r.yield_mode, r.consumed_amount);
   if (r.weight_g !== null) return `${r.weight_g} g`;
   return `× ${r.quantity ?? 1}`;
 }

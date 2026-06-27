@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import { mealEntryTotals } from "@/lib/domain/nutrients";
+import { formatConsumed } from "@/lib/domain/meals";
 import type { DayEntry, FoodEntry } from "@/lib/domain/types";
 import EditableAmount from "@/components/ui/EditableAmount";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
@@ -142,11 +143,19 @@ export default function EntriesList({
                     className="meal-entry-portions"
                     onClick={(ev) => ev.stopPropagation()}
                   >
-                    <EditableAmount
-                      display={`${meal.portions} portion${meal.portions === 1 ? "" : "s"}`}
-                      value={meal.portions}
-                      onSave={(n) => onEditPortions(meal.meal_log_id, n)}
-                    />
+                    {(() => {
+                      // Edit the literal consumed amount (portions/grams/count);
+                      // legacy rows fall back to portions (= consumed for 'whole').
+                      const mode = meal.yield_mode ?? "whole";
+                      const consumed = meal.consumed_amount ?? meal.portions;
+                      return (
+                        <EditableAmount
+                          display={formatConsumed(mode, consumed)}
+                          value={consumed}
+                          onSave={(n) => onEditPortions(meal.meal_log_id, n)}
+                        />
+                      );
+                    })()}
                   </span>{" "}
                   · {meal.ingredients.length} ingredient
                   {meal.ingredients.length === 1 ? "" : "s"}

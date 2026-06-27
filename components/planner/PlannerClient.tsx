@@ -38,13 +38,13 @@ import {
   NUTRIENT_KEYS,
   NUTRIENT_LABELS,
   NUTRIENT_UNITS,
-  ZERO_NUTRIENTS,
   type NutrientKey,
   type Nutrients,
   type TargetMode,
 } from "@/lib/constants";
 import { getNutrientMode, macroIndicator } from "@/lib/domain/targets";
-import { calculateNutrients } from "@/lib/domain/nutrients";
+import { calculateNutrients, scaleNutrients, sumNutrients } from "@/lib/domain/nutrients";
+import { formatConsumed, mealAmountConfig, mealConsumedToFactor } from "@/lib/domain/meals";
 import MacroBreakdownChart from "@/components/dashboard/MacroBreakdownChart";
 import NutrientsRdiChart from "@/components/dashboard/NutrientsRdiChart";
 import type { MacroBreakdownData, NutrientsRdiData } from "@/lib/domain/charts/prepare";
@@ -199,8 +199,13 @@ export default function PlannerClient({
     const restOpts = foods.filter((f) => !recentIds.has(f.id)).map((f) => foodOption(f, "All foods"));
     const mealOpts = meals.map((m) => ({
       key: `meal:${m.id}`,
-      label: `${m.name} (meal)`,
-      section: "Meals",
+      label:
+        m.yield_mode === "by_weight"
+          ? `${m.name} (recipe · per g)`
+          : m.yield_mode === "by_count"
+            ? `${m.name} (recipe · per item)`
+            : `${m.name} (recipe)`,
+      section: "Recipes",
     }));
     return [...recentOpts, ...restOpts, ...mealOpts];
   }, [foods, meals, recentFoods, foodOption]);
@@ -221,8 +226,9 @@ export default function PlannerClient({
         if (food) setSelection({ kind: "food", food });
       } else if (key.startsWith("meal:")) {
         const meal = meals.find((m) => m.id === key.slice(5));
-        // A meal's natural unit is one portion — auto-fill it so adding is one click.
-        setAmount("1");
+        // 'whole'/'by_count' have a natural unit of 1 (portion / item) — auto-fill
+        // so adding is one click; 'by_weight' has no sensible default gram amount.
+        setAmount(meal && meal.yield_mode === "by_weight" ? "" : "1");
         if (meal) setSelection({ kind: "meal", meal });
       }
     },
@@ -234,7 +240,7 @@ export default function PlannerClient({
     selection === null
       ? null
       : selection.kind === "meal"
-        ? { label: "Portions", placeholder: "1.0", min: 0.1, step: 0.1 }
+        ? mealAmountConfig(selection.meal.yield_mode)
         : selection.food.unit_type === "per_100g"
           ? { label: "Weight (g)", placeholder: "e.g. 150", min: 0, step: 1 }
           : {
@@ -259,11 +265,9 @@ export default function PlannerClient({
         return null;
       }
     }
-    const totals = { ...ZERO_NUTRIENTS };
-    for (const ing of selection.meal.ingredients) {
-      for (const key of Object.keys(totals) as NutrientKey[]) totals[key] += ing.nutrients[key] * n;
-    }
-    return totals;
+    const factor = mealConsumedToFactor(selection.meal, n);
+    if (factor === null) return null;
+    return scaleNutrients(sumNutrients(selection.meal.ingredients.map((i) => i.nutrients)), factor);
   }, [selection, amount]);
 
   const toggleDay = (d: string) =>
@@ -307,7 +311,7 @@ export default function PlannerClient({
       const meal = meals.find((m) => m.id === (item.ref as { meal_id: string }).meal_id);
       if (meal) {
         setSelection({ kind: "meal", meal });
-        setAmount(String((item.ref as { portions: number }).portions));
+        setAmount(String((item.ref as { consumed_amount: number }).consumed_amount));
       }
     } else {
       const food = foods.find((f) => f.id === (item.ref as { food_id: string }).food_id);
@@ -733,8 +737,8 @@ function PlanItemRow({
   let name: string;
   if (ref.kind === "meal") {
     name = ref.meal_name;
-    value = ref.portions;
-    display = `${ref.portions} portion${ref.portions === 1 ? "" : "s"}`;
+    value = ref.consumed_amount;
+    display = formatConsumed(ref.yield_mode, ref.consumed_amount);
   } else {
     name = ref.food_name;
     if (ref.weight_g !== null) {

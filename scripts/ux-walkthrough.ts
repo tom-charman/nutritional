@@ -50,7 +50,7 @@ async function main() {
   await shot("05-meal-search-results");
   await page
     .locator(".combobox-option")
-    .filter({ hasText: "Overnight Oats, Chia Seeds, Protein Powder, Honey (meal)" })
+    .filter({ hasText: "Overnight Oats, Chia Seeds, Protein Powder, Honey (recipe)" })
     .first()
     .click();
   await page.getByTestId("amount-input").fill("1");

@@ -163,7 +163,7 @@ async function main() {
     await page.waitForSelector(".calories-remaining-number");
     const s = page.getByTestId("food-search");
     await s.click(); await s.fill("ZZ Matrix Mixed Meal");
-    await page.locator(".combobox-option").filter({ hasText: "(meal)" }).first().click();
+    await page.locator(".combobox-option").filter({ hasText: "(recipe)" }).first().click();
     await page.getByTestId("amount-input").fill("0.333");
     await page.waitForSelector(".nutrient-preview-card");
     await page.getByTestId("add-button").click();

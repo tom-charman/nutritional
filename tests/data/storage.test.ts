@@ -296,6 +296,9 @@ describe("meal template CRUD", () => {
     await saveMeal(db, userId, {
       id: mealId,
       name: "Crud Breakfast",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         { food_id: oats.id, food_name: oats.name, weight_g: 50, quantity: null, nutrients: ZERO_NUTRIENTS },
       ],
@@ -309,6 +312,9 @@ describe("meal template CRUD", () => {
     await saveMeal(db, userId, {
       id: mealId,
       name: "Crud Breakfast v2",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         { food_id: oats.id, food_name: oats.name, weight_g: 30, quantity: null, nutrients: ZERO_NUTRIENTS },
         { food_id: milk.id, food_name: milk.name, weight_g: 200, quantity: null, nutrients: ZERO_NUTRIENTS },
@@ -327,6 +333,9 @@ describe("meal template CRUD", () => {
     await saveMeal(db, userId, {
       id: mealId,
       name: "Crud Logged Meal",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         { food_id: food.id, food_name: food.name, weight_g: 40, quantity: null, nutrients: ZERO_NUTRIENTS },
       ],

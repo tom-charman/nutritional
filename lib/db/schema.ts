@@ -186,6 +186,10 @@ export const meals = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id").references(() => users.id),
     name: varchar("name", { length: 255 }).notNull(),
+    // Yield mode (see init.sql check_meal_yield): 'whole' | 'by_weight' | 'by_count'.
+    yieldMode: varchar("yield_mode", { length: 10 }).notNull().default("whole"),
+    yieldWeightG: numeric("yield_weight_g", { precision: 8, scale: 2 }),
+    yieldCount: numeric("yield_count", { precision: 8, scale: 2 }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },

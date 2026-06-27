@@ -55,6 +55,9 @@ async function seedMeal(name: string, food: FoodItem, weightG: number): Promise<
   const meal: Meal = {
     id: randomUUID(),
     name,
+    yield_mode: "whole",
+    yield_weight_g: null,
+    yield_count: null,
     ingredients: [
       {
         food_id: food.id,
@@ -113,6 +116,40 @@ describe("week plan storage", () => {
     await expect(
       savePlanItem(db, userId, { weekStart: WEEK, planDate: MON, slot: "lunch" }),
     ).rejects.toThrow();
+  });
+
+  it("plans a by_weight meal by grams and derives the scaling factor", async () => {
+    const food = makeFood({ name: "CakeFlour", energy_kcal: 100 });
+    await saveFoodItem(db, userId, food);
+    // 1200 g ingredient → 1200 kcal batch; finished weight 1200 g.
+    const meal: Meal = {
+      id: randomUUID(),
+      name: "PlanCake",
+      yield_mode: "by_weight",
+      yield_weight_g: 1200,
+      yield_count: null,
+      ingredients: [
+        { food_id: food.id, food_name: food.name, weight_g: 1200, quantity: null, nutrients: { ...ZERO_NUTRIENTS } },
+      ],
+    };
+    await saveMeal(db, userId, meal);
+
+    // A by_weight meal stores its amount in weight_g (not portions).
+    await savePlanItem(db, userId, {
+      weekStart: WEEK,
+      planDate: WED,
+      slot: "dinner",
+      mealId: meal.id,
+      weightG: 150,
+    });
+
+    const plan = await loadWeekPlan(db, userId, WEEK);
+    const item = plan.items.find((i) => i.plan_date === WED && i.slot === "dinner");
+    expect(item!.ref.kind).toBe("meal");
+    expect(item!.ref.kind === "meal" && item!.ref.yield_mode).toBe("by_weight");
+    expect(item!.ref.kind === "meal" && item!.ref.consumed_amount).toBeCloseTo(150);
+    expect(item!.ref.kind === "meal" && item!.ref.portions).toBeCloseTo(0.125); // factor
+    expect(item!.nutrients.energy_kcal).toBeCloseTo(150, 5); // 1200 × 0.125
   });
 
   it("edits an item amount in place", async () => {

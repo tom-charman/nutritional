@@ -54,6 +54,7 @@ import {
   addFoodEntryAction,
   addMealEntryAction,
   copyDayEntriesAction,
+  editMealPortionsAction,
   removeEntryAction,
   swapFoodEntryAction,
 } from "@/app/actions/entry";
@@ -102,6 +103,9 @@ describe("copyDayEntriesAction", () => {
     const meal: Meal = {
       id: randomUUID(),
       name: "Dinner",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         { food_id: mealFood.id, food_name: "CopyChicken", weight_g: 100, quantity: null, nutrients: { ...ZERO_NUTRIENTS } },
       ],
@@ -204,6 +208,9 @@ describe("swapFoodEntryAction", () => {
     const meal: Meal = {
       id: randomUUID(),
       name: "Bowl",
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
       ingredients: [
         { food_id: a.id, food_name: "IngA", weight_g: 100, quantity: null, nutrients: { ...ZERO_NUTRIENTS } },
       ],
@@ -232,5 +239,112 @@ describe("swapFoodEntryAction", () => {
     const result = await swapFoodEntryAction("2024-05-04", randomUUID(), food.id);
     expect(result.ok).toBe(false);
     expect(result.message).toContain("No entries");
+  });
+});
+
+describe("addMealEntryAction — yield modes", () => {
+  // A single ingredient at 100 kcal/100 g keeps the batch arithmetic obvious.
+  async function seedYieldMeal(
+    name: string,
+    ingredientWeightG: number,
+    yield_: Pick<Meal, "yield_mode" | "yield_weight_g" | "yield_count">,
+  ): Promise<Meal> {
+    const food = makeFood({ name: `${name}-food`, energy_kcal: 100 });
+    await saveFoodItem(h.db, userId, food);
+    const meal: Meal = {
+      id: randomUUID(),
+      name,
+      ...yield_,
+      ingredients: [
+        {
+          food_id: food.id,
+          food_name: food.name,
+          weight_g: ingredientWeightG,
+          quantity: null,
+          nutrients: { ...ZERO_NUTRIENTS, energy_kcal: ingredientWeightG },
+        },
+      ],
+    };
+    await saveMeal(h.db, userId, meal);
+    return meal;
+  }
+
+  it("by_weight: logging a 150 g slice of a 1200 g batch scales to 12.5%", async () => {
+    // 1200 g ingredient → 1200 kcal batch; finished weight 1200 g.
+    const meal = await seedYieldMeal("Cake", 1200, {
+      yield_mode: "by_weight",
+      yield_weight_g: 1200,
+      yield_count: null,
+    });
+    const date = "2024-07-01";
+    const res = await addMealEntryAction(date, meal.id, 150);
+    expect(res.ok).toBe(true);
+    expect(res.message).toContain("150 g");
+
+    const day = await loadDailyEntry(h.db, userId, date);
+    const m = day!.entries.find((e) => e.kind === "meal");
+    expect(m?.kind === "meal" && m.entry.portions).toBeCloseTo(0.125); // factor
+    expect(m?.kind === "meal" && m.entry.consumed_amount).toBeCloseTo(150);
+    expect(m?.kind === "meal" && m.entry.yield_mode).toBe("by_weight");
+    expect(m?.kind === "meal" && m.entry.ingredients[0].weight_g).toBeCloseTo(150);
+    expect(m?.kind === "meal" && m.entry.ingredients[0].nutrients.energy_kcal).toBeCloseTo(150);
+  });
+
+  it("by_count: logging 2 of 12 cookies scales to one sixth", async () => {
+    // 600 g ingredient → 600 kcal batch; yields 12 cookies.
+    const meal = await seedYieldMeal("Cookies", 600, {
+      yield_mode: "by_count",
+      yield_weight_g: null,
+      yield_count: 12,
+    });
+    const date = "2024-07-02";
+    const res = await addMealEntryAction(date, meal.id, 2);
+    expect(res.ok).toBe(true);
+    expect(res.message).toContain("×2");
+
+    const day = await loadDailyEntry(h.db, userId, date);
+    const m = day!.entries.find((e) => e.kind === "meal");
+    expect(m?.kind === "meal" && m.entry.portions).toBeCloseTo(2 / 12);
+    expect(m?.kind === "meal" && m.entry.consumed_amount).toBeCloseTo(2);
+    expect(m?.kind === "meal" && m.entry.ingredients[0].nutrients.energy_kcal).toBeCloseTo(100);
+  });
+
+  it("editing the consumed amount rescales the logged meal", async () => {
+    const meal = await seedYieldMeal("Stew", 1000, {
+      yield_mode: "by_weight",
+      yield_weight_g: 1000,
+      yield_count: null,
+    });
+    const date = "2024-07-03";
+    await addMealEntryAction(date, meal.id, 200); // 200 kcal
+    let day = await loadDailyEntry(h.db, userId, date);
+    let m = day!.entries.find((e) => e.kind === "meal");
+    const logId = m?.kind === "meal" ? m.entry.meal_log_id : "";
+
+    const res = await editMealPortionsAction(date, logId, 400); // double it
+    expect(res.ok).toBe(true);
+
+    day = await loadDailyEntry(h.db, userId, date);
+    m = day!.entries.find((e) => e.kind === "meal");
+    expect(m?.kind === "meal" && m.entry.consumed_amount).toBeCloseTo(400);
+    expect(m?.kind === "meal" && m.entry.ingredients[0].nutrients.energy_kcal).toBeCloseTo(400);
+  });
+
+  it("whole meals are unchanged: portions stay the consumed amount", async () => {
+    const meal = await seedYieldMeal("Plate", 100, {
+      yield_mode: "whole",
+      yield_weight_g: null,
+      yield_count: null,
+    });
+    const date = "2024-07-04";
+    const res = await addMealEntryAction(date, meal.id, 2); // 2 portions
+    expect(res.ok).toBe(true);
+    expect(res.message).toContain("2 portions");
+
+    const day = await loadDailyEntry(h.db, userId, date);
+    const m = day!.entries.find((e) => e.kind === "meal");
+    expect(m?.kind === "meal" && m.entry.portions).toBe(2);
+    expect(m?.kind === "meal" && m.entry.consumed_amount).toBe(2);
+    expect(m?.kind === "meal" && m.entry.ingredients[0].nutrients.energy_kcal).toBeCloseTo(200);
   });
 });

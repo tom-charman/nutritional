@@ -51,6 +51,13 @@ export function sumNutrients(items: Nutrients[]): Nutrients {
   return totals;
 }
 
+/** Scale a nutrient bundle by a factor (e.g. meal portions / consumed fraction). */
+export function scaleNutrients(n: Nutrients, factor: number): Nutrients {
+  const out = { ...ZERO_NUTRIENTS };
+  for (const key of NUTRIENT_KEYS) out[key] = n[key] * factor;
+  return out;
+}
+
 /** MealEntry.calculate_totals (models.py:115-133). */
 export function mealEntryTotals(meal: MealEntry): Nutrients {
   return sumNutrients(meal.ingredients.map((i) => i.nutrients));

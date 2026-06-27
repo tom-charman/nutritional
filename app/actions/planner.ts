@@ -17,6 +17,7 @@ import {
   copyPlanDay,
   deletePlanItem,
   getFoodItem,
+  getMeal,
   getPlanItem,
   loadWeekPlan,
   savePlanItem,
@@ -41,7 +42,8 @@ function revalidatePlanner(): void {
  * Add one meal or food to a plan across one or more days — the single add path
  * behind the planner's add panel (it replaced the old per-cell adds and the
  * Stamp gesture). `optionKey` is the combobox value: "meal:<id>" or "food:<id>".
- * `amount` is portions for a meal, grams or item-count for a food.
+ * `amount` is portions/grams/item-count for a meal (per its yield mode), or
+ * grams/item-count for a food.
  */
 export async function addPlanItemsAcrossDaysAction(
   weekStart: string,
@@ -55,8 +57,17 @@ export async function addPlanItemsAcrossDaysAction(
 
   if (optionKey.startsWith("meal:")) {
     const mealId = optionKey.slice(5);
+    const meal = await getMeal(db, userId, mealId);
+    if (!meal) return { ok: false, message: "Recipe not found" };
+    // Store the amount in the column matching the meal's yield mode (portions /
+    // weight_g / quantity) — the read side derives the scaling factor from it.
+    const amountCols = {
+      portions: meal.yield_mode === "whole" ? amount : null,
+      weightG: meal.yield_mode === "by_weight" ? amount : null,
+      quantity: meal.yield_mode === "by_count" ? amount : null,
+    };
     for (const planDate of dates) {
-      await savePlanItem(db, userId, { weekStart, planDate, slot: FLAT_SLOT, mealId, portions: amount });
+      await savePlanItem(db, userId, { weekStart, planDate, slot: FLAT_SLOT, mealId, ...amountCols });
     }
   } else if (optionKey.startsWith("food:")) {
     const foodId = optionKey.slice(5);
@@ -165,7 +176,7 @@ export async function applyPlanDayAction(slot?: string): Promise<ApplyResult> {
     const provenance = { source: "plan" as const, planItemId: item.id };
     const res =
       item.ref.kind === "meal"
-        ? await addMealEntryAction(today, item.ref.meal_id, item.ref.portions, provenance)
+        ? await addMealEntryAction(today, item.ref.meal_id, item.ref.consumed_amount, provenance)
         : await addFoodEntryAction(
             today,
             item.ref.food_id,
@@ -207,7 +218,7 @@ export async function applyPlanItemAction(itemId: string): Promise<ActionResult>
   const name = item.ref.kind === "meal" ? item.ref.meal_name : item.ref.food_name;
   const res =
     item.ref.kind === "meal"
-      ? await addMealEntryAction(item.plan_date, item.ref.meal_id, item.ref.portions, provenance)
+      ? await addMealEntryAction(item.plan_date, item.ref.meal_id, item.ref.consumed_amount, provenance)
       : await addFoodEntryAction(
           item.plan_date,
           item.ref.food_id,

@@ -40,7 +40,7 @@ test.describe("meal planner (template CRUD)", () => {
     await shot(page, "meal-planner", "02-composed");
 
     await meals.saveButton.click();
-    await expectToast(page, "Meal 'E2E Power Breakfast' saved");
+    await expectToast(page, "Recipe 'E2E Power Breakfast' saved");
     await expect(meals.mealCard("E2E Power Breakfast")).toContainText("2 ingredients");
     await expect(meals.mealCard("E2E Power Breakfast")).toContainText("356 kcal");
     // composer cleared after save
@@ -94,7 +94,7 @@ test.describe("meal planner (template CRUD)", () => {
     await meals.composerIngredient("E2E Planner Egg").locator(".delete-icon").click();
     await meals.nameInput.fill("E2E Power Breakfast Lite");
     await meals.saveButton.click();
-    await expectToast(page, "Meal 'E2E Power Breakfast Lite' saved");
+    await expectToast(page, "Recipe 'E2E Power Breakfast Lite' saved");
     await expect(meals.mealCard("E2E Power Breakfast Lite")).toContainText("1 ingredient");
     await expect(meals.mealCard("E2E Power Breakfast Lite")).toContainText("200 kcal");
   });
@@ -103,7 +103,7 @@ test.describe("meal planner (template CRUD)", () => {
     const meals = new MealsPage(page);
     await meals.goto();
     await meals.saveButton.click();
-    await expectToast(page, "Please enter a meal name");
+    await expectToast(page, "Please enter a recipe name");
     await meals.nameInput.fill("E2E No Ingredients");
     await meals.saveButton.click();
     await expectToast(page, "Add at least one ingredient");
@@ -115,7 +115,7 @@ test.describe("meal planner (template CRUD)", () => {
     await search.click();
     await search.fill("E2E Power Breakfast Lite");
     await expect(
-      page.locator(".combobox-option").filter({ hasText: "E2E Power Breakfast Lite (meal)" }),
+      page.locator(".combobox-option").filter({ hasText: "E2E Power Breakfast Lite (recipe)" }),
     ).toBeVisible();
   });
 
@@ -123,7 +123,7 @@ test.describe("meal planner (template CRUD)", () => {
     const meals = new MealsPage(page);
     await meals.goto();
     await meals.mealCard("E2E Mistake Meal").locator(".delete-icon").click();
-    await expectToast(page, "Meal deleted");
+    await expectToast(page, "Recipe deleted");
     await expect(meals.mealCard("E2E Mistake Meal")).toHaveCount(0);
   });
 });
