@@ -7,6 +7,7 @@
  */
 import { useEffect, useState, useTransition } from "react";
 import {
+  exportAllDataJson,
   exportCaloriesWeightCsv,
   exportDailyEntriesCsv,
   exportDailyTotalsCsv,
@@ -16,7 +17,7 @@ import {
   type ExportResult,
 } from "@/app/actions/export";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
-import { downloadCsv } from "@/lib/export/download";
+import { downloadCsv, downloadJson } from "@/lib/export/download";
 
 type OptionKey =
   | "caloriesWeight"
@@ -134,6 +135,19 @@ export default function ExportModal({ onClose }: { onClose: () => void }) {
     });
   }
 
+  /** GDPR portability — the user's entire dataset as one JSON file. */
+  function downloadAll() {
+    startTransition(async () => {
+      const result = await exportAllDataJson();
+      if (result.ok) {
+        downloadJson(result.filename, result.json);
+        pushToast("success", "Exported all your data");
+      } else {
+        pushToast("error", result.message);
+      }
+    });
+  }
+
   return (
     <>
       <div className="modal-overlay" onClick={onClose}>
@@ -193,6 +207,21 @@ export default function ExportModal({ onClose }: { onClose: () => void }) {
                   </span>
                 </label>
               ))}
+            </div>
+
+            <div className="export-all-json">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={downloadAll}
+                disabled={isPending}
+              >
+                Download all my data (JSON)
+              </button>
+              <p className="export-option-hint">
+                Everything we hold about you, in one machine-readable file — for
+                portability or your own records.
+              </p>
             </div>
           </div>
           <div className="modal-footer">

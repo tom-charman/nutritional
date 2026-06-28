@@ -17,6 +17,7 @@ import {
   loadMeals,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
+import { collectAllUserData } from "@/lib/data/gdpr";
 import {
   prepareCaloriesWeight,
   prepareMacroBreakdown,
@@ -37,6 +38,13 @@ export interface CsvError {
   message: string;
 }
 export type ExportResult = CsvPayload | CsvError;
+
+export interface JsonPayload {
+  ok: true;
+  filename: string;
+  json: string;
+}
+export type JsonExportResult = JsonPayload | CsvError;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -228,6 +236,23 @@ export async function exportDailyEntriesCsv(
     }
   }
   return { ok: true, filename: `daily-entries_${from}_${to}.csv`, csv: toCsv(headers, rows) };
+}
+
+/**
+ * GDPR data portability — the user's COMPLETE personal dataset as JSON: account,
+ * settings, food logs, summaries, targets, meals + ingredients, plans, and the
+ * user's OWN food items (shared canonical foods are app data, excluded). Raw
+ * rows, ignores the date range.
+ */
+export async function exportAllDataJson(): Promise<JsonExportResult> {
+  const userId = await requireUserId();
+  const data = await collectAllUserData(db, userId);
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    ok: true,
+    filename: `nutritional-data_${today}.json`,
+    json: JSON.stringify(data, null, 2),
+  };
 }
 
 /** Meal templates — one row per ingredient. Ignores the date range. */

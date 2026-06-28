@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Fraunces, JetBrains_Mono } from "next/font/google";
 import Navbar from "@/components/nav/Navbar";
+import Footer from "@/components/nav/Footer";
+import ConsentGate from "@/components/nav/ConsentGate";
 import { auth } from "@/lib/auth";
+import { needsHealthConsent } from "@/lib/data/consent";
 import "./globals.css";
 
 /**
@@ -45,11 +49,22 @@ export default async function RootLayout({
     : authDisabled
       ? { name: null, email: process.env.TEST_USER_EMAIL ?? null }
       : null;
+
+  // Explicit health-data consent gate. The notice and contact form stay
+  // reachable while ungated (x-pathname is set by proxy.ts) so a user can read
+  // them before deciding; everything else is replaced by the gate until consent.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const consentExempt = pathname === "/privacy" || pathname === "/contact";
+  const showConsentGate = !consentExempt && (await needsHealthConsent());
+
   return (
     <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body>
         <Navbar user={user} />
-        <main className="app-container">{children}</main>
+        <main className="app-container">
+          {showConsentGate ? <ConsentGate /> : children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

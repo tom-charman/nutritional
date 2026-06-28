@@ -913,6 +913,16 @@ input[type="checkbox"]:focus {
     color: var(--danger, #b5440f);
 }
 
+.export-all-json {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    align-items: flex-start;
+}
+
 /* ==================== Combobox (food selector) ==================== */
 .combobox {
     position: relative;
@@ -2776,6 +2786,92 @@ button.ingredient-name-swap:hover {
 /* ==================== Page header ==================== */
 .page-header {
     margin-bottom: 32px;
+}
+
+/* Long-form legal/prose pages (privacy notice, contact). */
+.legal-page {
+    max-width: 720px;
+    margin: 48px auto 80px;
+    line-height: 1.65;
+    color: var(--text-main);
+}
+
+.legal-page h1 {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    margin-bottom: var(--space-sm);
+}
+
+.legal-page h2 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    margin-top: var(--space-2xl);
+    margin-bottom: var(--space-sm);
+}
+
+.legal-page p,
+.legal-page li {
+    color: var(--text-main);
+}
+
+.legal-page ul {
+    padding-left: 1.25rem;
+    margin-bottom: var(--space-md);
+}
+
+.legal-page li {
+    margin-bottom: var(--space-xs);
+}
+
+.legal-page .legal-meta {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xl);
+}
+
+.contact-field {
+    margin-bottom: var(--space-md);
+}
+
+.contact-field label {
+    display: block;
+}
+
+/* Honeypot — off-screen, not a tab stop; real users never see or fill it. */
+.contact-honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.contact-status {
+    margin-top: var(--space-md);
+    font-size: var(--font-size-sm);
+}
+
+.contact-status.is-error {
+    color: var(--danger, #b5440f);
+}
+
+.site-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xl) var(--space-lg);
+    margin-top: var(--space-2xl);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.site-footer a {
+    color: var(--text-muted);
+}
+
+.site-footer a:hover {
+    color: var(--text-main);
 }
 
 .page-title {

@@ -6,6 +6,7 @@
  * start) and by the reset-between-projects step (desktop → mobile).
  */
 import postgres from "postgres";
+import { HEALTH_CONSENT_VERSION } from "../../lib/constants";
 
 const E2E_DATES = [
   "2024-01-10", "2024-01-11", "2024-01-12", "2024-01-13", "2024-01-14",
@@ -31,6 +32,12 @@ export async function resetE2EData(): Promise<void> {
     await sql`DELETE FROM food_entries WHERE meal_id IN (SELECT id FROM meals WHERE name LIKE 'E2E %')`;
     await sql`DELETE FROM meals WHERE name LIKE 'E2E %'`;
     await sql`DELETE FROM food_items WHERE name LIKE 'E2E %'`;
+
+    // The AUTH_DISABLED bypass user must have explicit health-data consent on
+    // file, or the consent gate (app/layout.tsx) blocks every spec. Provision
+    // the user if missing and mark it consented to the in-force notice version.
+    await sql`INSERT INTO users (email, name) VALUES ('e2e@example.com', 'E2E User') ON CONFLICT (email) DO NOTHING`;
+    await sql`UPDATE users SET health_consent_at = CURRENT_TIMESTAMP, health_consent_version = ${HEALTH_CONSENT_VERSION} WHERE email = 'e2e@example.com'`;
   } finally {
     await sql.end();
   }
