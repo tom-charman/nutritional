@@ -7,6 +7,15 @@
 /** Dashboard rolling-average window (callbacks.py hardcoded 30). */
 export const ROLLING_WINDOW_DAYS = 30;
 
+/**
+ * GDPR: the version of the privacy notice / health-data consent currently in
+ * force. Recorded on the users row when a user consents; the consent gate
+ * (lib/data/consent.ts) re-prompts if a user's recorded version differs, so a
+ * material change to the notice forces fresh explicit consent. Bump this (date
+ * the notice materially changed) only when re-consent should be required.
+ */
+export const HEALTH_CONSENT_VERSION = "2026-06-28";
+
 /** Caloric conversion factors (kcal/g) — settings.py */
 export const CAL_PROT = 4;
 export const CAL_CARB = 4;

@@ -14,20 +14,31 @@ const AUTH_DISABLED =
   process.env.AUTH_DISABLED === "true" && process.env.NODE_ENV !== "production";
 
 export default auth((req) => {
-  if (AUTH_DISABLED) return NextResponse.next();
   const { pathname } = req.nextUrl;
+
+  // Expose the path to server components (the consent gate in app/layout.tsx
+  // reads x-pathname to stay off /privacy and /contact). Set on every pass-through.
+  const pass = () => {
+    const headers = new Headers(req.headers);
+    headers.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers } });
+  };
+
+  if (AUTH_DISABLED) return pass();
 
   if (
     pathname.startsWith("/api/auth") ||
     pathname === "/denied" ||
     pathname === "/signin" ||
+    pathname === "/privacy" ||
+    pathname === "/contact" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/textures") ||
     pathname === "/favicon.ico" ||
     pathname === "/icon.svg" ||
     pathname === "/apple-icon.png"
   ) {
-    return NextResponse.next();
+    return pass();
   }
 
   const email = req.auth?.user?.email;
@@ -39,7 +50,7 @@ export default auth((req) => {
   if (!isAuthorizedEmail(email)) {
     return NextResponse.redirect(new URL("/denied", req.nextUrl.origin));
   }
-  return NextResponse.next();
+  return pass();
 });
 
 export const config = {

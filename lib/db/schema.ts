@@ -15,6 +15,7 @@ import {
   pgTable,
   uuid,
   varchar,
+  text,
   numeric,
   date,
   timestamp,
@@ -31,9 +32,39 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
+  /** GDPR: when the user gave explicit Article 9 consent to health-data processing. NULL = not yet. */
+  healthConsentAt: timestamp("health_consent_at"),
+  /** Notice version consented to — a material change can force re-consent. */
+  healthConsentVersion: varchar("health_consent_version", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+/**
+ * GDPR rights-request register. Every contact-form submission is persisted here
+ * as a backstop so a request is never lost if the notification email fails.
+ * `requesterEmail` is the reply-to the person typed — NOT necessarily an account
+ * email (requests can come from people who can't sign in). Retained for
+ * accountability even after a user is deleted.
+ */
+export const privacyRequests = pgTable(
+  "privacy_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestType: varchar("request_type", { length: 20 }).notNull(),
+    requesterEmail: varchar("requester_email", { length: 255 }).notNull(),
+    message: text("message").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("open"),
+    handledAt: timestamp("handled_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("idx_privacy_requests_created_at").on(t.createdAt),
+    index("idx_privacy_requests_status").on(t.status),
+  ],
+);
 
 export const foodItems = pgTable(
   "food_items",

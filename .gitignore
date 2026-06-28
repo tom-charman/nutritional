@@ -2,6 +2,11 @@ local_data
 plots
 plots_interactive
 
+# GDPR: internal compliance records (kept in private cloud storage, never committed)
+# and any personal-data exports produced by the SAR / deletion tooling.
+compliance/
+gdpr-exports/
+
 # Node / Next.js
 node_modules/
 .next/
@@ -12,6 +17,7 @@ next-env.d.ts
 
 # Database backups and exports
 database/backups/
+database/snapshots/
 database/.db_password
 *.sql
 *.sql.gz

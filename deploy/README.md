@@ -91,6 +91,20 @@ Both scripts are idempotent and transaction-wrapped, so a re-run is a safe no-op
 exact sequence (schema → backfill) was validated against a copy of the prod database before
 release.
 
+**GDPR compliance (`005_gdpr_compliance.sql`) — required on the release that introduces
+the privacy/consent features.** It adds `users.health_consent_at` / `health_consent_version`
+and the `privacy_requests` table. Apply it (after `init.sql`, before `deploy.sh`) or the
+app 500s on the consent gate and the contact form. Also set the new env vars on the VM
+before the deploy: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (a Gmail **app
+password**), and `PRIVACY_CONTACT_TO`.
+
+```bash
+VM=<ssh-host>
+ssh "$VM" 'sudo -u postgres psql -v ON_ERROR_STOP=1 -d nutritional_db' < database/migrations/005_gdpr_compliance.sql
+# verify the new column + table exist and the app role can see the table:
+ssh "$VM" "sudo -u postgres psql -d nutritional_db -c \"SET ROLE nutritional_user; SELECT count(*) FROM privacy_requests;\""
+```
+
 **Ownership/grants gotcha (the reason `migrate` re-grants):** the VM applies `init.sql`
 as the `postgres` superuser, so every table it creates is owned by `postgres` and is
 invisible to the app role `nutritional_user` until granted — a missing grant on a new

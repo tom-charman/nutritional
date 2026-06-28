@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- GDPR: explicit Article 9 consent to process health-revealing data (weights,
+-- food logs, macro targets, meal plans). NULL = not yet consented; the in-app
+-- consent gate blocks the app until set. version tracks the notice consented to
+-- so a material change can force re-consent (see migrations/005_gdpr_compliance.sql).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS health_consent_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS health_consent_version VARCHAR(20);
+
 -- Food items: shared canonical reference (user_id IS NULL) + per-user diff.
 CREATE TABLE IF NOT EXISTS food_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -275,6 +282,29 @@ ALTER TABLE food_entries ADD COLUMN IF NOT EXISTS plan_item_id UUID
     REFERENCES meal_plan_items(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_food_entries_plan_item_id ON food_entries(plan_item_id);
 
+-- GDPR rights-request register. Every contact-form submission is persisted here
+-- as a backstop so a request is never lost if the notification email fails. See
+-- migrations/005_gdpr_compliance.sql and compliance/rights-log.md.
+CREATE TABLE IF NOT EXISTS privacy_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_type VARCHAR(20) NOT NULL,            -- access | export | correction | deletion | complaint | other
+    requester_email VARCHAR(255) NOT NULL,        -- the reply-to the person typed (may not be an account email)
+    message TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'open',    -- open | handled | rejected
+    handled_at TIMESTAMP,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_privacy_request_type CHECK (
+        request_type IN ('access', 'export', 'correction', 'deletion', 'complaint', 'other')
+    ),
+    CONSTRAINT check_privacy_request_status CHECK (
+        status IN ('open', 'handled', 'rejected')
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_privacy_requests_created_at ON privacy_requests(created_at);
+CREATE INDEX IF NOT EXISTS idx_privacy_requests_status ON privacy_requests(status);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_food_entries_entry_date ON food_entries(entry_date);
 CREATE INDEX IF NOT EXISTS idx_food_entries_user_date ON food_entries(user_id, entry_date);
@@ -338,6 +368,10 @@ CREATE TRIGGER update_meal_plans_updated_at BEFORE UPDATE ON meal_plans
 
 DROP TRIGGER IF EXISTS update_meal_plan_items_updated_at ON meal_plan_items;
 CREATE TRIGGER update_meal_plan_items_updated_at BEFORE UPDATE ON meal_plan_items
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_privacy_requests_updated_at ON privacy_requests;
+CREATE TRIGGER update_privacy_requests_updated_at BEFORE UPDATE ON privacy_requests
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Grant the application role access to EVERY object in the schema.
