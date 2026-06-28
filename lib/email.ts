@@ -31,6 +31,11 @@ function getTransport(): Transporter {
     port,
     secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
     auth: { user, pass },
+    // Bound the send: the request already persisted the row, so never let a
+    // hung SMTP connection stall the user's response.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
   });
   return transporter;
 }
