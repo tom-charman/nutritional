@@ -44,13 +44,38 @@ export default function TargetsModal({
   );
   const [isPending, startTransition] = useTransition();
   const firstInputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
-  // Escape closes (discarding changes); focus lands on the first value.
+  // Unsaved edits? (Cancel/×/Esc discard; the overlay click is guarded below.)
+  const dirty =
+    NUTRIENT_KEYS.some((k) => values[k] !== String(initial.values[k])) ||
+    NUTRIENT_KEYS.some((k) => modes[k] !== (initial.modes[k] ?? initial.mode));
+
+  // Escape closes (discarding changes); focus lands on the first value. Tab is
+  // trapped within the modal so focus can't fall to the page behind it.
   useEffect(() => {
     firstInputRef.current?.focus();
     firstInputRef.current?.select();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !modalRef.current) return;
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, input, [href], select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -95,15 +120,32 @@ export default function TargetsModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      // Only a click on the empty backdrop with NO unsaved edits closes — so a
+      // stray click-away can't silently discard target changes.
+      onClick={() => {
+        if (!dirty) onClose();
+      }}
+    >
+      <div
+        className="modal"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="targets-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h2>Edit Daily Targets</h2>
+          <h2 id="targets-modal-title">Edit Daily Targets</h2>
           <button className="delete-icon" onClick={onClose} title="Close">
             ×
           </button>
         </div>
         <div className="modal-body">
+          <p className="modal-subtitle">
+            <strong>Target</strong> = aim to reach · <strong>Limit</strong> = stay under
+          </p>
           <div className="targets-grid">
             {NUTRIENT_KEYS.map((key, i) => (
               <div key={key} className="compact-input">

@@ -10,6 +10,7 @@ import {
   loadUserSettings,
   loadWeekPlan,
 } from "@/lib/data/storage";
+import { redirect } from "next/navigation";
 import { requireUserId } from "@/lib/data/user";
 import { ROLLING_WINDOW_DAYS } from "@/lib/constants";
 import { prepareCaloriesWeight } from "@/lib/domain/charts/prepare";
@@ -29,8 +30,12 @@ export default async function EntryPage({
 }) {
   const params = await searchParams;
   const today = todayIso();
-  let date = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : today;
-  if (date > today) date = today; // max allowed = today
+  const requested =
+    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : today;
+  // A future date can't be logged — send it to the canonical (today) URL so the
+  // address bar and the header agree, instead of silently clamping the param.
+  if (requested > today) redirect("/entry");
+  const date = requested;
 
   const userId = await requireUserId();
   const [foods, meals, recentFoods, day, targets, allSummaries, settings, weekPlan] =

@@ -13,6 +13,7 @@ import {
   getFoodItem,
   getMeal,
   getOrCreateDailyTargets,
+  getRecentWeightKg,
   loadDailyEntry,
   saveDailyEntry,
   saveDailyTargets,
@@ -445,10 +446,15 @@ export async function updateWeightAction(
   });
   revalidate();
   if (clearing) return { ok: true, message: "Weight cleared" };
-  // Saved, but nudge on physiologically implausible values (often a lb/kg slip)
-  // without blocking — the user may genuinely be outside this band.
-  if (weight !== null && (weight < 30 || weight > 300)) {
-    return { ok: true, message: `Saved ${weight} kg — that looks unusual, double-check it` };
+  // Saved, but nudge on implausible values (often a lb/kg slip) without blocking.
+  // A fixed 30–300 kg band can't catch a slip inside it, so also flag a big jump
+  // from the most recent real weigh-in (a lb value is ~2.2× the kg value).
+  if (weight !== null) {
+    const recent = await getRecentWeightKg(db, userId, date);
+    const bigJump = recent !== null && recent > 0 && Math.abs(weight - recent) / recent > 0.25;
+    if (weight < 30 || weight > 300 || bigJump) {
+      return { ok: true, message: `Saved ${weight} kg — that looks unusual, double-check it` };
+    }
   }
   return { ok: true, message: "Weight saved" };
 }
