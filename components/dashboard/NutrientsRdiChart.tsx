@@ -114,6 +114,11 @@ export default function NutrientsRdiChart({
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
+      <p className="chart-legend-note">
+        Each strip fills to the day&rsquo;s % of its target · the etched line is 100% ·{" "}
+        <span style={{ color: "#789440", fontWeight: 600 }}>✓</span> on target ·{" "}
+        <span style={{ color: "#A04000", fontWeight: 600 }}>⚠</span> a target missed or a limit exceeded
+      </p>
       <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
         <defs>
           {/* drafting poché: fine 45° sumi hatching for the semantic zones */}

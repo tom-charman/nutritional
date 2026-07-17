@@ -1050,6 +1050,7 @@ export async function loadWeekPlan(
       ref,
       nutrients,
       applied: applied.has(row.id),
+      dismissed: row.dismissedAt !== null,
     });
   }
 
@@ -1186,6 +1187,20 @@ export async function deletePlanItem(db: DB, userId: string, itemId: string): Pr
   return deleted.length > 0;
 }
 
+/**
+ * Persist dismissal of a plan item's entry-page "ghost" suggestion. The plan
+ * itself is untouched (the item still counts in plan totals / plan-vs-actual);
+ * only its one-click suggestion is hidden on its day, across reloads/devices.
+ */
+export async function dismissPlanItem(db: DB, userId: string, itemId: string): Promise<boolean> {
+  const updated = await db
+    .update(mealPlanItems)
+    .set({ dismissedAt: new Date() })
+    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.userId, userId)))
+    .returning({ id: mealPlanItems.id });
+  return updated.length > 0;
+}
+
 /** Copy every plan item from `fromDate` to `toDate` (same week). Returns count. */
 export async function copyPlanDay(
   db: DB,
@@ -1284,6 +1299,7 @@ export async function getPlanItem(
       ref,
       nutrients,
       applied,
+      dismissed: row.dismissedAt !== null,
     };
   }
   if (row.foodId) {
@@ -1299,6 +1315,7 @@ export async function getPlanItem(
       ref: { kind: "food", food_id: food.id, food_name: food.name, weight_g: weightG, quantity },
       nutrients: calculateNutrients(food, { weight_g: weightG, quantity }),
       applied,
+      dismissed: row.dismissedAt !== null,
     };
   }
   return null;

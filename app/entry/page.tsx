@@ -53,7 +53,9 @@ export default async function EntryPage({
   // Planned-but-not-yet-logged items for THIS day surface on the entry screen as
   // faint "ghost" suggestions the user adds with one click (the only bridge from
   // plan → log; the planner itself never writes to the diary).
-  const planSuggestions = weekPlan.items.filter((it) => it.plan_date === date && !it.applied);
+  const planSuggestions = weekPlan.items.filter(
+    (it) => it.plan_date === date && !it.applied && !it.dismissed,
+  );
 
   // The weekly trend is a global readout (not date-specific): compute it as of
   // yesterday, since today is usually incomplete.

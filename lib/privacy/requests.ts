@@ -16,7 +16,7 @@ export const REQUEST_TYPES = [
 export type RequestType = (typeof REQUEST_TYPES)[number];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_MESSAGE = 5000;
+export const MAX_MESSAGE = 5000;
 
 export interface PrivacyRequestInput {
   requestType: string;
@@ -51,7 +51,7 @@ export function validatePrivacyRequest(input: PrivacyRequestInput): ValidationRe
     return { ok: false, error: "Please describe your request." };
   }
   if (message.length > MAX_MESSAGE) {
-    return { ok: false, error: "Your message is too long." };
+    return { ok: false, error: `Please keep your message under ${MAX_MESSAGE} characters.` };
   }
 
   return { ok: true, value: { requestType: requestType as RequestType, email, message } };

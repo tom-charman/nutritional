@@ -312,6 +312,9 @@ export const mealPlanItems = pgTable(
     portions: numeric("portions", { precision: 8, scale: 2 }),
     weightG: numeric("weight_g", { precision: 8, scale: 2 }),
     quantity: numeric("quantity", { precision: 8, scale: 2 }),
+    /** Set when the user dismissed this item's entry-page "ghost" suggestion —
+     *  persisted so it stays hidden on that day across reloads/devices. */
+    dismissedAt: timestamp("dismissed_at"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },

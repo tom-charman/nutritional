@@ -31,6 +31,13 @@ export interface CaloriesWeightData {
   weight_morning: Series;
   weight_evening: Series;
   /**
+   * The RAW (non-interpolated) morning/evening weigh-ins aligned to `dates` —
+   * non-null ONLY on days the user actually stepped on the scale. The tooltip
+   * reads these so an interpolated fill is never presented as a real reading.
+   */
+  weight_morning_raw: Series;
+  weight_evening_raw: Series;
+  /**
    * Responsive EWMA-smoothed trend weight (kg) — the cutter-facing weight line.
    * Deliberately shorter-horizon than `maintenance`'s 30-day slope (see constants).
    */
@@ -139,6 +146,8 @@ export function windowCaloriesWeight(
     calories_avg,
     weight_morning,
     weight_evening,
+    weight_morning_raw: data.weight_morning_raw.slice(from),
+    weight_evening_raw: data.weight_evening_raw.slice(from),
     weight_trend,
     maintenance,
     goal_weight_kg: data.goal_weight_kg,
@@ -196,6 +205,12 @@ export function prepareCaloriesWeight(
   const eveningRaw = column(summaries, "evening_weight_kg");
   const weightMorning = interpolateDaily(dates, morningRaw).values;
   const weightEvening = interpolateDaily(dates, eveningRaw).values;
+  // Raw weigh-ins aligned to the interpolated `commonDates` grid — non-null only
+  // on days with a real reading, so the tooltip never invents a measurement.
+  const morningByDate = new Map(dates.map((d, i) => [d, morningRaw[i]]));
+  const eveningByDate = new Map(dates.map((d, i) => [d, eveningRaw[i]]));
+  const weightMorningRaw: Series = commonDates.map((d) => morningByDate.get(d) ?? null);
+  const weightEveningRaw: Series = commonDates.map((d) => eveningByDate.get(d) ?? null);
 
   // Maintenance estimate: trailing weight-trend slope (kg/day) × kcal/kg,
   // subtracted from average intake. Trend weight prefers the (less noisy)
@@ -219,6 +234,8 @@ export function prepareCaloriesWeight(
     calories_avg: caloriesAvg,
     weight_morning: weightMorning,
     weight_evening: weightEvening,
+    weight_morning_raw: weightMorningRaw,
+    weight_evening_raw: weightEveningRaw,
     weight_trend: weightTrend,
     maintenance,
     goal_weight_kg: goalWeightKg,

@@ -16,6 +16,7 @@ import {
   clearPlanWeek,
   copyPlanDay,
   deletePlanItem,
+  dismissPlanItem,
   getFoodItem,
   getMeal,
   getPlanItem,
@@ -123,6 +124,20 @@ export async function removePlanItemAction(itemId: string): Promise<ActionResult
   if (!ok) return { ok: false, message: "Plan item not found" };
   revalidatePlanner();
   return { ok: true, message: "Removed from plan" };
+}
+
+/**
+ * Dismiss a planned item's entry-page "ghost" suggestion — persisted, so it
+ * stays hidden on that day across reloads and other devices (the plan itself is
+ * unchanged). The one-click suggestion is the only bridge from plan to log.
+ */
+export async function dismissPlanSuggestionAction(itemId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const ok = await dismissPlanItem(db, userId, itemId);
+  if (!ok) return { ok: false, message: "Planned item not found" };
+  revalidatePath("/entry");
+  revalidatePlanner();
+  return { ok: true, message: "Suggestion dismissed" };
 }
 
 /** Copy a whole planned day onto another day in the same week. */

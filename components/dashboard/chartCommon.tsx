@@ -231,9 +231,10 @@ export function XAxis({
   xScale: ScaleTime<number, number>;
   innerHeight: number;
 }) {
-  // ~90px per label keeps ticks readable down to phone widths
+  // ~90px per label keeps ticks readable down to phone widths; floor at 3 so a
+  // wide range on a narrow screen never collapses to a single lonely date tick.
   const [x0, x1] = xScale.range();
-  const ticks = xScale.ticks(Math.max(2, Math.min(6, Math.floor((x1 - x0) / 90))));
+  const ticks = xScale.ticks(Math.max(3, Math.min(6, Math.floor((x1 - x0) / 90))));
   const [d0, d1] = xScale.domain();
   const spanDays = (d1.getTime() - d0.getTime()) / 86_400_000;
   return (
