@@ -13,6 +13,8 @@ const sample: CaloriesWeightData = {
   calories_avg: [2000, 2100, 2200, 2300],
   weight_morning: [70, 70.5, 71, 71.5],
   weight_evening: [71, 71.5, 72, 72.5],
+  weight_morning_raw: [70, null, 71, null],
+  weight_evening_raw: [71, null, 72, null],
   weight_trend: [70.2, 70.6, 71.1, 71.6],
   maintenance: [null, null, 2150, 2250],
   goal_weight_kg: null,

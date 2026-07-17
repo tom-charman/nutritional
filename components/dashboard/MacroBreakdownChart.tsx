@@ -9,6 +9,7 @@
 import { useCallback } from "react";
 import { area, curveMonotoneX } from "d3-shape";
 import { NUTRIENT_COLORS } from "@/lib/constants";
+import { formatKcal } from "@/lib/format";
 import type { MacroBreakdownData } from "@/lib/domain/charts/prepare";
 import {
   CaliperLine,
@@ -92,7 +93,7 @@ export default function MacroBreakdownChart({
         const v = data[layer.key][i];
         return {
           label: layer.label,
-          value: v === null ? "—" : `${Math.round(v)} kcal`,
+          value: v === null ? "—" : `${formatKcal(v)} kcal`,
           color: layer.ink,
         };
       }).reverse(),
@@ -113,7 +114,7 @@ export default function MacroBreakdownChart({
     const f = (data.other_fat_cal[i] ?? 0) + (data.saturated_fat_cal[i] ?? 0);
     const total = lastTotal.value;
     readout.push({
-      value: Math.round(total).toLocaleString("en-US"),
+      value: formatKcal(total),
       unit: "kcal",
       label: readoutTotalLabel,
     });

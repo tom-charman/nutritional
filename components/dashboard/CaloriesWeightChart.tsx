@@ -14,6 +14,7 @@
 import { useCallback } from "react";
 import { area, curveMonotoneX, line } from "d3-shape";
 import { WEIGHT_COLOR } from "@/lib/constants";
+import { formatKcal } from "@/lib/format";
 import type { CaloriesWeightData } from "@/lib/domain/charts/prepare";
 import {
   CaliperLine,
@@ -81,9 +82,11 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
       const rows = [];
       const cal = data.calories_avg[i];
       const t = data.weight_trend[i];
-      const m = data.weight_morning[i];
-      const e = data.weight_evening[i];
-      if (cal !== null) rows.push({ label: "Calories", value: `${Math.round(cal)} kcal`, color: CALORIES_COLOR });
+      // Morning/evening read the RAW series — only real weigh-in days carry a
+      // value, so an interpolated fill is never shown as a discrete measurement.
+      const m = data.weight_morning_raw[i];
+      const e = data.weight_evening_raw[i];
+      if (cal !== null) rows.push({ label: "Calories (30-day avg)", value: `${formatKcal(cal)} kcal`, color: CALORIES_COLOR });
       if (t !== null) rows.push({ label: "Weight (trend)", value: `${t.toFixed(1)} kg`, color: WEIGHT_COLOR });
       if (m !== null) rows.push({ label: "Weight (morning)", value: `${m.toFixed(1)} kg`, color: WEIGHT_COLOR });
       if (e !== null) rows.push({ label: "Weight (evening)", value: `${e.toFixed(1)} kg`, color: WEIGHT_COLOR });
@@ -111,10 +114,10 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
   const goalInRange = goal !== null && goal >= data.y2Limits[0] && goal <= data.y2Limits[1];
   const readout = [
     ...(lastCal
-      ? [{ value: Math.round(lastCal.value).toLocaleString("en-US"), unit: "kcal", label: "30-day avg" }]
+      ? [{ value: formatKcal(lastCal.value), unit: "kcal", label: "30-day avg" }]
       : []),
     ...(lastMaint
-      ? [{ value: Math.round(lastMaint.value).toLocaleString("en-US"), unit: "kcal", label: "maintenance (est.)" }]
+      ? [{ value: formatKcal(lastMaint.value), unit: "kcal", label: "maintenance (est.)" }]
       : []),
     ...(lastTrend
       ? [{ value: lastTrend.value.toFixed(1), unit: "kg", label: "trend weight" }]
@@ -271,17 +274,20 @@ export default function CaloriesWeightChart({ data }: { data: CaloriesWeightData
                   color={WEIGHT_COLOR}
                 />
               )}
-              {data.weight_morning[hover.index] !== null && (
+              {/* Contact dots only on real weigh-in days (raw series), matching
+                  the tooltip — the interpolated line stays, but no dot claims a
+                  measurement that wasn't taken. */}
+              {data.weight_morning_raw[hover.index] !== null && (
                 <ContactDot
                   x={hover.x}
-                  y={yWeight(data.weight_morning[hover.index] as number)}
+                  y={yWeight(data.weight_morning_raw[hover.index] as number)}
                   color={WEIGHT_COLOR}
                 />
               )}
-              {data.weight_evening[hover.index] !== null && (
+              {data.weight_evening_raw[hover.index] !== null && (
                 <ContactDot
                   x={hover.x}
-                  y={yWeight(data.weight_evening[hover.index] as number)}
+                  y={yWeight(data.weight_evening_raw[hover.index] as number)}
                   color={WEIGHT_COLOR}
                 />
               )}

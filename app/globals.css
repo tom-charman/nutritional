@@ -1120,6 +1120,9 @@ input[type="checkbox"]:focus {
     display: inline-flex;
     align-items: baseline;
     gap: 6px;
+    /* Items wrap between each other (.chart-readout is flex-wrap), but a single
+       readout must never split mid-number, e.g. "24 / 39 /" then "37". */
+    white-space: nowrap;
 }
 
 .chart-readout-value {
@@ -1128,6 +1131,7 @@ input[type="checkbox"]:focus {
     font-weight: 600;
     color: var(--text-main);
     font-variation-settings: "opsz" 32;
+    white-space: nowrap;
 }
 
 .chart-readout-unit {
@@ -1147,6 +1151,15 @@ input[type="checkbox"]:focus {
 .chart-readout-sep {
     color: var(--text-disabled);
     margin-right: 10px;
+}
+
+/* In-view legend for a chart's symbols (e.g. the RDI strip's ✓/⚠). */
+.chart-legend-note {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: 0 0 8px;
+    padding: 0 4px;
 }
 
 .chart-svg {
