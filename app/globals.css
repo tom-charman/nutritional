@@ -655,6 +655,19 @@ button, .btn {
     box-shadow: var(--shadow-press);
 }
 
+/* A disabled button reads as inert: dimmed, no press, no pointer. */
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-success:disabled,
+.btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
 /* Success Button */
 .btn-success {
     background-color: var(--success);
@@ -1324,6 +1337,21 @@ input[type="checkbox"]:focus {
     gap: 8px;
 }
 
+/* On phones the bottom-right anchor sits on top of interactive columns (saved
+   recipes' controls, the weight fields it's reporting on). Centre it above the
+   safe area and align items so it covers no single control. */
+@media (max-width: 768px) {
+    .toast-container {
+        right: 12px;
+        left: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        align-items: center;
+    }
+    .toast {
+        max-width: 100%;
+    }
+}
+
 .toast {
     color: white;
     padding: 10px 16px;
@@ -1367,6 +1395,8 @@ input[type="checkbox"]:focus {
 
 .toast-success { background-color: var(--success); }
 .toast-error { background-color: var(--danger); }
+/* Neutral tone for benign no-ops (e.g. "already empty") — not a success ✓. */
+.toast-info { background-color: var(--primary); }
 
 /* ==================== Unified Daily Log ==================== */
 .daily-header {
@@ -3429,6 +3459,19 @@ button.ingredient-name-swap:hover {
 .planner-verdict.met { color: var(--success); }
 .planner-verdict.warn { color: var(--danger); }
 
+/* Legend explaining the per-day verdict marks, in view above the week grid. */
+.planner-legend {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin: 0 0 var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.planner-legend .planner-verdict { font-size: var(--font-size-xs); }
+
 /* ===== Weekly Planner — refined controls (redesign) ===== */
 /* Week stepper: reuse the daily-entry .date-stepper/.icon-button treatment so the
    chevrons are identical. The heading matches the daily header's Fraunces optical size. */
@@ -3461,6 +3504,10 @@ button.ingredient-name-swap:hover {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+    /* Stay right-aligned even when the header wraps onto a second line on
+       mobile — otherwise space-between left-aligns the lone rail and the
+       right-anchored week menu opens off the left screen edge. */
+    margin-left: auto;
 }
 
 /* Quick day-range buttons in the add panel (Every day / Weekdays / Clear). */
@@ -3500,6 +3547,8 @@ button.ingredient-name-swap:hover {
     right: 0;
     z-index: 30;
     min-width: 168px;
+    /* Never wider than the viewport (the menu opens leftward from right:0). */
+    max-width: calc(100vw - 24px);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);

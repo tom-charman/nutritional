@@ -7,13 +7,21 @@ import {
   NUTRIENT_KEYS,
   NUTRIENT_SHORT_NAMES,
   NUTRIENT_UNITS,
+  type NutrientKey,
   type Nutrients,
 } from "@/lib/constants";
 import { getNutrientMode, limitOverPct, macroIndicator } from "@/lib/domain/targets";
 import type { DailyTargets } from "@/lib/domain/types";
 
-function fmt(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+/**
+ * Fixed precision per unit so a card never mixes "0 g" and "0.0 g", and energy
+ * matches the whole-number kcal shown on cards/heroes: kcal and mg read as
+ * whole numbers; grams keep one decimal.
+ */
+function fmt(key: NutrientKey, value: number): string {
+  const unit = NUTRIENT_UNITS[key];
+  if (unit === "kcal" || unit === "mg") return String(Math.round(value));
+  return value.toFixed(1);
 }
 
 /**
@@ -68,7 +76,7 @@ export default function NutrientPreview({
               )}
               <span className="nutrient-label">{NUTRIENT_SHORT_NAMES[key]}</span>
               <span className="nutrient-value">
-                {fmt(value)} {NUTRIENT_UNITS[key]}
+                {fmt(key, value)} {NUTRIENT_UNITS[key]}
               </span>
             </div>
             {pct !== null && (

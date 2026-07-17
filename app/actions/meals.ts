@@ -18,6 +18,9 @@ export interface ActionResult {
   message: string;
 }
 
+/** Upper bound on any stored amount/weight/count (DECIMAL(8,2) column range). */
+const MAX_AMOUNT = 100_000;
+
 export interface MealIngredientInput {
   food_id: string;
   weight_g: number | null;
@@ -42,12 +45,18 @@ function resolveYield(
     if (w === null || !Number.isFinite(w) || w <= 0) {
       return { ok: false, message: "Enter the finished weight (g)" };
     }
+    if (w > MAX_AMOUNT) {
+      return { ok: false, message: "Finished weight is too large — check the value" };
+    }
     return { ok: true, value: { yield_mode: "by_weight", yield_weight_g: w, yield_count: null } };
   }
   if (input.yield_mode === "by_count") {
     const c = input.yield_count;
     if (c === null || !Number.isFinite(c) || c <= 0) {
       return { ok: false, message: "Enter how many items the batch makes" };
+    }
+    if (c > MAX_AMOUNT) {
+      return { ok: false, message: "That's too many items — check the value" };
     }
     return { ok: true, value: { yield_mode: "by_count", yield_weight_g: null, yield_count: c } };
   }
@@ -94,6 +103,9 @@ export async function saveMealAction(
     if (amount === null || !Number.isFinite(amount) || amount <= 0) {
       return { ok: false, message: "Ingredient amounts must be greater than zero" };
     }
+    if (amount > MAX_AMOUNT) {
+      return { ok: false, message: "An ingredient amount is too large — check the value" };
+    }
     resolved.push({
       food_id: food.id,
       food_name: food.name,
@@ -120,19 +132,21 @@ export async function saveMealAction(
   } catch (e) {
     // drizzle wraps DB errors — check the cause chain
     let isDuplicate = false;
+    let isOverflow = false;
     let current: unknown = e;
     for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
-      if (/unique|duplicate/i.test(current.message)) {
-        isDuplicate = true;
-        break;
-      }
+      if (/unique|duplicate/i.test(current.message)) isDuplicate = true;
+      if (/overflow|out of range|numeric field/i.test(current.message)) isOverflow = true;
+      if (isDuplicate || isOverflow) break;
       current = current.cause;
     }
     return {
       ok: false,
       message: isDuplicate
         ? `A recipe named '${trimmed}' already exists`
-        : "Failed to save recipe",
+        : isOverflow
+          ? "A value is too large to save — check the amounts"
+          : "Failed to save recipe",
     };
   }
   revalidatePath("/meals");

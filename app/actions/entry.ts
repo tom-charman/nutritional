@@ -28,6 +28,9 @@ import { saveFoodAction } from "@/app/actions/foods";
 export interface ActionResult {
   ok: boolean;
   message: string;
+  /** Optional feedback tone. "info" marks a benign no-op (e.g. "already
+   *  empty") so the UI can show a neutral toast rather than a success ✓. */
+  tone?: "info";
 }
 
 /**

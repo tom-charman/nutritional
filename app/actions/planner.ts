@@ -32,6 +32,10 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Upper bound on a planned amount (portions/grams/count) — a fat-fingered
+ *  quantity shouldn't silently skew the whole week's averages. */
+const MAX_PLAN_AMOUNT = 100_000;
+
 function revalidatePlanner(): void {
   revalidatePath("/planner");
 }
@@ -53,6 +57,9 @@ export async function addPlanItemsAcrossDaysAction(
 ): Promise<ActionResult> {
   if (!dates.length) return { ok: false, message: "Pick at least one day" };
   if (!(amount > 0)) return { ok: false, message: "Please enter an amount" };
+  if (amount > MAX_PLAN_AMOUNT) {
+    return { ok: false, message: "That amount looks too large — check the value" };
+  }
   const userId = await requireUserId();
 
   if (optionKey.startsWith("meal:")) {
@@ -99,6 +106,9 @@ export async function editPlanItemAmountAction(
   newAmount: number,
 ): Promise<ActionResult> {
   if (!(newAmount > 0)) return { ok: false, message: "Please enter a valid amount" };
+  if (newAmount > MAX_PLAN_AMOUNT) {
+    return { ok: false, message: "That amount looks too large — check the value" };
+  }
   const userId = await requireUserId();
   const ok = await updatePlanItemAmount(db, userId, itemId, newAmount);
   if (!ok) return { ok: false, message: "Plan item not found" };
@@ -124,7 +134,9 @@ export async function copyPlanDayAction(
   const userId = await requireUserId();
   const n = await copyPlanDay(db, userId, weekStart, fromDate, toDate);
   revalidatePlanner();
-  return { ok: true, message: n === 0 ? "Nothing to copy" : `Copied ${n} item${n === 1 ? "" : "s"}` };
+  return n === 0
+    ? { ok: true, tone: "info", message: "Nothing to copy" }
+    : { ok: true, message: `Copied ${n} item${n === 1 ? "" : "s"}` };
 }
 
 /** Clear all planned items from a day. */
@@ -132,7 +144,9 @@ export async function clearPlanDayAction(planDate: string): Promise<ActionResult
   const userId = await requireUserId();
   const n = await clearPlanDay(db, userId, planDate);
   revalidatePlanner();
-  return { ok: true, message: n === 0 ? "Day already empty" : `Cleared ${n} item${n === 1 ? "" : "s"}` };
+  return n === 0
+    ? { ok: true, tone: "info", message: "Day already empty" }
+    : { ok: true, message: `Cleared ${n} item${n === 1 ? "" : "s"}` };
 }
 
 /** Clear every planned item across a week. */
@@ -140,7 +154,9 @@ export async function clearPlanWeekAction(weekStart: string): Promise<ActionResu
   const userId = await requireUserId();
   const n = await clearPlanWeek(db, userId, weekStart);
   revalidatePlanner();
-  return { ok: true, message: n === 0 ? "Week already empty" : `Cleared ${n} item${n === 1 ? "" : "s"}` };
+  return n === 0
+    ? { ok: true, tone: "info", message: "Week already empty" }
+    : { ok: true, message: `Cleared ${n} item${n === 1 ? "" : "s"}` };
 }
 
 // ============= Apply (plan → log) — TODAY ONLY =============

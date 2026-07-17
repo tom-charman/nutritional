@@ -35,7 +35,19 @@ const LAYERS: { key: keyof Omit<MacroBreakdownData, "dates">; label: string; are
   { key: "saturated_fat_cal", label: "Sat Fat", area: NUTRIENT_COLORS.saturated_fat_g.area, ink: NUTRIENT_COLORS.saturated_fat_g.ink },
 ];
 
-export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData }) {
+export default function MacroBreakdownChart({
+  data,
+  readoutTotalLabel = "total",
+  forceLegend = false,
+}: {
+  data: MacroBreakdownData;
+  /** Caption for the readout's top figure (the last defined day's total). The
+   *  planner passes "latest day" so it doesn't collide with the week's own total. */
+  readoutTotalLabel?: string;
+  /** Use the legend instead of right-edge band labels regardless of width —
+   *  the planner's sparse weeks would otherwise detach the labels. */
+  forceLegend?: boolean;
+}) {
   const [containerRef, width] = useMeasuredWidth();
   const { narrow, height, margin } = chartFrame(width);
   const innerWidth = Math.max(width - margin.left - margin.right, 100);
@@ -103,13 +115,34 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
     readout.push({
       value: Math.round(total).toLocaleString("en-US"),
       unit: "kcal",
-      label: "total",
+      label: readoutTotalLabel,
     });
     if (total > 0) {
       readout.push({
         value: `${Math.round((p / total) * 100)} / ${Math.round((c / total) * 100)} / ${Math.round((f / total) * 100)}`,
         unit: "%",
         label: "protein / carbs / fat",
+      });
+    }
+  }
+
+  // Isolated defined days (a planned day with no defined neighbour) draw no
+  // area band — the segment has zero width — so render each as a thin column
+  // per layer, otherwise a single/gapped plan looks like a blank chart.
+  const isolatedColumns: { x: number; yTop: number; yBottom: number; fill: string }[] = [];
+  for (let li = 0; li < LAYERS.length; li++) {
+    for (let i = 0; i < n; i++) {
+      const lo = stacks[li].lower[i];
+      const up = stacks[li].upper[i];
+      if (lo === null || up === null || up === lo) continue;
+      const prevDef = i > 0 && stacks[li].upper[i - 1] !== null;
+      const nextDef = i < n - 1 && stacks[li].upper[i + 1] !== null;
+      if (prevDef || nextDef) continue;
+      isolatedColumns.push({
+        x: xScale(new Date(`${data.dates[i]}T00:00:00Z`)),
+        yTop: yScale(up),
+        yBottom: yScale(lo),
+        fill: LAYERS[li].area,
       });
     }
   }
@@ -130,7 +163,7 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
       <LatestReadout items={readout} />
-      {narrow && (
+      {(narrow || forceLegend) && (
         <Legend
           items={LAYERS.map((l) => ({ label: l.label, color: l.area, kind: "area" as const }))}
         />
@@ -156,7 +189,19 @@ export default function MacroBreakdownChart({ data }: { data: MacroBreakdownData
             );
           })}
 
-          {!narrow && (
+          {/* Thin columns for isolated defined days (no neighbouring band). */}
+          {isolatedColumns.map((c, i) => (
+            <rect
+              key={`iso-${i}`}
+              x={c.x - 3}
+              width={6}
+              y={c.yTop}
+              height={Math.max(1, c.yBottom - c.yTop)}
+              fill={c.fill}
+            />
+          ))}
+
+          {!narrow && !forceLegend && (
             <DirectLabels items={bandLabels} innerWidth={innerWidth} innerHeight={innerHeight} />
           )}
 

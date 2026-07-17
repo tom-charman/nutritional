@@ -28,6 +28,39 @@ const YIELD_HINT: Record<MealYieldMode, string> = {
   by_count: "Makes a number of items (cookies) — log how many you eat.",
 };
 
+/** Upper bound on an ingredient amount (matches the DECIMAL(8,2) column range). */
+const MAX_INGREDIENT_AMOUNT = 100_000;
+/** Ingredient amounts are stored as DECIMAL(8,2); round at entry so what the
+ *  user sees is exactly what is stored (no silent 0.333 -> 0.33 drift). */
+const roundAmount = (v: number) => Math.round(v * 100) / 100;
+
+/**
+ * The per-unit figure to lead a saved recipe card with, when it has a yield
+ * mode: nobody eats a 12-cookie batch, so a by_count/by_weight recipe reports
+ * "per item"/"per 100 g cooked" (with the whole batch as secondary), mirroring
+ * the composer's live per-unit breakdown. "whole" recipes have no per-unit.
+ */
+function mealPerUnit(
+  meal: Meal,
+  batch: Nutrients,
+): { label: string; batchLabel: string; nutrients: Nutrients } | null {
+  if (meal.yield_mode === "by_weight" && meal.yield_weight_g && meal.yield_weight_g > 0) {
+    return {
+      label: "per 100 g cooked",
+      batchLabel: `${meal.yield_weight_g} g batch`,
+      nutrients: scaleNutrients(batch, 100 / meal.yield_weight_g),
+    };
+  }
+  if (meal.yield_mode === "by_count" && meal.yield_count && meal.yield_count > 0) {
+    return {
+      label: "per item",
+      batchLabel: `makes ${meal.yield_count}`,
+      nutrients: scaleNutrients(batch, 1 / meal.yield_count),
+    };
+  }
+  return null;
+}
+
 export default function MealsClient({
   foods,
   initialMeals,
@@ -112,9 +145,15 @@ export default function MealsClient({
           : null;
 
   function addIngredient() {
-    const n = Number(amount);
     if (!selectedFood) return pushToast("Please select a food", false);
-    if (!Number.isFinite(n) || n <= 0) return pushToast("Please enter an amount", false);
+    if (amount.trim() === "" || !Number.isFinite(Number(amount))) {
+      return pushToast("Please enter an amount", false);
+    }
+    const n = roundAmount(Number(amount));
+    if (n <= 0) return pushToast("Amount must be greater than zero", false);
+    if (n > MAX_INGREDIENT_AMOUNT) {
+      return pushToast("Amount looks too large — check the value", false);
+    }
     const isPerItem = selectedFood.unit_type === "per_item";
     const nutrients = calculateNutrients(selectedFood, {
       weight_g: isPerItem ? null : n,
@@ -137,6 +176,8 @@ export default function MealsClient({
 
   /** Inline-edit an ingredient amount (same interaction as the daily log). */
   function editIngredientAmount(index: number, newAmount: number) {
+    // Round to the stored precision so the shown amount equals what is saved.
+    const rounded = roundAmount(newAmount);
     setIngredients((prev) =>
       prev.map((ing, i) => {
         if (i !== index) return ing;
@@ -145,11 +186,11 @@ export default function MealsClient({
         const isPerItem = food.unit_type === "per_item";
         return {
           ...ing,
-          weight_g: isPerItem ? null : newAmount,
-          quantity: isPerItem ? newAmount : null,
+          weight_g: isPerItem ? null : rounded,
+          quantity: isPerItem ? rounded : null,
           nutrients: calculateNutrients(food, {
-            weight_g: isPerItem ? null : newAmount,
-            quantity: isPerItem ? newAmount : null,
+            weight_g: isPerItem ? null : rounded,
+            quantity: isPerItem ? rounded : null,
           }),
         };
       }),
@@ -423,6 +464,7 @@ export default function MealsClient({
                 const mealTotals = sumNutrients(
                   meal.ingredients.map((i) => i.nutrients),
                 );
+                const perUnit = mealPerUnit(meal, mealTotals);
                 const expanded = expandedMeals.has(meal.id);
                 return (
                   <div
@@ -439,12 +481,9 @@ export default function MealsClient({
                       <span className="meal-card-info">
                         {meal.ingredients.length} ingredient
                         {meal.ingredients.length === 1 ? "" : "s"} ·{" "}
-                        {Math.round(mealTotals.energy_kcal)} kcal
-                        {meal.yield_mode === "by_weight" && meal.yield_weight_g
-                          ? ` · ${meal.yield_weight_g} g batch`
-                          : meal.yield_mode === "by_count" && meal.yield_count
-                            ? ` · makes ${meal.yield_count}`
-                            : ""}
+                        {perUnit
+                          ? `${Math.round(perUnit.nutrients.energy_kcal)} kcal ${perUnit.label} · ${perUnit.batchLabel}`
+                          : `${Math.round(mealTotals.energy_kcal)} kcal`}
                       </span>
                     </div>
                     <div className="meal-card-controls">
@@ -472,7 +511,16 @@ export default function MealsClient({
                     </div>
                     {expanded && (
                       <div className="meal-card-nutrients">
-                        <NutrientPreview nutrients={mealTotals} targets={targets} />
+                        {perUnit && (
+                          <p className="field-hint">
+                            Showing {perUnit.label}. Whole batch:{" "}
+                            {Math.round(mealTotals.energy_kcal)} kcal.
+                          </p>
+                        )}
+                        <NutrientPreview
+                          nutrients={perUnit ? perUnit.nutrients : mealTotals}
+                          targets={targets}
+                        />
                       </div>
                     )}
                   </div>
