@@ -22,6 +22,7 @@ function item(date: string, nutrients: Nutrients, id = `${date}-${Math.round(nut
     ref: { kind: "food", food_id: "f", food_name: "F", weight_g: 100, quantity: null },
     nutrients,
     applied: false,
+    dismissed: false,
   };
 }
 

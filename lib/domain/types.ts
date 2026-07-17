@@ -162,6 +162,8 @@ export interface PlanItem {
   nutrients: Nutrients;
   /** A logged food_entries row with this plan_item_id exists on plan_date. */
   applied: boolean;
+  /** The user dismissed this item's entry-page "ghost" suggestion (persisted). */
+  dismissed: boolean;
 }
 
 /** A week's plan: all items keyed by the Monday it starts. */

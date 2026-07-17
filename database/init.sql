@@ -271,6 +271,9 @@ CREATE TABLE IF NOT EXISTS meal_plan_items (
 );
 CREATE INDEX IF NOT EXISTS idx_meal_plan_items_plan_id ON meal_plan_items(plan_id);
 CREATE INDEX IF NOT EXISTS idx_meal_plan_items_user_date ON meal_plan_items(user_id, plan_date);
+-- When set, the user dismissed this planned item's entry-page "ghost" suggestion;
+-- it stays hidden on that day across reloads/devices (persisted, not client-only).
+ALTER TABLE meal_plan_items ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMP;
 
 -- Provenance on the LOG: where an applied entry came from. source NULL/'manual'
 -- = hand-logged (the default, preserves all existing rows); 'plan' = materialised

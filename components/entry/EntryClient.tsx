@@ -20,7 +20,7 @@ import {
   updateWeightAction,
 } from "@/app/actions/entry";
 import { setWeeklyPanelHiddenAction } from "@/app/actions/settings";
-import { applyPlanItemAction } from "@/app/actions/planner";
+import { applyPlanItemAction, dismissPlanSuggestionAction } from "@/app/actions/planner";
 import {
   NUTRIENT_BANDS,
   NUTRIENT_KEYS,
@@ -144,6 +144,9 @@ export default function EntryClient({
   }, []);
 
   // --- plan "ghost" suggestions: one-click add a planned item into the log ---
+  // `dismissed` is an optimistic local hide; the dismissal is ALSO persisted
+  // server-side (dismissPlanSuggestionAction) so it doesn't reappear on reload
+  // or another device.
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const handleAddSuggestion = useCallback(
     (item: PlanItem) => {
@@ -154,6 +157,24 @@ export default function EntryClient({
       });
     },
     [pushToast, router],
+  );
+  const handleDismissSuggestion = useCallback(
+    (id: string) => {
+      setDismissed((d) => new Set(d).add(id)); // optimistic hide
+      startTransition(async () => {
+        const res = await dismissPlanSuggestionAction(id);
+        if (!res.ok) {
+          // revert the optimistic hide if the persist failed
+          setDismissed((d) => {
+            const next = new Set(d);
+            next.delete(id);
+            return next;
+          });
+          pushToast(res.message, false);
+        }
+      });
+    },
+    [pushToast],
   );
 
   // --- selector options: foods + meals combined (entry.py update_food_options) ---
@@ -495,7 +516,7 @@ export default function EntryClient({
             suggestions={planSuggestions.filter((s) => !dismissed.has(s.id))}
             pending={isPending}
             onAdd={handleAddSuggestion}
-            onDismiss={(id) => setDismissed((d) => new Set(d).add(id))}
+            onDismiss={handleDismissSuggestion}
           />
 
           <div className="intake-header" style={{ marginTop: 16 }}>
