@@ -15,12 +15,34 @@ export interface NavUser {
   email?: string | null;
 }
 
-export default function Navbar({ user = null }: { user?: NavUser | null }) {
+export default function Navbar({
+  user = null,
+  gated = false,
+}: {
+  user?: NavUser | null;
+  /** The consent gate is showing — hide the app nav (and the Export action in
+   *  the account menu) so it can't be used before consent; keep only the brand
+   *  and links to the still-reachable notice/contact pages. */
+  gated?: boolean;
+}) {
   const pathname = usePathname();
   // The sign-in / access-denied pages are pre-auth and stand on their own (the
   // card carries the full brand identity): no navbar at all, for a clean canvas.
   const authPage = pathname === "/signin" || pathname === "/denied";
   if (authPage) return null;
+  if (gated) {
+    return (
+      <nav className="navbar">
+        <div className="navbar-inner">
+          <span className="navbar-brand">Nutritional</span>
+          <div className="navbar-links">
+            <Link href="/privacy" className="nav-link">Privacy</Link>
+            <Link href="/contact" className="nav-link">Contact</Link>
+          </div>
+        </div>
+      </nav>
+    );
+  }
   return (
     <nav className="navbar">
       <div className="navbar-inner">

@@ -151,8 +151,8 @@ export default function PrivacyPage() {
       <h2>Complaints</h2>
       <p>
         If you are unhappy with how we handle your data, please tell us first
-        through the <Link href="/contact">contact form</Link> so we can put it
-        right. You also have the right to complain to the UK Information
+        through the <Link href="/contact">contact form</Link>{" "}so we can put
+        it right. You also have the right to complain to the UK Information
         Commissioner&rsquo;s Office (ICO) at{" "}
         <a href="https://ico.org.uk/make-a-complaint/" rel="noopener noreferrer">
           ico.org.uk/make-a-complaint

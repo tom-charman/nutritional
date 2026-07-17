@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { submitPrivacyRequest } from "@/app/actions/privacy";
-import type { SubmitState } from "@/lib/privacy/requests";
+import { MAX_MESSAGE, type SubmitState } from "@/lib/privacy/requests";
 
 const INITIAL: SubmitState = { status: "idle" };
 
@@ -36,7 +37,15 @@ export default function ContactForm() {
   }
 
   return (
-    <form action={formAction}>
+    <>
+      <p className="contact-intro">
+        Use this form to ask for a copy of your data, export or correct it,
+        request deletion, withdraw consent, or make a complaint. We may need to
+        verify your identity before acting, and we&rsquo;ll respond within one
+        month. See the <Link href="/privacy">privacy notice</Link> for detail on
+        your rights.
+      </p>
+      <form action={formAction}>
       <div className="contact-field">
         <label htmlFor="requestType">What can we help with?</label>
         <select id="requestType" name="requestType" defaultValue="" required>
@@ -64,7 +73,8 @@ export default function ContactForm() {
 
       <div className="contact-field">
         <label htmlFor="message">Your request</label>
-        <textarea id="message" name="message" rows={6} required />
+        <textarea id="message" name="message" rows={6} maxLength={MAX_MESSAGE} required />
+        <p className="contact-field-hint">Up to {MAX_MESSAGE.toLocaleString("en-GB")} characters.</p>
       </div>
 
       {/* Honeypot: hidden from humans, attractive to bots. */}
@@ -82,6 +92,7 @@ export default function ContactForm() {
           {state.error}
         </p>
       )}
-    </form>
+      </form>
+    </>
   );
 }

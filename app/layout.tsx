@@ -60,7 +60,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <Navbar user={user} />
+        <Navbar user={user} gated={showConsentGate} />
         <main className="app-container">
           {showConsentGate ? <ConsentGate /> : children}
         </main>

@@ -367,6 +367,8 @@ p {
     position: absolute;
     top: calc(100% + 6px);
     min-width: 200px;
+    /* Never wider than the viewport (the Planning menu is near the right edge). */
+    max-width: calc(100vw - 16px);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -377,6 +379,14 @@ p {
 
 .nav-menu-panel-left {
     left: 0;
+}
+
+/* On phones a left-anchored menu near the right edge overflows — anchor right. */
+@media (max-width: 768px) {
+    .nav-menu-panel-left {
+        left: auto;
+        right: 0;
+    }
 }
 
 .nav-menu-panel-right {
@@ -618,6 +628,7 @@ button, .btn {
     font-size: var(--font-size-sm);
     font-family: var(--font-primary);
     letter-spacing: 0;
+    text-decoration: none; /* anchors styled as buttons (e.g. /denied Sign in) */
     transition: background-color var(--dur-quick) var(--ease-press),
                 border-color var(--dur-quick) var(--ease-press),
                 box-shadow var(--dur-quick) var(--ease-press),
@@ -2943,12 +2954,23 @@ button.ingredient-name-swap:hover {
     margin-bottom: var(--space-xl);
 }
 
+.contact-intro {
+    color: var(--text-body);
+    margin-bottom: var(--space-lg);
+}
+
 .contact-field {
     margin-bottom: var(--space-md);
 }
 
 .contact-field label {
     display: block;
+}
+
+.contact-field-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: 4px 0 0;
 }
 
 /* Honeypot — off-screen, not a tab stop; real users never see or fill it. */

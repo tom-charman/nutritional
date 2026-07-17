@@ -17,6 +17,7 @@ import {
   loadMeals,
 } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
+import { needsHealthConsent } from "@/lib/data/consent";
 import { collectAllUserData } from "@/lib/data/gdpr";
 import {
   prepareCaloriesWeight,
@@ -27,6 +28,16 @@ import type { DailyTargets } from "@/lib/domain/types";
 import type { CsvValue } from "@/lib/export/csv";
 import { round2, toCsv } from "@/lib/export/csv";
 import { buildDailyTotalsRows } from "@/lib/export/dailyTotals";
+
+/** The authenticated user id, but only once health-data consent is on file —
+ *  a health-data export must never run while the consent gate is up. */
+async function requireConsentedUserId(): Promise<string> {
+  const userId = await requireUserId();
+  if (await needsHealthConsent()) {
+    throw new Error("Health-data consent is required before exporting.");
+  }
+  return userId;
+}
 
 export interface CsvPayload {
   ok: true;
@@ -86,7 +97,7 @@ export async function exportCaloriesWeightCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const data = prepareCaloriesWeight(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const headers = [
     "date",
@@ -111,7 +122,7 @@ export async function exportMacroBreakdownCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const data = prepareMacroBreakdown(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const headers = [
     "date",
@@ -140,7 +151,7 @@ export async function exportNutrientsRdiCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const data = prepareNutrientsRdi(await summariesUpToYesterday(userId), ROLLING_WINDOW_DAYS);
   const keys = Object.keys(data.series);
   const headers = ["date", ...keys.map((k) => `${k}_pct_rdi`)];
@@ -164,7 +175,7 @@ export async function exportDailyTotalsCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const summaries = (await summariesUpToYesterday(userId)).filter(
     (s) => s.date >= from && s.date <= to,
   );
@@ -185,7 +196,7 @@ export async function exportDailyEntriesCsv(
   const invalid = validateRange(from, to);
   if (invalid) return invalid;
 
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const headers = [
     "date",
     "timestamp",
@@ -245,7 +256,7 @@ export async function exportDailyEntriesCsv(
  * rows, ignores the date range.
  */
 export async function exportAllDataJson(): Promise<JsonExportResult> {
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const data = await collectAllUserData(db, userId);
   const today = new Date().toISOString().slice(0, 10);
   return {
@@ -257,7 +268,7 @@ export async function exportAllDataJson(): Promise<JsonExportResult> {
 
 /** Meal templates — one row per ingredient. Ignores the date range. */
 export async function exportMealsCsv(): Promise<ExportResult> {
-  const userId = await requireUserId();
+  const userId = await requireConsentedUserId();
   const meals = await loadMeals(db, userId);
   const headers = [
     "meal_name",

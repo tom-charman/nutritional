@@ -1,4 +1,3 @@
-import Link from "next/link";
 import ContactForm from "@/components/ContactForm";
 
 /**
@@ -14,13 +13,8 @@ export default function ContactPage() {
   return (
     <article className="legal-page">
       <h1>Contact &amp; privacy requests</h1>
-      <p>
-        Use this form to ask for a copy of your data, export or correct it,
-        request deletion, withdraw consent, or make a complaint. We may need to
-        verify your identity before acting, and we&rsquo;ll respond within one
-        month. See the <Link href="/privacy">privacy notice</Link> for detail on
-        your rights.
-      </p>
+      {/* The intro lives inside ContactForm so it's replaced by the confirmation
+          on success (no stale "use this form to…" above the thank-you). */}
       <ContactForm />
     </article>
   );
