@@ -1324,6 +1324,21 @@ input[type="checkbox"]:focus {
     gap: 8px;
 }
 
+/* On phones the bottom-right anchor sits on top of interactive columns (saved
+   recipes' controls, the weight fields it's reporting on). Centre it above the
+   safe area and align items so it covers no single control. */
+@media (max-width: 768px) {
+    .toast-container {
+        right: 12px;
+        left: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        align-items: center;
+    }
+    .toast {
+        max-width: 100%;
+    }
+}
+
 .toast {
     color: white;
     padding: 10px 16px;
