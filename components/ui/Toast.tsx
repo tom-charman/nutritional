@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 export interface ToastMessage {
   id: number;
-  kind: "success" | "error";
+  kind: "success" | "error" | "info";
   text: string;
 }
 
@@ -60,17 +60,15 @@ export default function ToastContainer({
   return (
     <div className="toast-container">
       {visible.map((t) => {
-        const ok = t.kind === "success";
+        const icon = t.kind === "success" ? "✓" : t.kind === "info" ? "·" : "!";
         return (
           <div
             key={t.id}
             role="status"
-            className={`toast toast-${ok ? "success" : "error"}${
-              leaving.has(t.id) ? " leaving" : ""
-            }`}
+            className={`toast toast-${t.kind}${leaving.has(t.id) ? " leaving" : ""}`}
           >
             <span className="toast-icon" aria-hidden="true">
-              {ok ? "✓" : "!"}
+              {icon}
             </span>
             {t.text}
           </div>

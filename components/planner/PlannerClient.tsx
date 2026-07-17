@@ -127,20 +127,21 @@ export default function PlannerClient({
   // --- toasts (ref counter keeps id derivation out of a setState updater) ---
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
-  const pushToast = useCallback((text: string, ok: boolean) => {
+  const pushToast = useCallback((text: string, ok: boolean, tone?: "info") => {
     if (!text) return;
     toastId.current += 1;
-    setToasts((t) => [...t, { id: toastId.current, kind: ok ? "success" : "error", text }]);
+    const kind = tone === "info" ? "info" : ok ? "success" : "error";
+    setToasts((t) => [...t, { id: toastId.current, kind, text }]);
   }, []);
   const dismissToast = useCallback((id: number) => {
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
   const run = useCallback(
-    (fn: () => Promise<{ ok: boolean; message: string }>) => {
+    (fn: () => Promise<{ ok: boolean; message: string; tone?: "info" }>) => {
       startTransition(async () => {
         const res = await fn();
-        pushToast(res.message, res.ok);
+        pushToast(res.message, res.ok, res.tone);
         router.refresh();
       });
     },
@@ -484,12 +485,22 @@ export default function PlannerClient({
         <p className="planner-empty-aside">An open week. Pick a food or meal above and choose the days it lands on.</p>
       )}
 
+      {!empty && (
+        <p className="planner-legend">
+          <span className="planner-verdict met" aria-hidden="true">✓</span> on target
+          {" · "}
+          <span className="planner-verdict warn" aria-hidden="true">⚠</span> a target missed or a limit exceeded
+        </p>
+      )}
+
       <div className="planner-week">
         {dates.map((date, i) => {
           const isToday = date === today;
           const planned = aggregate.byDay[date] ?? null;
           const verdict = verdicts[date];
           const items = byDay.get(date) ?? [];
+          // "Copy from <prev>" is only a real action when the source day has items.
+          const canCopyFromPrev = i > 0 && (byDay.get(dates[i - 1]) ?? []).length > 0;
           return (
             <section
               key={date}
@@ -508,7 +519,7 @@ export default function PlannerClient({
                   <KebabMenu label={`${WEEKDAY[i]} actions`} testId={`day-menu-${i}`} compact>
                     {(close) => (
                       <>
-                        {i > 0 && (
+                        {canCopyFromPrev && (
                           <button
                             type="button"
                             role="menuitem"
@@ -930,7 +941,14 @@ function WeekSummary({
         </span>
       </p>
 
-      <MacroBreakdownChart data={weeklyMacroBreakdown(dates, aggregate.byDay)} />
+      {/* Relabel the chart's per-day readout so it doesn't collide with the
+          week's own "kcal total" above it, and use the legend (not right-edge
+          band labels) so sparse weeks don't detach the labels from the bands. */}
+      <MacroBreakdownChart
+        data={weeklyMacroBreakdown(dates, aggregate.byDay)}
+        readoutTotalLabel="latest day"
+        forceLegend
+      />
     </section>
   );
 }

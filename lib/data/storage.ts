@@ -1168,6 +1168,11 @@ export async function copyPlanDay(
     .where(and(eq(mealPlanItems.userId, userId), eq(mealPlanItems.planDate, fromDate)))
     .orderBy(asc(mealPlanItems.position));
   if (rows.length === 0) return 0;
+  // Replace the destination day (not append) so repeat copies don't stack
+  // duplicate rows onto the same day.
+  await db
+    .delete(mealPlanItems)
+    .where(and(eq(mealPlanItems.userId, userId), eq(mealPlanItems.planDate, toDate)));
   await db.insert(mealPlanItems).values(
     rows.map((r) => ({
       planId,
