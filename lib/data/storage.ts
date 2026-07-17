@@ -184,6 +184,45 @@ export async function loadFoodDatabase(db: DB, userId: string): Promise<FoodItem
 }
 
 /**
+ * The foods-editor list, tagged with whether each row is the user's OWN food
+ * (a private add or an override) vs a shared canonical row. Only owned rows are
+ * deletable, so the editor uses this to show the delete affordance honestly
+ * (see components/foods/FoodsClient.tsx) instead of offering it on every row.
+ */
+export async function loadFoodDatabaseWithOwnership(
+  db: DB,
+  userId: string,
+): Promise<(FoodItem & { owned: boolean })[]> {
+  const rows = await db
+    .select()
+    .from(foodItems)
+    .where(visibleFoods(db, userId))
+    .orderBy(asc(foodItems.name));
+  return rows.map((r) => ({ ...rowToFoodItem(r), owned: r.userId === userId }));
+}
+
+/**
+ * Classify a food for the delete path: "owned" (the user's own row — deletable,
+ * subject to FK guards), "shared" (a canonical row nobody can delete), or
+ * "absent" (no such food). Lets deleteFoodAction give an honest reason instead
+ * of a misleading "not found" for the shared foods that dominate every list.
+ */
+export async function getFoodOwnership(
+  db: DB,
+  userId: string,
+  foodId: string,
+): Promise<"owned" | "shared" | "absent"> {
+  const id = foodId.startsWith("food:") ? foodId.slice(5) : foodId;
+  const rows = await db
+    .select({ userId: foodItems.userId })
+    .from(foodItems)
+    .where(eq(foodItems.id, id))
+    .limit(1);
+  if (!rows.length) return "absent";
+  return rows[0].userId === userId ? "owned" : "shared";
+}
+
+/**
  * Distinct foods the user has logged, ranked by recency (most-recent
  * `entry_date` first) then frequency (the "favourite" signal). Powers the
  * pinned "Recent" section atop the entry-page selector. Uses the existing
