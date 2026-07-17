@@ -16,6 +16,10 @@ import {
 import type { FoodItem } from "@/lib/domain/types";
 import ToastContainer, { type ToastMessage } from "@/components/ui/Toast";
 
+/** A food row tagged with whether the current user owns it (deletable) vs a
+ *  shared canonical food (not user-deletable). */
+type EditableFood = FoodItem & { owned: boolean };
+
 interface FormState {
   id: string | null;
   name: string;
@@ -58,11 +62,20 @@ function foodToForm(food: FoodItem): FormState {
 /** Cap rendered rows — the DB can hold hundreds of foods; search narrows it. */
 const LIST_CAP = 50;
 
-export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[] }) {
+export default function FoodsClient({ initialFoods }: { initialFoods: EditableFood[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState | null>(null);
   const [isPending, startTransition] = useTransition();
+  // A pending two-step delete confirmation (the food id awaiting a confirm click).
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // Set when the unit type is flipped with nutrient values present — the numbers
+  // are NOT converted, so warn the user to re-enter them against the new basis.
+  const [basisWarning, setBasisWarning] = useState(false);
+  // Inline error for the serving-size field (required for per-item foods).
+  const [servingError, setServingError] = useState(false);
+  const servingRef = useRef<HTMLInputElement>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   // toasts — the one feedback pattern used on every page
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -93,8 +106,31 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
     return base;
   }, [filtered, form?.id, initialFoods]);
 
+  /** Open a food (or a fresh form) in the editor, resetting transient UI state. */
+  const openForm = useCallback((next: FormState) => {
+    setForm(next);
+    setBasisWarning(false);
+    setServingError(false);
+    setPendingDelete(null);
+    // On mobile the list stacks above the editor; scroll it into view so the
+    // tap has a visible result instead of silently rendering below the fold.
+    requestAnimationFrame(() => {
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }, []);
+
   function handleSave() {
     if (!form) return;
+    // Inline validation: a per-item food needs a serving size. Surface it on the
+    // field itself (focus + error) rather than only via a far-away toast.
+    if (form.unit_type === "per_item" && form.serving_size_g.trim() === "") {
+      setServingError(true);
+      servingRef.current?.focus();
+      pushToast("Serving size is required for per-item foods", false);
+      return;
+    }
     startTransition(async () => {
       const parseNum = (s: string) => (s.trim() === "" ? null : Number(s));
       const result = await saveFoodAction({
@@ -109,6 +145,8 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
       pushToast(result.message, result.ok);
       if (result.ok) {
         setForm(null);
+        setBasisWarning(false);
+        setServingError(false);
         router.refresh();
       }
     });
@@ -118,6 +156,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
     startTransition(async () => {
       const result = await deleteFoodAction(foodId);
       pushToast(result.message, result.ok);
+      setPendingDelete(null);
       if (result.ok) {
         if (form?.id === foodId) setForm(null);
         router.refresh();
@@ -136,7 +175,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button className="btn-primary" onClick={() => setForm({ ...EMPTY_FORM })}>
+          <button className="btn-primary" onClick={() => openForm({ ...EMPTY_FORM })}>
             + New Food
           </button>
         </div>
@@ -153,23 +192,65 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                 <div
                   key={food.id}
                   className={`master-list-item${form?.id === food.id ? " selected" : ""}`}
-                  onClick={() => setForm(foodToForm(food))}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Edit ${food.name}`}
+                  onClick={() => openForm(foodToForm(food))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openForm(foodToForm(food));
+                    }
+                  }}
                 >
                   <span className="master-list-item-name">{food.name}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span className="master-list-item-badge">
-                      {food.unit_type === "per_100g" ? "Per 100g" : "Per item"}
+                      {food.unit_type === "per_100g" ? "Per 100g" : "Per Item"}
                     </span>
-                    <button
-                      className="delete-icon"
-                      title="Delete food"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(food.id);
-                      }}
-                    >
-                      ✕
-                    </button>
+                    {/* Only the user's own foods are deletable; canonical/shared
+                        foods show no delete affordance (they can't be removed). */}
+                    {food.owned &&
+                      (pendingDelete === food.id ? (
+                        <span
+                          className="delete-confirm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="delete-confirm-yes"
+                            title={`Delete ${food.name}`}
+                            disabled={isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(food.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                          <button
+                            className="delete-confirm-no"
+                            title="Keep"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPendingDelete(null);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          className="delete-icon"
+                          title="Delete food"
+                          aria-label={`Delete ${food.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPendingDelete(food.id);
+                          }}
+                        >
+                          ✕
+                        </button>
+                      ))}
                   </span>
                 </div>
               ))
@@ -182,7 +263,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
           </div>
         </div>
 
-        <div className="detail-panel">
+        <div className="detail-panel" ref={detailRef}>
           {form === null ? (
             <p className="empty-state-message">
               Select a food from the list or click &lsquo;+ New Food&rsquo; to begin.
@@ -213,9 +294,13 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                         type="radio"
                         name="unit-type"
                         checked={form.unit_type === "per_100g"}
-                        onChange={() =>
-                          setForm({ ...form, unit_type: "per_100g", serving_size_g: "" })
-                        }
+                        onChange={() => {
+                          if (form.unit_type !== "per_100g" && hasNutrientValues(form)) {
+                            setBasisWarning(true);
+                          }
+                          setServingError(false);
+                          setForm({ ...form, unit_type: "per_100g", serving_size_g: "" });
+                        }}
                       />{" "}
                       Per 100g
                     </label>
@@ -224,7 +309,12 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                         type="radio"
                         name="unit-type"
                         checked={form.unit_type === "per_item"}
-                        onChange={() => setForm({ ...form, unit_type: "per_item" })}
+                        onChange={() => {
+                          if (form.unit_type !== "per_item" && hasNutrientValues(form)) {
+                            setBasisWarning(true);
+                          }
+                          setForm({ ...form, unit_type: "per_item" });
+                        }}
                       />{" "}
                       Per Item
                     </label>
@@ -234,23 +324,43 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
                   <label className="form-label">
                     Serving Size (g)
                     {form.unit_type === "per_item" && (
-                      <span className="required-mark"> *</span>
+                      <span className="required-mark" title="Required"> *</span>
                     )}
                   </label>
                   <input
+                    ref={servingRef}
                     type="number"
                     min={0}
                     step={0.1}
+                    className={servingError ? "input-error" : undefined}
+                    aria-invalid={servingError || undefined}
                     disabled={form.unit_type === "per_100g"}
-                    placeholder="Required for per-item"
+                    placeholder={
+                      form.unit_type === "per_item" ? "Required for per-item" : ""
+                    }
                     value={form.serving_size_g}
-                    onChange={(e) => setForm({ ...form, serving_size_g: e.target.value })}
+                    onChange={(e) => {
+                      setServingError(false);
+                      setForm({ ...form, serving_size_g: e.target.value });
+                    }}
                   />
                 </div>
               </div>
 
-              <div className="section-label">Nutrients ({form.unit_type === "per_100g" ? "per 100g" : "per item"})</div>
-              <p className="field-hint">A blank field is recorded as 0.</p>
+              <div className="section-label">
+                Nutrients ({form.unit_type === "per_100g" ? "per 100g" : "per item"})
+              </div>
+              {basisWarning ? (
+                <p className="field-hint field-hint-warn">
+                  Unit type changed — these values were <strong>not</strong> converted.
+                  Re-enter them {form.unit_type === "per_100g" ? "per 100g" : "for one item"}.
+                </p>
+              ) : (
+                <p className="field-hint">
+                  A blank field is recorded as 0.
+                  {form.unit_type === "per_item" && " Fields marked * are required."}
+                </p>
+              )}
               <div className="editor-grid">
                 {NUTRIENT_KEYS.map((key) => (
                   <div key={key} className="compact-input">
@@ -272,7 +382,7 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
               </div>
 
               <div className="editor-actions">
-                <button className="btn-secondary" onClick={() => setForm({ ...EMPTY_FORM })}>
+                <button className="btn-secondary" onClick={() => openForm({ ...EMPTY_FORM })}>
                   Clear
                 </button>
                 <button className="btn-secondary" onClick={() => setForm(null)}>
@@ -290,4 +400,9 @@ export default function FoodsClient({ initialFoods }: { initialFoods: FoodItem[]
       <ToastContainer toasts={toasts} dismiss={dismissToast} />
     </div>
   );
+}
+
+/** True if the form has any non-blank nutrient value (so a unit flip matters). */
+function hasNutrientValues(form: FormState): boolean {
+  return NUTRIENT_KEYS.some((k) => form.nutrients[k].trim() !== "");
 }

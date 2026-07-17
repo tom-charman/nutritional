@@ -1457,16 +1457,26 @@ input[type="checkbox"]:focus {
 }
 
 .delete-icon {
-    color: var(--text-disabled);
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 16px;
     font-family: 'Georgia', serif;
     padding: 4px;
+    /* ~40px comfortable tap target (esp. on touch) without growing the row. */
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: color 0.2s ease;
     font-weight: bold;
     background: transparent;
     border: none;
     height: auto;
+}
+.delete-icon:hover,
+.delete-icon:focus-visible {
+    color: var(--danger);
 }
 
 .ingredient-item:hover .delete-icon {
@@ -1532,6 +1542,11 @@ input[type="checkbox"]:focus {
     font-weight: var(--font-weight-medium);
     color: var(--text-main);
     font-family: var(--font-mono);
+    /* Let a long name ellipsize instead of shoving the badge onto a new line. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .master-list-item-badge {
@@ -1541,6 +1556,34 @@ input[type="checkbox"]:focus {
     background: var(--background);
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Two-step inline delete confirmation (no modal — a sharp tool asks once). */
+.delete-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.delete-confirm-yes,
+.delete-confirm-no {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: var(--surface);
+}
+.delete-confirm-yes {
+    color: var(--danger-text);
+    background: var(--danger-bg);
+    border-color: var(--danger);
+}
+.delete-confirm-no {
+    color: var(--text-muted);
 }
 
 /* Detail Editor Grid */
@@ -1897,6 +1940,16 @@ input[type="radio"] {
     font-size: var(--font-size-xs);
     color: var(--text-muted);
     margin: -4px 0 10px;
+}
+/* A hint that warns rather than informs (e.g. a unit flip did not convert values). */
+.field-hint-warn {
+    color: var(--danger-text);
+}
+/* An input whose value was rejected inline (rust hairline + focus ring). */
+.input-error,
+.input-error:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 2px var(--danger-bg);
 }
 
 /* Inline quick-add form on the entry page. */
@@ -2918,6 +2971,12 @@ button.ingredient-name-swap:hover {
     .master-panel,
     .detail-panel {
         width: 100%;
+    }
+
+    /* Cap the (up to 50-row) list so the stacked editor below stays reachable —
+       otherwise selecting a food renders the form thousands of px down. */
+    .master-list {
+        max-height: 45vh;
     }
 
     .editor-grid {

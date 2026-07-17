@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db/client";
-import { deleteFoodItem, saveFoodItem } from "@/lib/data/storage";
+import { deleteFoodItem, getFoodOwnership, saveFoodItem } from "@/lib/data/storage";
 import { requireUserId } from "@/lib/data/user";
 import type { FoodItem } from "@/lib/domain/types";
 import { NUTRIENT_KEYS, type Nutrients, type UnitType } from "@/lib/constants";
@@ -83,6 +83,13 @@ function errorChainMatches(e: unknown, pattern: RegExp): boolean {
 export async function deleteFoodAction(foodId: string): Promise<ActionResult> {
   try {
     const userId = await requireUserId();
+    // Give an honest reason rather than a misleading "not found": shared
+    // (canonical) foods make up most of every list and are not user-deletable.
+    const ownership = await getFoodOwnership(db, userId, foodId);
+    if (ownership === "absent") return { ok: false, message: "Food item not found" };
+    if (ownership === "shared") {
+      return { ok: false, message: "This is a shared food and can't be deleted" };
+    }
     const deleted = await deleteFoodItem(db, userId, foodId);
     if (!deleted) return { ok: false, message: "Food item not found" };
   } catch (e) {
