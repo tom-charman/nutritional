@@ -27,14 +27,24 @@ export default function EditableAmount({
   const [invalid, setInvalid] = useState(false);
 
   if (!editing) {
+    const startEditing = () => {
+      setDraft(String(value));
+      setInvalid(false);
+      setEditing(true);
+    };
     return (
       <span
         className="ingredient-weight editable"
+        role="button"
+        tabIndex={0}
+        aria-label={`Edit amount (${display})`}
         title="Click to edit"
-        onClick={() => {
-          setDraft(String(value));
-          setInvalid(false);
-          setEditing(true);
+        onClick={startEditing}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            startEditing();
+          }
         }}
       >
         {display}

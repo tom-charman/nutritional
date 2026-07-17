@@ -30,6 +30,7 @@ import {
 } from "@/lib/constants";
 import { calculateNutrients, dailyTotals, scaleNutrients, sumNutrients } from "@/lib/domain/nutrients";
 import { formatConsumed, mealAmountConfig, mealConsumedToFactor } from "@/lib/domain/meals";
+import { formatKcal } from "@/lib/format";
 import { calorieStatus } from "@/lib/domain/targets";
 import {
   type DailyData,
@@ -518,7 +519,7 @@ export default function EntryClient({
               {calStatus.status === "over" ? "Calories Over" : "Calories Remaining"}
             </div>
             <div className={`calories-remaining-number${statusClass}`}>
-              {calStatus.status === "over" ? calStatus.over : calStatus.remaining}
+              {formatKcal(calStatus.status === "over" ? calStatus.over : calStatus.remaining)}
             </div>
             <div className="calorie-status-indicator">{calStatus.statusText}</div>
           </div>

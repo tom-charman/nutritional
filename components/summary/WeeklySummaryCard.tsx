@@ -9,6 +9,7 @@
  * neutral ink — the sign + words carry direction, never colour (brand rule).
  */
 import type { ReactNode } from "react";
+import { formatKcal } from "@/lib/format";
 import type { WeeklyReadout } from "@/lib/domain/summary/weekly";
 
 const MONTHS_SHORT = [
@@ -21,7 +22,7 @@ function fmtDate(iso: string): string {
   return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-const kcal = (v: number) => `${Math.round(v).toLocaleString("en-GB")} kcal`;
+const kcal = (v: number) => `${formatKcal(v)} kcal`;
 
 /** The goal + projection block (shown when a goal is set). */
 function GoalBlock({ readout, onSetGoal }: { readout: WeeklyReadout; onSetGoal: () => void }) {

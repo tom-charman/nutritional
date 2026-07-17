@@ -5,6 +5,7 @@
  * is derived from the user's consumed amount according to the meal's yield mode.
  */
 import type { MealYieldMode } from "@/lib/constants";
+import { formatAmount } from "@/lib/format";
 import type { Meal } from "./types";
 
 type MealYield = Pick<Meal, "yield_mode" | "yield_weight_g" | "yield_count">;
@@ -34,10 +35,9 @@ export function mealFactorToConsumed(meal: MealYield, factor: number): number {
   return factor;
 }
 
-/** Integer when whole, else one decimal — matches the amount display elsewhere. */
-function fmtNum(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
-}
+/** Amount at the stored 2-dp precision (trailing zeros dropped), so the shown
+ *  amount always equals the stored value and the inline editor's read-back. */
+const fmtNum = formatAmount;
 
 /** Human label for a consumed amount, e.g. "150 g", "×2", "1 portion". */
 export function formatConsumed(mode: MealYieldMode, amount: number): string {
