@@ -30,6 +30,7 @@ import {
 } from "@/lib/constants";
 import { calculateNutrients, dailyTotals, scaleNutrients, sumNutrients } from "@/lib/domain/nutrients";
 import { formatConsumed, mealAmountConfig, mealConsumedToFactor } from "@/lib/domain/meals";
+import { formatKcal } from "@/lib/format";
 import { calorieStatus } from "@/lib/domain/targets";
 import {
   type DailyData,
@@ -311,6 +312,8 @@ export default function EntryClient({
     morning: initialDay.measurements.morning_weight_kg,
     evening: initialDay.measurements.evening_weight_kg,
   });
+  // Opener of the targets modal — focus returns here on close (a11y).
+  const editTargetsBtnRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     savedWeights.current = {
       morning: initialDay.measurements.morning_weight_kg,
@@ -320,7 +323,8 @@ export default function EntryClient({
 
   const handleWeightBlur = (which: "morning" | "evening") =>
     (e: React.FocusEvent<HTMLInputElement>) => {
-      const raw = e.target.value.trim();
+      const input = e.target;
+      const raw = input.value.trim();
       const v = raw === "" ? null : Number(raw);
       const normalized = v !== null && v > 0 ? v : null;
       const prev = savedWeights.current[which];
@@ -329,9 +333,15 @@ export default function EntryClient({
       startTransition(async () => {
         const result = await updateWeightAction(date, which, v);
         if (!result.ok) {
+          // Reset the field to the last-known-good value so a rejected weight
+          // doesn't sit there looking saved after the toast fades.
           savedWeights.current[which] = prev;
+          input.value = prev !== null ? String(prev) : "";
           pushToast(result.message, false);
         } else {
+          // Confirm the save (and surface the implausible-value nudge, which was
+          // previously dead code — the only lb/kg guard on the trend engine).
+          pushToast(result.message, true);
           router.refresh();
         }
       });
@@ -392,7 +402,11 @@ export default function EntryClient({
         </div>
         <div className="daily-summary-bar">
           {/* figures live in the calories card + pigment channels below */}
-          <button className="btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
+          <button
+            ref={editTargetsBtnRef}
+            className="btn-secondary btn-sm"
+            onClick={() => setModalOpen(true)}
+          >
             Edit Targets
           </button>
         </div>
@@ -518,7 +532,7 @@ export default function EntryClient({
               {calStatus.status === "over" ? "Calories Over" : "Calories Remaining"}
             </div>
             <div className={`calories-remaining-number${statusClass}`}>
-              {calStatus.status === "over" ? calStatus.over : calStatus.remaining}
+              {formatKcal(calStatus.status === "over" ? calStatus.over : calStatus.remaining)}
             </div>
             <div className="calorie-status-indicator">{calStatus.statusText}</div>
           </div>
@@ -602,7 +616,10 @@ export default function EntryClient({
         <TargetsModal
           date={date}
           initial={targets}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            editTargetsBtnRef.current?.focus(); // restore focus to the opener
+          }}
           onSaved={(msg, ok) => {
             pushToast(msg, ok);
             if (ok) router.refresh();

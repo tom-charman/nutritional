@@ -1717,6 +1717,13 @@ input[type="radio"] {
     padding: var(--space-xl);
 }
 
+/* One-line explanation under a modal title (e.g. Target vs Limit). */
+.modal-subtitle {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin: -8px 0 var(--space-md);
+}
+
 .modal-footer {
     padding: var(--space-lg) var(--space-xl);
     border-top: 1px solid var(--border);
@@ -1822,6 +1829,14 @@ input[type="radio"] {
     color: var(--primary);
     font-weight: var(--font-weight-semibold);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Comfortable tap target on touch without changing the debossed look. */
+@media (max-width: 768px) {
+    .mode-toggle-option {
+        height: 40px;
+        padding: 0 16px;
+    }
 }
 
 /* Targets grid in modal */
@@ -2712,6 +2727,9 @@ button.ingredient-name-swap:hover {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--text-muted);
+    /* Keep "×N · M ingredients" together so a long recipe name can't split
+       the meta onto a broken second line. */
+    white-space: nowrap;
 }
 
 .meal-entry-ingredients {

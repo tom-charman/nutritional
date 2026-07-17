@@ -671,6 +671,39 @@ export async function getAllDates(db: DB, userId: string): Promise<string[]> {
 
 // ============= Measurements =============
 
+/**
+ * The most recent recorded body weight (morning preferred, else evening) on or
+ * before `date`, excluding `date` itself. A reference point for the
+ * implausible-value nudge — a fixed 30–300 kg band can't catch the common
+ * lb/kg slip, but a large jump from the last real weigh-in can.
+ */
+export async function getRecentWeightKg(
+  db: DB,
+  userId: string,
+  date: string,
+): Promise<number | null> {
+  const rows = await db
+    .select({
+      morning: dailySummaries.morningWeightKg,
+      evening: dailySummaries.eveningWeightKg,
+    })
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        lt(dailySummaries.summaryDate, date),
+        or(
+          isNotNull(dailySummaries.morningWeightKg),
+          isNotNull(dailySummaries.eveningWeightKg),
+        ),
+      ),
+    )
+    .orderBy(desc(dailySummaries.summaryDate))
+    .limit(1);
+  if (!rows.length) return null;
+  return num(rows[0].morning) ?? num(rows[0].evening);
+}
+
 export async function updateMeasurements(
   db: DB,
   userId: string,

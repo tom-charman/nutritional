@@ -8,13 +8,14 @@
 import { useState } from "react";
 import { mealEntryTotals } from "@/lib/domain/nutrients";
 import { formatConsumed } from "@/lib/domain/meals";
+import { formatAmount, formatKcal } from "@/lib/format";
 import type { DayEntry, FoodEntry } from "@/lib/domain/types";
 import EditableAmount from "@/components/ui/EditableAmount";
 import Combobox, { type ComboOption } from "@/components/ui/Combobox";
 
 function amountText(e: FoodEntry): string {
-  if (e.weight_g !== null) return `${Number.isInteger(e.weight_g) ? e.weight_g : e.weight_g.toFixed(1)} g`;
-  return `× ${e.quantity}`;
+  if (e.weight_g !== null) return `${formatAmount(e.weight_g)} g`;
+  return `× ${formatAmount(e.quantity ?? 0)}`;
 }
 
 function FoodRow({
@@ -71,7 +72,7 @@ function FoodRow({
         />
       </div>
       <span className="ingredient-calories">
-        {Math.round(entry.nutrients.energy_kcal)} kcal
+        {formatKcal(entry.nutrients.energy_kcal)} kcal
       </span>
       <button className="delete-icon" title="Remove entry" onClick={onRemove}>
         ×
@@ -132,7 +133,21 @@ export default function EntriesList({
         const totals = mealEntryTotals(meal);
         return (
           <div key={meal.meal_log_id} className="ingredient-item" style={{ display: "block" }}>
-            <div className="meal-entry-header" onClick={() => toggle(meal.meal_log_id)}>
+            <div
+              className="meal-entry-header"
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              onClick={() => toggle(meal.meal_log_id)}
+              onKeyDown={(ev) => {
+                // Only the header itself toggles — not Enter inside the inline
+                // portions editor or on the delete button nested within it.
+                if ((ev.key === "Enter" || ev.key === " ") && ev.target === ev.currentTarget) {
+                  ev.preventDefault();
+                  toggle(meal.meal_log_id);
+                }
+              }}
+            >
               <span>
                 <span className="meal-entry-name">
                   {isOpen ? "▾" : "▸"} {meal.meal_name}
@@ -163,7 +178,7 @@ export default function EntriesList({
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span className="ingredient-calories">
-                  {Math.round(totals.energy_kcal)} kcal
+                  {formatKcal(totals.energy_kcal)} kcal
                 </span>
                 <button
                   className="delete-icon"
